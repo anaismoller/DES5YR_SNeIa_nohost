@@ -27,6 +27,30 @@ mpl.rcParams["lines.linewidth"] = 3
 colors = ["grey"] + pu.ALL_COLORS
 
 
+def fup_criteria(df_sel):
+    to_fup_24_psnid = df_sel[df_sel["HOSTGAL_MAG_r"] < 24]
+    print(
+        "# hosts r<24 that could be followed-up", len(to_fup_24_psnid),
+    )
+    to_fup_24_nozspe_psnid = df_sel[
+        (df_sel["HOSTGAL_MAG_r"] < 24) & (df_sel["REDSHIFT_FINAL"] < 0)
+    ]
+    print(
+        "  and without spec redshift in database", len(to_fup_24_nozspe_psnid),
+    )
+    return to_fup_24_psnid, to_fup_24_nozspe_psnid
+
+
+def overlap_photoIa(df_sel, photoIa_wz, photoIa_wz_JLA, mssg=""):
+    # some stats on this sample
+    print(
+        f"Overlap {mssg} with photoIa_wz {len(df_sel[df_sel.SNID.isin(photoIa_wz.SNID.values)])} ~ {round(100*len(df_sel[df_sel.SNID.isin(photoIa_wz.SNID.values)])/len(photoIa_wz),2)}"
+    )
+    print(
+        f"Overlap {mssg} with photoIa_wz_JLA {len(df_sel[df_sel.SNID.isin(photoIa_wz_JLA.SNID.values)])} ~ {round(100*len(df_sel[df_sel.SNID.isin(photoIa_wz_JLA.SNID.values)])/len(photoIa_wz_JLA),2)}"
+    )
+
+
 def setup_logging():
     logger = None
 
@@ -223,11 +247,12 @@ if __name__ == "__main__":
     )
     df_photometry = du.load_photometry(args.path_data)
     # restrict to those that pass detection+multiseason cuts
-    tmp = df_photometry[df_photometry.SNID.isin(df_metadata_w_multiseason.SNID.values)]
-    print(
-        f"DET+MULTISEASON reduced measurements to {len(tmp)} from {len(df_photometry)}"
+    df_photometry = df_photometry[
+        df_photometry.SNID.isin(df_metadata_w_multiseason.SNID.values)
+    ]
+    overlap_photoIa(
+        df_metadata_w_multiseason, photoIa_wz, photoIa_wz_JLA, mssg="multiseason",
     )
-    df_photometry = tmp
 
     # eliminate bad photometric points
     # only valid for powers of two combinations
@@ -249,7 +274,7 @@ if __name__ == "__main__":
         else True
     )
     tmp = df_photometry[df_photometry["phot_reject"] == True]
-    print(f"PHOTFLAG reduced measurements to {len(tmp)} from {len(df_photometry)}")
+    # print(f">> PHOTFLAG reduced measurements to {len(tmp)} from {len(df_photometry)}")
     df_photometry = tmp
 
     # Trim light-curves to -30 < max< 100
@@ -270,40 +295,86 @@ if __name__ == "__main__":
         if (x > 0 and x < 100)
         else (True if (x <= 0 and x > -30) else False)
     )
-    tmp = df_pkpho[df_pkpho["window_time_cut"] == True]
-    print(f"PHOTWINDOW reduced measurements to {len(tmp)} from {len(df_pkpho)}")
-    df_pkpho = tmp
+    df_pkpho = df_pkpho[df_pkpho["window_time_cut"] == True]
+    # print(f">> PHOTWINDOW reduced measurements to {len(df_pkpho)}")
 
-    # apply 1 measurement < 1 day before max
-    SNID_measurement_before_max = df_pkpho[df_pkpho["window_delta_time"] <= -1][
-        "SNID"
-    ].unique()
-    # apply 1 measurement > 10 day before max
-    SNID_measurement_after_maxplus10 = df_pkpho[df_pkpho["window_delta_time"] > 10][
-        "SNID"
-    ].unique()
-    SNID_sampling_measurements = np.intersect1d(
+    def group_photo_criteria(df, n_measurements):
+        tmp = df.groupby("SNID")["FLT"].apply(lambda x: len(list(np.unique(x))))
+        return tmp[tmp >= n_measurements].index
+
+    # <1 day before max
+    SNID_measurement_before_max = group_photo_criteria(
+        df_pkpho[df_pkpho["window_delta_time"] < -1], 2
+    )
+    print(f">> 2 point<max-1")
+    overlap_photoIa(
+        df_metadata_w_multiseason[
+            df_metadata_w_multiseason.SNID.isin(SNID_measurement_before_max)
+        ],
+        photoIa_wz,
+        photoIa_wz_JLA,
+        mssg="",
+    )
+
+    # > max+10
+    SNID_measurement_after_maxplus10 = group_photo_criteria(
+        df_pkpho[df_pkpho["window_delta_time"] > 10], 2
+    )
+    print(f">> 2 point >max+10")
+    overlap_photoIa(
+        df_metadata_w_multiseason[
+            df_metadata_w_multiseason.SNID.isin(SNID_measurement_after_maxplus10)
+        ],
+        photoIa_wz,
+        photoIa_wz_JLA,
+        mssg="",
+    )
+
+    SNID_sampling_measurements_std = np.intersect1d(
         SNID_measurement_before_max,
         SNID_measurement_after_maxplus10,
         assume_unique=True,
     )
-    print(
-        f"SAMPLING MEASUREMENTS reduced SNIDs to {len(SNID_sampling_measurements)} from {len(df_pkpho.SNID.unique())}"
-    )
-    df_pkpho = df_pkpho[df_pkpho.SNID.isin(SNID_sampling_measurements)]
 
-    df_pkpho["SNR"] = df_pkpho["FLUXCAL"] / df_pkpho["FLUXCALERR"]
-    # keep only measurements SNR>5 for this exercise
-    tmp = df_pkpho[df_pkpho.SNR > 5]
-    df_grouped_SNID_flt_occurences = tmp.groupby("SNID")["FLT"].apply(
-        lambda x: len(list(np.unique(x)))
+    # around max -1<x<10
+    SNID_measurement_around_max = group_photo_criteria(
+        df_pkpho[
+            (df_pkpho["window_delta_time"] > 0) & (df_pkpho["window_delta_time"] < 10)
+        ],
+        1,
     )
-    SNID_w_2flt_SNR5 = df_grouped_SNID_flt_occurences[
-        df_grouped_SNID_flt_occurences >= 2
-    ].index
+    SNID_sampling_measurements = np.intersect1d(
+        SNID_sampling_measurements_std, SNID_measurement_around_max, assume_unique=True,
+    )
+    print(f">> + 1 point around max {len(SNID_sampling_measurements)}")
+
+    # reselect photometry for SNIDs only
+    # df_pkpho = df_pkpho[df_pkpho.SNID.isin(SNID_sampling_measurements)]
+    df_pkpho = df_pkpho[df_pkpho.SNID.isin(SNID_sampling_measurements_std)]
+    overlap_photoIa(
+        df_metadata_w_multiseason[
+            df_metadata_w_multiseason.SNID.isin(SNID_sampling_measurements_std)
+        ],
+        photoIa_wz,
+        photoIa_wz_JLA,
+        mssg="df_metadata_w_sampling",
+    )
+
+    # SNR>5
+    df_pkpho["SNR"] = df_pkpho["FLUXCAL"] / df_pkpho["FLUXCALERR"]
+    SNID_w_2flt_SNR5 = group_photo_criteria(df_pkpho[abs(df_pkpho.SNR) > 5], 2)
+    print(f">> + 2 points SNR>5 to {len(SNID_w_2flt_SNR5)}")
+
     df_metadata_w_sampling = df_metadata_w_multiseason[
         df_metadata_w_multiseason.SNID.isin(SNID_w_2flt_SNR5)
     ]
+    overlap_photoIa(
+        df_metadata_w_sampling,
+        photoIa_wz,
+        photoIa_wz_JLA,
+        mssg="df_metadata_w_sampling",
+    )
+    cuts.spec_subsamples(df_metadata_w_sampling, logger)
 
     logger.info("")
     logger.info("PHOTOMETRIC CLASSIFICATION")
@@ -325,12 +396,16 @@ if __name__ == "__main__":
     lu.print_green(f"photoIa_noz with selcuts set 0: {len(photoIa_noz)}")
     cuts.spec_subsamples(photoIa_noz, logger)
 
-    # some stats on this sample
-    print(
-        f"Overlap no z set 0 with photoIa_wz {len(photoIa_noz[photoIa_noz.SNID.isin(photoIa_wz.SNID.values)])} ~ {round(100*len(photoIa_noz[photoIa_noz.SNID.isin(photoIa_wz.SNID.values)])/len(photoIa_wz),2)}"
-    )
-    print(
-        f"Overlap no z set 0 with photoIa_wz_JLA {len(photoIa_noz[photoIa_noz.SNID.isin(photoIa_wz_JLA.SNID.values)])} ~ {round(100*len(photoIa_noz[photoIa_noz.SNID.isin(photoIa_wz_JLA.SNID.values)])/len(photoIa_wz_JLA),2)}"
+    overlap_photoIa(photoIa_noz, photoIa_wz, photoIa_wz_JLA, mssg="photoIa_noz")
+
+    not_in_photoIa_wz = photoIa_noz[~photoIa_noz.SNID.isin(photoIa_wz.SNID.values)]
+    not_in_photoIa_wz.to_csv(f"{path_samples}/photoIanoz_notin_photoIa_wz.csv")
+    pu.plot_mosaic_histograms_listdf(
+        [not_in_photoIa_wz],
+        list_labels=["notin_pIawz"],
+        path_plots=path_plots,
+        suffix="notin_pIawz",
+        list_vars_to_plot=["REDSHIFT_FINAL", "average_probability_set_0"],
     )
 
     # Possible contamination
@@ -396,7 +471,7 @@ if __name__ == "__main__":
     n, bins, tmp = plt.hist(
         photoIa_noz_whostmag["HOSTGAL_MAG_r"],
         histtype="step",
-        label="photo Ia",
+        label="photometric SNe Ia",
         bins=50,
         lw=2,
     )
@@ -405,7 +480,7 @@ if __name__ == "__main__":
             "HOSTGAL_MAG_r"
         ],
         histtype="step",
-        label="photo Ia without DES redshift",
+        label="without DES redshift",
         bins=bins,
         lw=2,
     )
@@ -428,14 +503,14 @@ if __name__ == "__main__":
     n, bins, tmp = plt.hist(
         photoIa_noz_whostmag["HOSTGAL_MAG_r"],
         histtype="step",
-        label="photo Ia (SNN w z)",
+        label="Baseline DES-SNIa sample (Möller et al. 2022)",
         bins=100,
         lw=2,
     )
     plt.hist(
         photoIa_noz_whostmag["HOSTGAL_MAG_r"],
         histtype="step",
-        label="photo Ia (SNN no z, this work)",
+        label="Photometric SNe Ia (this work)",
         bins=bins,
         lw=2,
     )
@@ -444,7 +519,7 @@ if __name__ == "__main__":
             "HOSTGAL_MAG_r"
         ],
         histtype="step",
-        label="photo Ia (SNN no z, this work) without redshifts",
+        label="photometric SNe Ia (this work) without redshifts",
         bins=bins,
         lw=2,
     )
@@ -470,18 +545,8 @@ if __name__ == "__main__":
         photoIa_noz_psnid["PBAYES_IA"] > 1e-12
     ]
     print(f"photoIa_noz that pass PSNID cut {len(photoIa_noz_psnid_realtime_cut)} ")
-    to_fup_24_psnid = photoIa_noz_psnid_realtime_cut[
-        photoIa_noz_psnid_realtime_cut["HOSTGAL_MAG_r"] < 24
-    ]
-    print(
-        "# hosts r<24 that could be followed-up", len(to_fup_24_psnid),
-    )
-    to_fup_24_nozspe_psnid = photoIa_noz_psnid_realtime_cut[
-        (photoIa_noz_psnid_realtime_cut["HOSTGAL_MAG_r"] < 24)
-        & (photoIa_noz_psnid_realtime_cut["REDSHIFT_FINAL"] < 0)
-    ]
-    print(
-        "  and without spec redshift in database", len(to_fup_24_nozspe_psnid),
+    to_fup_24_psnid, to_fup_24_nozspe_psnid = fup_criteria(
+        photoIa_noz_psnid_realtime_cut
     )
     for var in ["PBAYES_IA", "FITPROB_IA"]:
         fig = plt.figure()
@@ -507,14 +572,11 @@ if __name__ == "__main__":
     print(
         f"# of events with simultaneous SALT fit {len(salt_fits_noz)} from which {len(photoIa_noz_saltz)} are photoIa"
     )
-    to_fup_24 = pd.merge(photoIa_noz_saltz, to_fup_24_nozspe_psnid, on="SNID")
-    print(
-        "fup: noz + hostmag", len(to_fup_24),
-    )
+    to_fup_24, to_fup_24_nozspe = fup_criteria(photoIa_noz_saltz)
 
     pu.plot_mosaic_histograms_listdf(
         [photoIa_noz_saltz],
-        list_labels=["photo Ia (fitted z)"],
+        list_labels=["photometric SNe Ia (fitted z)"],
         path_plots=path_plots,
         suffix="_withoutcuts",
         list_vars_to_plot=["zHD", "c", "x1"],
@@ -535,12 +597,7 @@ if __name__ == "__main__":
     print(
         f"# of photoIa_noz with SALT fup cuts (x1ERR,t0,FITPROB, no JLA) {len(photoIa_noz_saltfup_cut)} without zspe {len(photoIa_noz_saltfup_cut_nozspe)}",
     )
-    to_fup_24_nozspe_psnid_saltfup = pd.merge(
-        photoIa_noz_saltfup_cut, to_fup_24_nozspe_psnid, on="SNID"
-    )
-    print(
-        " + psnid, hostmag", len(to_fup_24_nozspe_psnid_saltfup),
-    )
+    _, _ = fup_criteria(photoIa_noz_saltfup_cut)
 
     logger.info("")
     logger.info("JLA CUTS")
@@ -555,10 +612,10 @@ if __name__ == "__main__":
         df_metadata_preds, salt_fits_noz, on=["SNID", "SNTYPE"]
     )
     # z
-    # df_metadata_preds_saltz_zrange = df_metadata_preds_saltz[
-    #     (df_metadata_preds_saltz.zHD > 0.2) & (df_metadata_preds_saltz.zHD < 1.2)
-    # ]
-    df_metadata_preds_saltz_zrange = df_metadata_preds_saltz
+    df_metadata_preds_saltz_zrange = df_metadata_preds_saltz[
+        (df_metadata_preds_saltz.zHD > 0.2) & (df_metadata_preds_saltz.zHD < 1.2)
+    ]
+    # df_metadata_preds_saltz_zrange = df_metadata_preds_saltz
     # JLA
     df_metadata_preds_JLA = su.apply_JLA_cut(df_metadata_preds_saltz_zrange)
 
@@ -566,6 +623,8 @@ if __name__ == "__main__":
         f"photoIa_noz set 0 with JLA cuts (fitted z): {len(photoIa_noz_saltz_JLA)}"
     )
     cuts.spec_subsamples(photoIa_noz_saltz_JLA, logger)
+    overlap_photoIa(photoIa_noz_saltz_JLA, photoIa_wz, photoIa_wz_JLA, mssg="")
+    to_fup_24, to_fup_24_nozspe = fup_criteria(photoIa_noz_saltz_JLA)
 
     # distributions of these new events
     list_df = [
@@ -574,9 +633,9 @@ if __name__ == "__main__":
         photoIa_wz_JLA,
     ]
     list_labels = [
-        "photo Ia (fitted z)",
-        "photo Ia (fitted z) not in photo Ia z",
-        "photo Ia z",
+        "Photometric SNe Ia (fitted z)",
+        "Photometric SNe Ia (fitted z) not in Baseline DES-SNIa sample",
+        "Baseline DES-SNIa sample",
     ]
     pu.plot_mosaic_histograms_listdf(
         list_df,
@@ -984,7 +1043,7 @@ if __name__ == "__main__":
         list_labels=[
             "sim Ia JLA (sim z)",
             "sim Ia JLA (z from SALT)",
-            "photo Ia noz JLA (z from SALT)",
+            "photometric SNe Ia JLA (z from SALT)",
         ],
         suffix="noz_simz",
         sim_scale_factor=30,
@@ -996,7 +1055,7 @@ if __name__ == "__main__":
         list_labels=[
             "sim Ia JLA (z fixed)",
             "sim Ia JLA (z from SALT)",
-            "photo Ia noz JLA (z from SALT)",
+            "photometric SNe Ia JLA (z from SALT)",
         ],
         path_plots=path_plots,
         suffix="noz_wm0obsi",
