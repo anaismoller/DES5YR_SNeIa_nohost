@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import os, sys
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 
 from utils import cuts as cuts
 from utils import plot_utils as pu
@@ -14,15 +15,11 @@ from utils import logging_utils as lu
 from utils import science_utils as su
 from utils import utils_emcee_poisson as mc
 
-plt.switch_backend("agg")
-
-import matplotlib as mpl
-
 mpl.rcParams["font.size"] = 16
 mpl.rcParams["legend.fontsize"] = "medium"
 mpl.rcParams["figure.titlesize"] = "large"
 mpl.rcParams["lines.linewidth"] = 3
-
+plt.switch_backend("agg")
 
 colors = ["grey"] + pu.ALL_COLORS
 
@@ -74,74 +71,6 @@ def setup_logging():
     return logger
 
 
-def plot_scatter_mosaic_retro(
-    list_df, list_labels, path_out="tmp.png", print_biases=False
-):
-    # scatter
-    fig = plt.figure(constrained_layout=True, figsize=(17, 5))
-    gs = fig.add_gridspec(1, 3, hspace=0.05, wspace=0.05)
-    axs = gs.subplots(sharex=False, sharey=False)
-
-    for i, var in enumerate(["z", "c", "x1"]):
-        varx = "zHD" if var == "z" else var
-        vary = f"{var}PHOT_retro" if var == "z" else f"{var}_retro"
-        lims = (0.1, 1.2) if var == "z" else ((-0.4, 0.4) if var == "c" else (-4, 4))
-        for idx_df, df in enumerate(list_df):
-            h2d, xedges, yedges, _ = axs[i].hist2d(
-                df[varx],
-                df[vary],
-                bins=20,
-                cmap="magma_r",  # cmap="YlOrRd"  # , cmin=0.25
-            )
-            # chech distribution for a given x bin
-            tmp_bins = xedges
-            mean_bins = tmp_bins[:-1] + (tmp_bins[1] - tmp_bins[0]) / 2
-            df[f"{varx}_bin"] = pd.cut(df.loc[:, (varx)], tmp_bins, labels=mean_bins)
-            result_median = (
-                df[[f"{varx}_bin", varx]].groupby(f"{varx}_bin").median()[varx].values
-            )
-            # axs[i].scatter(mean_bins, result_median, marker="x")
-            if print_biases:
-                print(f"Biases for {varx}")
-                print(
-                    "bins", [round(mean_bins[i], 3) for i in range(len(mean_bins))],
-                )
-                print(
-                    "bias",
-                    [
-                        round(mean_bins[i] - result_median[i], 3)
-                        for i in range(len(mean_bins))
-                    ],
-                )
-                perc = [
-                    round(100 * (mean_bins[i] - result_median[i]) / mean_bins[i], 3)
-                    for i in range(len(mean_bins))
-                ]
-                print(
-                    "%", perc,
-                )
-                print(
-                    f"% median {np.median(perc)}; max {np.max(perc)}; min {np.min(perc)}"
-                )
-        axs[i].plot(
-            [df[varx].min(), df[varx].max()],
-            [df[vary].min(), df[vary].max()],
-            color="black",
-            linewidth=1,
-            linestyle="--",
-            zorder=10,
-        )
-        xlabel = "actual redshift" if var == "z" else f"{var} with actual redshift"
-        ylabel = "fitted redshift" if var == "z" else f"{var} with fitted redshift"
-        axs[i].set_xlabel(xlabel)
-        axs[i].set_ylabel(ylabel)
-        axs[i].set_xlim(lims[0], lims[1])
-        axs[i].set_ylim(lims[0], lims[1])
-
-    # axs[i].legend(loc="best", prop={"size": 10})
-    plt.savefig(path_out)
-
-
 if __name__ == "__main__":
 
     DES5yr = os.getenv("DES5yr")
@@ -173,6 +102,12 @@ if __name__ == "__main__":
         type=str,
         default=f"{DES}/data/DESALL_forcePhoto_real_snana_fits/D_FITZ_DATA5YR_DENSE_SNR/output/DESALL_forcePhoto_real_snana_fits/FITOPT000.FITRES.gz",
         help="Path to data SALT2 fits",
+    )
+    parser.add_argument(
+        "--path_data_fits",
+        type=str,
+        default=f"{DES}/data/DESALL_forcePhoto_real_snana_fits/D_JLA_DATA5YR_DENSE_SNR/output/DESALL_forcePhoto_real_snana_fits/FITOPT000.FITRES.gz",
+        help="Path to data SALT2 fits (using zspe)",
     )
     parser.add_argument(
         "--path_sim_headers",
@@ -428,6 +363,7 @@ if __name__ == "__main__":
         list_labels=list_labels,
         path_plots=path_plots,
         suffix="photoIa_wz_JLA",
+        data_color_override=True,
     )
 
     # without redshift in this sample
@@ -455,6 +391,52 @@ if __name__ == "__main__":
     ]
     print(
         "  and without spec redshift in database", len(to_fup_24_nozspe),
+    )
+
+    #
+    # Who are the ones that got noz selected but where not in wz
+    #
+    photoIa_noz_wz_notsel_photoIawz = photoIa_noz[
+        (photoIa_noz["REDSHIFT_FINAL"] > 0)
+        & (~photoIa_noz["SNID"].isin(photoIa_wz.SNID.values))
+    ]
+    print(
+        f"photoIa_noz but NOT photoIa_wz and HAVE a redshift {len(photoIa_noz_wz_notsel_photoIawz)}"
+    )
+    photoIa_noz_wz_notsel_photoIawz.to_csv(f"{path_samples}/not_Iawz_buthavez.csv")
+    pu.plot_mosaic_histograms_listdf(
+        [photoIa_noz_wz_notsel_photoIawz],
+        list_labels=[""],
+        path_plots=path_plots,
+        suffix="photoIa_noz_wz_notsel_photoIawz",
+        list_vars_to_plot=["REDSHIFT_FINAL", "average_probability_set_0"],
+    )
+    # load salt fits wzspe
+    salt_fits_wz = du.load_salt_fits(args.path_data_fits)
+    tmp = pd.merge(
+        photoIa_noz_wz_notsel_photoIawz[["SNID", "REDSHIFT_FINAL"]],
+        salt_fits_wz,
+        on="SNID",
+        how="left",
+    )
+    photoIa_noz_wz_notsel_photoIawz_saltzspe = tmp[
+        tmp.SNID.isin(salt_fits_wz.SNID.values)
+    ]
+    print(
+        f"photoIa_noz but NOT photoIa_wz and HAVE a saltfit {len(photoIa_noz_wz_notsel_photoIawz_saltzspe)}"
+    )
+    photoIa_noz_wz_notsel_photoIawz_saltzspe = pd.merge(
+        photoIa_noz_wz_notsel_photoIawz_saltzspe,
+        photoIa_wz[["SNID", "average_probability_set_0"]],
+        on="SNID",
+        how="left",
+    )
+    pu.plot_mosaic_histograms_listdf(
+        [photoIa_noz_wz_notsel_photoIawz_saltzspe],
+        list_labels=[""],
+        path_plots=path_plots,
+        suffix="photoIa_noz_wz_notsel_photoIawz_saltzspe",
+        list_vars_to_plot=["zHD", "c", "x1", "average_probability_set_0"],
     )
 
     # hist hostgalmag
@@ -702,18 +684,36 @@ if __name__ == "__main__":
     tmp_retro = salt_fits_noz.add_suffix("_retro")
     tmp_retro = tmp_retro.rename(columns={"SNID_retro": "SNID"})
     df_tmp = pd.merge(lost_photoIa_wz_JLA, tmp_retro, on="SNID")
-    plot_scatter_mosaic_retro(
+    pu.plot_scatter_mosaic_retro(
         [df_tmp],
         ["lost_photoIa_wz_JLA"],
         path_out=f"{path_plots}/scatter_lost_photoIawz_retro_vs_ori.png",
     )
+    fig = plt.figure(figsize=(10, 7))
+    plt.plot(df_tmp["zHD"], np.zeros(len(df_tmp)), alpha=0.5, color="grey")
+    plt.scatter(df_tmp["zHD"], df_tmp["zHD"] - df_tmp["zPHOT_retro"])
+    plt.xlabel("zHD")
+    plt.ylabel("zHD-zPHOT_retro")
+    plt.title(
+        f"{np.median(df_tmp.zHD - df_tmp.zPHOT_retro):.3f} \pm {np.std(df_tmp.zHD - df_tmp.zPHOT_retro):.3f} & max: {np.max(df_tmp.zHD - df_tmp.zPHOT_retro):.3f}"
+    )
+    plt.savefig(f"{path_plots}/scatter_z_lost_photoIawz_retro_vs_ori.png")
     # overlap simultaneous salt fit effect
     df_tmp = pd.merge(overlap, tmp_retro, on="SNID")
-    plot_scatter_mosaic_retro(
+    pu.plot_scatter_mosaic_retro(
         [df_tmp],
         ["lost_photoIa_wz_JLA"],
         path_out=f"{path_plots}/scatter_overlap_photoIawz_retro_vs_ori.png",
     )
+    fig = plt.figure(figsize=(10, 7))
+    plt.plot(df_tmp["zHD"], np.zeros(len(df_tmp)), alpha=0.5, color="grey")
+    plt.scatter(df_tmp["zHD"], df_tmp.zHD - df_tmp.zPHOT_retro)
+    plt.xlabel("zHD")
+    plt.ylabel("zHD-zPHOT_retro")
+    plt.title(
+        f"{np.median(df_tmp.zHD - df_tmp.zPHOT_retro):.3f} \pm {np.std(df_tmp.zHD - df_tmp.zPHOT_retro):.3f} & max: {np.max(df_tmp.zHD - df_tmp.zPHOT_retro):.3f}"
+    )
+    plt.savefig(f"{path_plots}/scatter_z_overlap_photoIawz_retro_vs_ori.png")
 
     logger.info("")
     logger.info("SAMPLE CONTAMINATION")
@@ -843,6 +843,55 @@ if __name__ == "__main__":
         model_name="vanilla_S_*_none*_cosmo_quantile_lstm_64x4_0.05_1024_True_mean",
         norm="cosmo_quantile",
     )
+
+    #
+    # Who are the ones that got noz selected but where not in wz
+    #
+    photoIa_noz_wz_notsel_photoIawz = photoIa_noz_saltz_JLA[
+        (photoIa_noz_saltz_JLA["REDSHIFT_FINAL"] > 0)
+        & (~photoIa_noz_saltz_JLA["SNID"].isin(photoIa_wz.SNID.values))
+    ]
+    print(
+        f"photoIa_noz but NOT photoIa_wz JLA and HAVE a redshift {len(photoIa_noz_wz_notsel_photoIawz)}"
+    )
+    photoIa_noz_wz_notsel_photoIawz.to_csv(
+        f"{path_samples}/not_Iawz_buthavez_JLAlike.csv"
+    )
+    pu.plot_mosaic_histograms_listdf(
+        [photoIa_noz_wz_notsel_photoIawz],
+        list_labels=[""],
+        path_plots=path_plots,
+        suffix="photoIa_noz_wz_notsel_photoIawz_JLAlike",
+        list_vars_to_plot=["REDSHIFT_FINAL", "average_probability_set_0"],
+    )
+    # load salt fits wzspe
+    salt_fits_wz = du.load_salt_fits(args.path_data_fits)
+    tmp = pd.merge(
+        photoIa_noz_wz_notsel_photoIawz[["SNID", "REDSHIFT_FINAL"]],
+        salt_fits_wz,
+        on="SNID",
+        how="left",
+    )
+    photoIa_noz_wz_notsel_photoIawz_saltzspe = tmp[
+        tmp.SNID.isin(salt_fits_wz.SNID.values)
+    ]
+    print(
+        f"photoIa_noz JLAlike but NOT photoIa_wz and HAVE a saltfit {len(photoIa_noz_wz_notsel_photoIawz_saltzspe)}"
+    )
+    photoIa_noz_wz_notsel_photoIawz_saltzspe = pd.merge(
+        photoIa_noz_wz_notsel_photoIawz_saltzspe,
+        photoIa_wz[["SNID", "average_probability_set_0"]],
+        on="SNID",
+        how="left",
+    )
+    pu.plot_mosaic_histograms_listdf(
+        [photoIa_noz_wz_notsel_photoIawz_saltzspe],
+        list_labels=[""],
+        path_plots=path_plots,
+        suffix="photoIa_noz_wz_notsel_photoIawz_saltzspe_JLAlike",
+        list_vars_to_plot=["zHD", "c", "x1", "average_probability_set_0"],
+    )
+
     logger.info("")
     logger.info("SIMULATIONS: EFFICIENCY & CONTAMINATION (REALISTIC = NOT BALANCED)")
     df_txt_stats_noz = pd.DataFrame(
@@ -918,32 +967,32 @@ if __name__ == "__main__":
     ]
     sim_allfits_Ia = sim_all_fits[sim_all_fits.SNID.isin(sim_saltz_Ia.SNID.values)]
 
-    variable = "m0obs_i"
-    min_var = sim_allfits_photoIa_noz[variable].quantile(0.01)
-    df, minv, maxv = du.data_sim_ratio(
-        sim_allfits_photoIa_noz,
-        sim_allfits_Ia,
-        var=variable,
-        path_plots=path_plots,
-        min_var=min_var,
-        suffix="simfixedz_simphotoIa_noJLA",
-    )
-    df, minv, maxv = du.data_sim_ratio(
-        sim_saltz[sim_saltz.SNID.isin(sim_photoIa.SNID.values)],
-        sim_saltz_Ia,
-        var=variable,
-        path_plots=path_plots,
-        min_var=min_var,
-        suffix="simfittedz_simphotoIa_noJLA",
-    )
-    df, minv, maxv = du.data_sim_ratio(
-        su.apply_JLA_cut(sim_saltz[sim_saltz.SNID.isin(sim_photoIa.SNID.values)]),
-        sim_saltz_Ia_JLA,
-        var=variable,
-        path_plots=path_plots,
-        min_var=min_var,
-        suffix="simfittedz_simphotoIa_JLA",
-    )
+    # variable = "m0obs_i"
+    # min_var = sim_allfits_photoIa_noz[variable].quantile(0.01)
+    # df, minv, maxv = du.data_sim_ratio(
+    #     sim_allfits_photoIa_noz,
+    #     sim_allfits_Ia,
+    #     var=variable,
+    #     path_plots=path_plots,
+    #     min_var=min_var,
+    #     suffix="simfixedz_simphotoIa_noJLA",
+    # )
+    # df, minv, maxv = du.data_sim_ratio(
+    #     sim_saltz[sim_saltz.SNID.isin(sim_photoIa.SNID.values)],
+    #     sim_saltz_Ia,
+    #     var=variable,
+    #     path_plots=path_plots,
+    #     min_var=min_var,
+    #     suffix="simfittedz_simphotoIa_noJLA",
+    # )
+    # df, minv, maxv = du.data_sim_ratio(
+    #     su.apply_JLA_cut(sim_saltz[sim_saltz.SNID.isin(sim_photoIa.SNID.values)]),
+    #     sim_saltz_Ia_JLA,
+    #     var=variable,
+    #     path_plots=path_plots,
+    #     min_var=min_var,
+    #     suffix="simfittedz_simphotoIa_JLA",
+    # )
 
     # 2. compraing data with sims
     variable = "m0obs_i"
@@ -1063,11 +1112,45 @@ if __name__ == "__main__":
         norm=1 / 30,  # using small sims
     )
 
-    # DON'T USE THIS FITS FOR HD
-    # mB is not correctly determined, remember the cosmology -> mu is fixed!
-    # merged_sample_fits_with_preds = pd.merge(salt_fits_noz, photoIa_noz, on="SNID")
-    # pu.plot_HD_residuals(
-    #     merged_sample_fits_with_preds,
-    #     f"{path_plots}/HDres.png",
-    #     prob_key="average_probability_set_0",
-    # )
+    # deep and shallow
+    sim_Ia_fits_JLA = du.tag_deep_shallow(sim_Ia_fits_JLA)
+    sim_saltz_Ia_JLA = du.tag_deep_shallow(sim_saltz_Ia_JLA)
+    photoIa_noz_saltz_JLA = du.tag_deep_shallow(photoIa_noz_saltz_JLA)
+
+    pu.overplot_salt_distributions_lists_deep_shallow(
+        [sim_Ia_fits_JLA, sim_saltz_Ia_JLA, photoIa_noz_saltz_JLA],
+        list_labels=[
+            "sim Ia JLA (z fixed)",
+            "sim Ia JLA (z from SALT)",
+            "photometric SNe Ia JLA (z from SALT)",
+        ],
+        path_plots=path_plots,
+        suffix="deep_and_shallow_fields",
+        sim_scale_factor=30,  # small sims
+    )
+
+    logger.info("")
+    logger.info("Sample comparisons")
+    # Want to compare:
+    # photoIa_noz with salt simultaneous
+    # photoIa_noz with salt zspe when available else simultaneous
+    # photoIa_wz with salt zspe
+
+    # For a mixed histogram
+    cols_to_keep = ["SNID", "zHD", "c", "x1"]
+    tmp = photoIa_noz_saltz_JLA[cols_to_keep]
+    tmp.update(salt_fits_wz[cols_to_keep])
+    pu.plot_mosaic_histograms_listdf(
+        [tmp, photoIa_noz_saltz_JLA, photoIa_wz_JLA],
+        list_labels=[
+            "photoIa_noz_JLA_mixedz",
+            "photoIa_noz_JLA_saltz",
+            "photoIa_wz_JLA",
+        ],
+        path_plots=path_plots,
+        suffix="comparisonDES5",
+        list_vars_to_plot=["zHD", "c", "x1"],
+        data_color_override=True,
+        chi_bins=False,
+    )
+
