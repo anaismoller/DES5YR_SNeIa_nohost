@@ -1687,7 +1687,6 @@ def overplot_salt_distributions_lists_deep_shallow(
     del fig
 
 
-
 def plot_scatter_mosaic_retro(
     list_df, list_labels, path_out="tmp.png", print_biases=False
 ):
@@ -1754,3 +1753,16 @@ def plot_scatter_mosaic_retro(
 
     # axs[i].legend(loc="best", prop={"size": 10})
     plt.savefig(path_out)
+
+
+def plot_delta_vs_var(df, varx, vary2, fout):
+    fig = plt.figure(figsize=(10, 7))
+    plt.plot(df[varx], np.zeros(len(df)), alpha=0.5, color="grey")
+    plt.scatter(df[varx], df[varx] - df[vary2])
+    plt.xlabel(varx)
+    plt.ylabel(f"{varx}-{vary2}")
+    plt.title(
+        f"{np.median(df[varx] - df[vary2]):.3f} \pm {np.std(df[varx] - df[vary2]):.3f} & max: {np.max(df[varx] - df[vary2]):.3f}"
+    )
+    plt.savefig(fout)
+    del fig

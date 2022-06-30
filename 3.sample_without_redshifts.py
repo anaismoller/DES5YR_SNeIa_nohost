@@ -393,6 +393,15 @@ if __name__ == "__main__":
         "  and without spec redshift in database", len(to_fup_24_nozspe),
     )
 
+    sngals = du.load_sngals(f"extra_lists/SNGALS_DLR_RANK1_INFO.csv")
+    tmp = pd.merge(to_fup_24_nozspe, sngals, on="SNID")
+    aat = tmp[tmp.SPECZ_CATALOG == "DES_AAOmega"]
+    # need to do this only for AAOmega as other instrument have different tags
+    aat["SPECZ_FLAG"] = aat["SPECZ_FLAG"].astype(np.float)
+    plt.hist(aat["SPECZ_FLAG"])
+    plt.yscale("log")
+    plt.savefig(f"{path_plots}/hist_SPECZFLAG_photoIa_wz_JLA.png")
+
     #
     # Who are the ones that got noz selected but where not in wz
     #
@@ -687,17 +696,21 @@ if __name__ == "__main__":
     pu.plot_scatter_mosaic_retro(
         [df_tmp],
         ["lost_photoIa_wz_JLA"],
-        path_out=f"{path_plots}/scatter_lost_photoIawz_retro_vs_ori.png",
+        path_out=f"{path_plots}/scatter_lost_photoIawzJLA_retro_vs_ori.png",
     )
-    fig = plt.figure(figsize=(10, 7))
-    plt.plot(df_tmp["zHD"], np.zeros(len(df_tmp)), alpha=0.5, color="grey")
-    plt.scatter(df_tmp["zHD"], df_tmp["zHD"] - df_tmp["zPHOT_retro"])
-    plt.xlabel("zHD")
-    plt.ylabel("zHD-zPHOT_retro")
-    plt.title(
-        f"{np.median(df_tmp.zHD - df_tmp.zPHOT_retro):.3f} \pm {np.std(df_tmp.zHD - df_tmp.zPHOT_retro):.3f} & max: {np.max(df_tmp.zHD - df_tmp.zPHOT_retro):.3f}"
+    pu.plot_delta_vs_var(
+        df_tmp,
+        "zHD",
+        "zPHOT_retro",
+        f"{path_plots}/scatter_z_lost_photoIawz_retro_vs_ori.png",
     )
-    plt.savefig(f"{path_plots}/scatter_z_lost_photoIawz_retro_vs_ori.png")
+    pu.plot_delta_vs_var(
+        df_tmp,
+        "c",
+        "c_retro",
+        f"{path_plots}/scatter_c_lost_photoIawz_retro_vs_ori.png",
+    )
+
     # overlap simultaneous salt fit effect
     df_tmp = pd.merge(overlap, tmp_retro, on="SNID")
     pu.plot_scatter_mosaic_retro(
@@ -705,15 +718,12 @@ if __name__ == "__main__":
         ["lost_photoIa_wz_JLA"],
         path_out=f"{path_plots}/scatter_overlap_photoIawz_retro_vs_ori.png",
     )
-    fig = plt.figure(figsize=(10, 7))
-    plt.plot(df_tmp["zHD"], np.zeros(len(df_tmp)), alpha=0.5, color="grey")
-    plt.scatter(df_tmp["zHD"], df_tmp.zHD - df_tmp.zPHOT_retro)
-    plt.xlabel("zHD")
-    plt.ylabel("zHD-zPHOT_retro")
-    plt.title(
-        f"{np.median(df_tmp.zHD - df_tmp.zPHOT_retro):.3f} \pm {np.std(df_tmp.zHD - df_tmp.zPHOT_retro):.3f} & max: {np.max(df_tmp.zHD - df_tmp.zPHOT_retro):.3f}"
+    pu.plot_delta_vs_var(
+        df_tmp,
+        "zHD",
+        "zPHOT_retro",
+        f"{path_plots}/scatter_z_overlap_photoIawz_retro_vs_ori.png",
     )
-    plt.savefig(f"{path_plots}/scatter_z_overlap_photoIawz_retro_vs_ori.png")
 
     logger.info("")
     logger.info("SAMPLE CONTAMINATION")
