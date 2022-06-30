@@ -331,6 +331,15 @@ if __name__ == "__main__":
     lu.print_green(f"photoIa_noz with selcuts set 0: {len(photoIa_noz)}")
     cuts.spec_subsamples(photoIa_noz, logger)
 
+    # load salt fits wzspe
+    tmp = du.load_salt_fits(args.path_data_fits)
+    tmp = tmp[["SNID", "zHD", "zHDERR", "c", "x1", "m0obs_i"]].add_suffix("_zspe")
+    tmp = tmp.rename(columns={"SNID_zspe": "SNID"})
+    salt_fits_wz = tmp[
+        ["SNID", "zHD_zspe", "zHDERR_zspe", "c_zspe", "x1_zspe", "m0obs_i_zspe"]
+    ]
+    photoIa_noz = pd.merge(photoIa_noz, salt_fits_wz, on="SNID", how="left")
+
     overlap_photoIa(photoIa_noz, photoIa_wz, photoIa_wz_JLA, mssg="photoIa_noz")
 
     not_in_photoIa_wz = photoIa_noz[~photoIa_noz.SNID.isin(photoIa_wz.SNID.values)]
@@ -402,6 +411,10 @@ if __name__ == "__main__":
     plt.yscale("log")
     plt.savefig(f"{path_plots}/hist_SPECZFLAG_photoIa_wz_JLA.png")
 
+    lu.print_yellow("TO FUP OzDES FLAGS")
+    print(aat.groupby("SPECZ_FLAG").count()["SNID"])
+    print(f"QOP 6 (stars!) {aat[aat.SPECZ_FLAG==6]}")
+
     #
     # Who are the ones that got noz selected but where not in wz
     #
@@ -420,32 +433,24 @@ if __name__ == "__main__":
         suffix="photoIa_noz_wz_notsel_photoIawz",
         list_vars_to_plot=["REDSHIFT_FINAL", "average_probability_set_0"],
     )
-    # load salt fits wzspe
-    salt_fits_wz = du.load_salt_fits(args.path_data_fits)
-    tmp = pd.merge(
-        photoIa_noz_wz_notsel_photoIawz[["SNID", "REDSHIFT_FINAL"]],
-        salt_fits_wz,
-        on="SNID",
-        how="left",
-    )
-    photoIa_noz_wz_notsel_photoIawz_saltzspe = tmp[
-        tmp.SNID.isin(salt_fits_wz.SNID.values)
+    photoIa_noz_wz_notsel_photoIawz_saltzspe = photoIa_noz_wz_notsel_photoIawz[
+        photoIa_noz_wz_notsel_photoIawz.SNID.isin(salt_fits_wz.SNID.values)
     ]
     print(
         f"photoIa_noz but NOT photoIa_wz and HAVE a saltfit {len(photoIa_noz_wz_notsel_photoIawz_saltzspe)}"
-    )
-    photoIa_noz_wz_notsel_photoIawz_saltzspe = pd.merge(
-        photoIa_noz_wz_notsel_photoIawz_saltzspe,
-        photoIa_wz[["SNID", "average_probability_set_0"]],
-        on="SNID",
-        how="left",
     )
     pu.plot_mosaic_histograms_listdf(
         [photoIa_noz_wz_notsel_photoIawz_saltzspe],
         list_labels=[""],
         path_plots=path_plots,
         suffix="photoIa_noz_wz_notsel_photoIawz_saltzspe",
-        list_vars_to_plot=["zHD", "c", "x1", "average_probability_set_0"],
+        list_vars_to_plot=[
+            "zHD_zspe",
+            "c_zspe",
+            "x1_zspe",
+            "average_probability_set_0",
+        ],
+        chi_bins=False,
     )
 
     # hist hostgalmag
@@ -875,7 +880,7 @@ if __name__ == "__main__":
         list_vars_to_plot=["REDSHIFT_FINAL", "average_probability_set_0"],
     )
     # load salt fits wzspe
-    salt_fits_wz = du.load_salt_fits(args.path_data_fits)
+    # salt_fits_wz = du.load_salt_fits(args.path_data_fits)
     tmp = pd.merge(
         photoIa_noz_wz_notsel_photoIawz[["SNID", "REDSHIFT_FINAL"]],
         salt_fits_wz,
@@ -899,7 +904,12 @@ if __name__ == "__main__":
         list_labels=[""],
         path_plots=path_plots,
         suffix="photoIa_noz_wz_notsel_photoIawz_saltzspe_JLAlike",
-        list_vars_to_plot=["zHD", "c", "x1", "average_probability_set_0"],
+        list_vars_to_plot=[
+            "zHD_zspe",
+            "c_zspe",
+            "x1_zspe",
+            "average_probability_set_0",
+        ],
     )
 
     logger.info("")
@@ -1149,7 +1159,11 @@ if __name__ == "__main__":
     # For a mixed histogram
     cols_to_keep = ["SNID", "zHD", "c", "x1"]
     tmp = photoIa_noz_saltz_JLA[cols_to_keep]
-    tmp.update(salt_fits_wz[cols_to_keep])
+    tmp_salt_fits_wz = salt_fits_wz.rename(
+        columns={"zHD_zspe": "zHD", "c_zspe": "c", "x1_zspe": "x1"}
+    )
+
+    tmp.update(tmp_salt_fits_wz[cols_to_keep])
     pu.plot_mosaic_histograms_listdf(
         [tmp, photoIa_noz_saltz_JLA, photoIa_wz_JLA],
         list_labels=[
