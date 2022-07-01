@@ -23,6 +23,10 @@ mpl.rcParams["lines.linewidth"] = 3
 
 
 colors = ["grey"] + pu.ALL_COLORS
+# SNIa parameters
+Mb = 19.365
+alpha = 0.144  # from sim
+beta = 3.1
 
 
 def setup_logging():
@@ -105,7 +109,7 @@ def plot_scatter_mosaic_retro(
             linestyle="--",
             zorder=10,
         )
-        xlabel = "actual redshift" if var == "z" else f"{var} with actual redshift"
+        xlabel = "true redshift" if var == "z" else f"{var} with true redshift"
         ylabel = "fitted redshift" if var == "z" else f"{var} with fitted redshift"
         axs[i].set_xlabel(xlabel)
         axs[i].set_ylabel(ylabel)
@@ -207,14 +211,14 @@ def plot_freez_correlations(list_df, list_labels=["tmp"], path_plots="./"):
         for idx, row in sel.iterrows():
             axs[0].arrow(
                 row["zHD"],
-                row["c"],
+                beta * row["c"],
                 row["zHD_retro"] - row["zHD"],
-                row["c_retro"] - row["c"],
+                beta * (row["c_retro"] - row["c"]),
                 color="black",  # colors[idx_df],
                 head_width=0.02 if "sim Ia" in list_labels[idx_df] else 0.02,
                 width=0.002,
             )
-    axs[0].set_ylabel(f"c with actual redshift to fitted", fontsize=20)
+    axs[0].set_ylabel(r"$\beta c$ with true redshift to fitted", fontsize=20)
     axs[0].axis("equal")
     for idx_df, df in enumerate(list_df):
         df["zHD_bin"] = pd.cut(df.loc[:, ("zHD")], pu.bins_dic["zHD"])
@@ -222,16 +226,17 @@ def plot_freez_correlations(list_df, list_labels=["tmp"], path_plots="./"):
         for idx, row in sel.iterrows():
             axs[1].arrow(
                 row["zHD"],
-                row["x1"],
+                alpha * row["x1"],
                 row["zHD_retro"] - row["zHD"],
-                row["x1_retro"] - row["x1"],
+                alpha * (row["x1_retro"] - row["x1"]),
                 color="black",  # colors[idx_df],
                 head_width=0.02 if "sim Ia" in list_labels[idx_df] else 0.02,
                 width=0.002,
             )
     axs[1].axis("equal")
-    axs[1].set_xlabel(f"actual to fitted redshift", fontsize=20)
-    axs[1].set_ylabel(f"x1 with actual redshift to fitted", fontsize=20)
+    axs[1].set_ylim(-0.04,0.04)
+    axs[1].set_xlabel(f"true to fitted redshift", fontsize=20)
+    axs[1].set_ylabel(r"$\alpha x_1$ with true redshift to fitted", fontsize=20)
     plt.savefig(f"{path_plots}/migration_cx1_zHD.png")
 
 
@@ -335,7 +340,7 @@ if __name__ == "__main__":
         (sim_preds, sim_saltz_JLA),
     ]
     list_labels = [
-        "actual z",
+        "true z",
         "fitted z",
         "fitted z + JLA-like cut",
     ]
@@ -349,7 +354,7 @@ if __name__ == "__main__":
     pu.plot_metrics_list(
         [sim_fits_wpreds, sim_saltz_wpreds, sim_saltz_wpreds_JLA],
         path_plots=path_plots,
-        list_labels=["actual z", "fitted z", "fitted z + JLA-like cut"],
+        list_labels=["true z", "fitted z", "fitted z + JLA-like cut"],
         metric="efficiency",
     )
 
