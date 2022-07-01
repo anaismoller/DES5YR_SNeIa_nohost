@@ -1,3 +1,4 @@
+import glob
 import argparse
 import pandas as pd
 from utils import conf_utils as cu
@@ -23,14 +24,17 @@ if __name__ == "__main__":
         type=str,
         help="Path to 26X output",
     )
+    parser.add_argument(
+        "--path_models1X",
+        type=str,
+        default=f"./../snndump_1X_NOZ/models/",
+        help="Path to models not balanced testset",
+    )
     args = parser.parse_args()
 
-    #
-    # NO REDSHIFT information
-    #
     lu.print_green("SUPERNNOVA PERFORMACE WITH SIMULATIONS NO REDSHIFT")
+
     lu.print_blue("Load", "PREDS 26XB no redshift")
-    tmp_pred_dic = {}
     df_dic_noz = {}
     df_txt_stats_noz = pd.DataFrame(
         columns=["norm", "dataset", "method", "accuracy", "efficiency", "purity"]
@@ -77,7 +81,72 @@ if __name__ == "__main__":
             )
 
     # print(df_txt_stats_noz.to_string(index=False))
+    mu.reformatting_tolatex(df_txt_stats_noz, norm_list=["cosmo_quantile", "global"])
+
+    lu.print_blue("Load", "PREDS 1X no redshift (not balanced)")
+    df_dic_noz_1X = {}
+    df_txt_stats_noz_1X = pd.DataFrame(
+        columns=["norm", "dataset", "method", "accuracy", "efficiency", "purity"]
+    )
+    for norm in ["cosmo_quantile"]:
+        # exception for global norm
+        methods = cu.dic_sel_methods.items()
+        seeds = cu.all_seeds
+
+        df_dic_noz_1X[norm] = du.get_preds_seeds_merge(
+            seeds,
+            f"{args.path_models1X}",
+            norm=norm,
+            model_suffix=f"_CLF_2_R_none_photometry_DF_1.0_N_{norm}_lstm_64x4_0.05_1024_True_mean",
+        )
+
+        list_pred_targets = [
+            k for k in df_dic_noz_1X[norm].keys() if "predicted_target" in k
+        ]
+
+        # Ensemble methods
+        df_dic_noz_1X, list_sets = du.add_ensemble_methods(df_dic_noz_1X, norm)
+
+        for method, desc in methods:
+            list_seeds_sets = (
+                cu.list_seeds_set[0] if method == "predicted_target_S_" else list_sets
+            )
+            df_txt_stats_noz_1X = mu.get_multiseed_performance_metrics(
+                df_dic_noz_1X[norm],
+                key_pred_targ_prefix=method,
+                list_seeds=list_seeds_sets,
+                df_txt=df_txt_stats_noz_1X,
+                dic_prefilled_keywords={
+                    "norm": norm,
+                    "dataset": "not balanced",
+                    "method": desc,
+                },
+            )
+            df_txt_stats_noz_1X = mu.get_multiseed_performance_metrics(
+                df_dic_noz_1X[norm],
+                key_pred_targ_prefix=f"PEAKMJD_{method}",
+                list_seeds=list_seeds_sets,
+                df_txt=df_txt_stats_noz_1X,
+                dic_prefilled_keywords={
+                    "norm": norm,
+                    "dataset": "not balanced",
+                    "method": f"PEAKMJD_{desc}",
+                },
+            )
+            df_txt_stats_noz_1X = mu.get_multiseed_performance_metrics(
+                df_dic_noz_1X[norm],
+                key_pred_targ_prefix=f"PEAKMJD-2_{method}",
+                list_seeds=list_seeds_sets,
+                df_txt=df_txt_stats_noz_1X,
+                dic_prefilled_keywords={
+                    "norm": norm,
+                    "dataset": "not balanced",
+                    "method": f"PEAKMJD-2_{desc}",
+                },
+            )
+
+    # print(df_txt_stats_noz_1X.to_string(index=False))
     mu.reformatting_tolatex(
-        df_txt_stats_noz, norm_list=["cosmo", "cosmo_quantile", "global"]
+        df_txt_stats_noz_1X, norm_list=["cosmo_quantile"], dataset="not balanced"
     )
 
