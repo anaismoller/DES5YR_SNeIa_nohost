@@ -354,12 +354,26 @@ def load_pred(pred_file, suffix=None):
             columns={
                 "all_class0_median": "all_class0",
                 "all_class1_median": "all_class1",
+                "PEAKMJD_class0_median": "PEAKMJD_class0",
+                "PEAKMJD_class1_median": "PEAKMJD_class1",
+                "PEAKMJD-2_class0_median": "PEAKMJD-2_class0",
+                "PEAKMJD-2_class1_median": "PEAKMJD-2_class1",
             }
         )
         tmp = tmp.reset_index(drop=True)
-    df = tmp[["SNID", "all_class0", "all_class1", "target"]]
+    df = tmp[
+        [
+            "SNID",
+            "all_class0",
+            "all_class1",
+            "target",
+            "PEAKMJD-2_class0",
+            "PEAKMJD-2_class1",
+            "PEAKMJD_class0",
+            "PEAKMJD_class1",
+        ]
+    ]
     df.loc[:, "SNID"] = df["SNID"].astype(np.int64).values
-
     # get predicted class
     key_pred_targ = (
         "predicted_target" if suffix == None else f"predicted_target_{suffix}"
@@ -367,11 +381,39 @@ def load_pred(pred_file, suffix=None):
     df[key_pred_targ] = (
         df[["all_class0", "all_class1"]].idxmax(axis=1).str.strip("class_").astype(int)
     )
+
+    key_pred_targ = (
+        "PEAKMJD_predicted_target"
+        if suffix == None
+        else f"PEAKMJD_predicted_target_{suffix}"
+    )
+    df[key_pred_targ] = (
+        df[["PEAKMJD_class0", "PEAKMJD_class1"]]
+        .idxmax(axis=1)
+        .str.strip("PEAKMJD_class_")
+        .astype(float)
+    )
+    key_pred_targ = (
+        "PEAKMJD-2_predicted_target"
+        if suffix == None
+        else f"PEAKMJD-2_predicted_target_{suffix}"
+    )
+    df[key_pred_targ] = (
+        df[["PEAKMJD-2_class0", "PEAKMJD-2_class1"]]
+        .idxmax(axis=1)
+        .str.strip("PEAKMJD-2_class_")
+        .astype(float)
+    )
+
     if suffix != None:
         df = df.rename(
             {
                 "all_class0": f"all_class0_{suffix}",
                 "all_class1": f"all_class1_{suffix}",
+                "PEAKMJD_class0": f"PEAKMJD_class0_{suffix}",
+                "PEAKMJD_class1": f"PEAKMJD_class1_{suffix}",
+                "PEAKMJD-2_class0": f"PEAKMJD-2_class0_{suffix}",
+                "PEAKMJD-2_class1": f"PEAKMJD-2_class1_{suffix}",
             },
             axis="columns",
         )
@@ -485,13 +527,6 @@ def add_ensemble_methods(df_dic_preds, norm):
                 list_pred_targets_ensemble
             )
 
-            # # same prediction for all models
-            # df_dic_preds[norm][
-            #     f"predicted_target_samepred_set_{set_model_average}"
-            # ] = df_dic_preds[norm][f"averageoftargets_set{set_model_average}"].apply(
-            #     lambda x: 0 if x == 0 else 1
-            # )
-
             # note that here is a target threshold so average target>0.5 is target 1
             df_dic_preds[norm][
                 f"predicted_target_average_target_set_{set_model_average}"
@@ -522,6 +557,49 @@ def add_ensemble_methods(df_dic_preds, norm):
 
             # save sets list
             list_sets.append(set_model_average)
+
+            # PEAKMJD
+            # model averaging in probabilities with threshold 0.5
+            list_pred_probs_ensemble = [
+                f"PEAKMJD_class0_S_{k}"
+                for k in list_seed_ensemble
+                if f"PEAKMJD_class0_S_{k}" in df_dic_preds[norm].keys()
+            ]
+
+            df_dic_preds[norm][
+                f"PEAKMJD_average_probability_set_{set_model_average}"
+            ] = df_dic_preds[norm][list_pred_probs_ensemble].sum(axis=1) / len(
+                list_pred_probs_ensemble
+            )
+            # note that here is a probability threshold so prob>0.5 is target 0
+            df_dic_preds[norm][
+                f"PEAKMJD_predicted_target_average_probability_set_{set_model_average}"
+            ] = df_dic_preds[norm][
+                f"average_probability_set_{set_model_average}"
+            ].apply(
+                lambda x: 0 if x > 0.5 else 1
+            )
+            # PEAKMJD-2
+            # model averaging in probabilities with threshold 0.5
+            list_pred_probs_ensemble = [
+                f"PEAKMJD-2_class0_S_{k}"
+                for k in list_seed_ensemble
+                if f"PEAKMJD-2_class0_S_{k}" in df_dic_preds[norm].keys()
+            ]
+
+            df_dic_preds[norm][
+                f"PEAKMJD-2_average_probability_set_{set_model_average}"
+            ] = df_dic_preds[norm][list_pred_probs_ensemble].sum(axis=1) / len(
+                list_pred_probs_ensemble
+            )
+            # note that here is a probability threshold so prob>0.5 is target 0
+            df_dic_preds[norm][
+                f"PEAKMJD-2_predicted_target_average_probability_set_{set_model_average}"
+            ] = df_dic_preds[norm][
+                f"average_probability_set_{set_model_average}"
+            ].apply(
+                lambda x: 0 if x > 0.5 else 1
+            )
 
     return df_dic_preds, list_sets
 

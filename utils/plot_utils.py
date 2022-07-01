@@ -78,6 +78,12 @@ bins_dic = {
     "x1": np.linspace(-3, 3, 12),
     "HOST_LOGMASS": np.linspace(7, 13, 12),
     "m0obs_i": np.linspace(21, 25, 12),
+    "zHD_zspe": np.linspace(0.1, 1.1, 12),
+    "c_zspe": np.linspace(-0.3, 0.3, 12),
+    "x1_zspe": np.linspace(-3, 3, 12),
+    "HOST_LOGMASS_zspe": np.linspace(7, 13, 12),
+    "m0obs_i_zspe": np.linspace(21, 25, 12),
+    "average_probability_set_0": np.linspace(0.0, 1.0, 12),
 }
 chi_bins_dic = {
     "zHD": np.linspace(0.1, 1.1, 12),
@@ -87,6 +93,11 @@ chi_bins_dic = {
     "m0obs_i": np.linspace(19, 25, 12),
     "REDSHIFT_FINAL": np.linspace(0.1, 1.1, 12),
     "average_probability_set_0": np.linspace(0.0, 1.0, 12),
+    "zHD_zspe": np.linspace(0.1, 1.1, 12),
+    "c_zspe": np.linspace(-0.3, 0.3, 12),
+    "x1_zspe": np.linspace(-3, 3, 12),
+    "HOST_LOGMASS_zspe": np.linspace(7, 13, 12),
+    "m0obs_i_zspe": np.linspace(21, 25, 12),
 }
 
 
@@ -1744,8 +1755,8 @@ def plot_scatter_mosaic_retro(
             linestyle="--",
             zorder=10,
         )
-        xlabel = "actual redshift" if var == "z" else f"{var} with actual redshift"
-        ylabel = "fitted redshift" if var == "z" else f"{var} with fitted redshift"
+        xlabel = "zspe" if var == "z" else f"{var} with zspe"
+        ylabel = "fitted z" if var == "z" else f"{var} with fitted z"
         axs[i].set_xlabel(xlabel)
         axs[i].set_ylabel(ylabel)
         axs[i].set_xlim(lims[0], lims[1])

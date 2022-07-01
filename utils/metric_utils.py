@@ -26,6 +26,7 @@ def performance_metrics(
     n_targets = len(np.unique(df["target"]))
 
     # Accuracy & AUC
+    df = df[~df[key_pred_targ].isna()]
     balancedaccuracy = metrics.balanced_accuracy_score(
         df["target"].astype(int), df[key_pred_targ].astype(int)
     )
