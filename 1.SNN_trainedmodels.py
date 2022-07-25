@@ -186,6 +186,7 @@ if __name__ == "__main__":
         )
 
     cols = [f"PEAKMJD_class0_S_{k}" for k in cu.list_seeds_set[0]]
+    lu.print_green("PEAKMJD")
     print("Balanced")
     mu.reformatting_tolatex(
         df_txt_stats_noz_PEAK, norm_list=["cosmo_quantile"], dataset="balanced"
@@ -194,6 +195,8 @@ if __name__ == "__main__":
     mu.reformatting_tolatex(
         df_txt_stats_noz_PEAK, norm_list=["cosmo_quantile"], dataset="not balanced"
     )
+
+    lu.print_green("PEAKMJD-2")
     print("Balanced")
     mu.reformatting_tolatex(
         df_txt_stats_noz_PEAK2, norm_list=["cosmo_quantile"], dataset="balanced"
