@@ -1777,3 +1777,97 @@ def plot_delta_vs_var(df, varx, vary2, fout):
     )
     plt.savefig(fout)
     del fig
+
+
+def plot_probas_set_vs_seed(
+    to_plot,
+    nameout="./tmp.png",
+    xvar="average_probability_set_0",
+    set_to_plot=0,
+    prefix1="all",
+    prefix2="PEAKMJD-2",
+):
+    plt.clf()
+    figure = plt.figure()
+
+    def med(x):
+        return x.stack().median()
+
+    def low(x):
+        return x.stack().quantile(0.16)
+
+    def high(x):
+        return x.stack().quantile(0.84)
+
+    tmp_bins = {"proba": np.linspace(0, 1, 30)}
+    mean_bins = (
+        tmp_bins["proba"][:-1] + (tmp_bins["proba"][1] - tmp_bins["proba"][0]) / 2
+    )
+    # bin in av prob set 0
+    to_plot["bins"] = pd.cut(
+        to_plot.loc[:, (xvar)], tmp_bins["proba"], labels=mean_bins,
+    )
+
+    # all
+    cols = [f"{prefix1}_class0_S_{s}" for s in cu.list_seeds_set[set_to_plot]]
+    plt.errorbar(
+        mean_bins, to_plot[cols + ["bins"]].groupby("bins").apply(med), color="maroon",
+    )
+    plt.fill_between(
+        mean_bins,
+        to_plot[cols + ["bins"]].groupby("bins").apply(low),
+        to_plot[cols + ["bins"]].groupby("bins").apply(high),
+        color="maroon",
+        alpha=0.5,
+        zorder=-10,
+        label=prefix1,
+    )
+    # PEAKMJD
+    # Beware these may have missing pred values
+    # bin in av prob set 0
+    to_plot["bins"] = pd.cut(
+        to_plot.loc[:, (f"{prefix2}_{xvar}")], tmp_bins["proba"], labels=mean_bins,
+    )
+    cols = [f"{prefix2}_class0_S_{s}" for s in cu.list_seeds_set[set_to_plot]]
+    tmp = to_plot[cols + ["bins"]].dropna()
+    plt.errorbar(
+        mean_bins,
+        tmp[cols + ["bins"]].groupby("bins").apply(med),
+        color="blue",
+        linestyle="--",
+        label=prefix2,
+    )
+    plt.fill_between(
+        mean_bins,
+        tmp[cols + ["bins"]].groupby("bins").apply(low),
+        tmp[cols + ["bins"]].groupby("bins").apply(high),
+        color="blue",
+        alpha=0.5,
+        zorder=-20,
+    )
+    plt.legend()
+    plt.xlabel(xvar)
+    plt.ylabel(r"$P_{Ia}$")
+    plt.savefig(nameout)
+    plt.clf()
+
+
+def plot_hists_prob(df, pathout="./", xvar="PEAKMJD-2_average_probability_set_0"):
+
+    tmp_bins = {"proba": np.linspace(0, 1, 30)}
+    mean_bins = (
+        tmp_bins["proba"][:-1] + (tmp_bins["proba"][1] - tmp_bins["proba"][0]) / 2
+    )
+    # bin in av prob set 0
+    df["bins"] = pd.cut(df.loc[:, (xvar)], tmp_bins["proba"], labels=mean_bins,)
+
+    for b in df["bins"].unique():
+        sel = df[df["bins"] == b]
+        fig = plt.figure()
+        for p in [f"PEAKMJD-2_class0_S_{s}" for s in cu.list_seeds_set[0]]:
+            plt.hist(sel[p], histtype="step")
+        plt.plot((np.mean(sel[p]) + np.std(sel[p])) * (np.ones(2)), [0, 1000])
+        plt.yscale("log")
+        plt.xlim(0, 1)
+        plt.savefig(f"{pathout}/hist_prob_{np.round(b,2)}.png")
+

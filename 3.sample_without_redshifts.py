@@ -686,7 +686,7 @@ if __name__ == "__main__":
     ]
     list_labels = [
         "lost_photoIa_wz_JLA",
-        "lost_photoIa_wz_JLA z fitted",
+        "lost_photoIa_wz_JLA fitted z",
     ]
     pu.plot_mosaic_histograms_listdf(
         list_df,

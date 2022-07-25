@@ -17,7 +17,7 @@ list_sets = [0, 1, 2]
 # dic_sel_methods = {"predicted_target_S_":"single model","predicted_target_samepred_set":"target same pred", "predicted_target_average_set":"target average", "predicted_target_probability_average_set":"probability average"}
 dic_sel_methods = {
     "predicted_target_S_": "single model",
-    "predicted_target_average_target_set_": "ensemble (target av.)",
+    # "predicted_target_average_target_set_": "ensemble (target av.)",
     "predicted_target_average_probability_set_": "ensemble (prob. av.)",
 }
 

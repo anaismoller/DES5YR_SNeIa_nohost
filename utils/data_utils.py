@@ -568,17 +568,20 @@ def add_ensemble_methods(df_dic_preds, norm):
 
             df_dic_preds[norm][
                 f"PEAKMJD_average_probability_set_{set_model_average}"
-            ] = df_dic_preds[norm][list_pred_probs_ensemble].sum(axis=1) / len(
+            ] = df_dic_preds[norm][list_pred_probs_ensemble].sum(
+                axis=1, min_count=1  # min_count=1 to avoid sum of NaN=0
+            ) / len(
                 list_pred_probs_ensemble
             )
             # note that here is a probability threshold so prob>0.5 is target 0
             df_dic_preds[norm][
                 f"PEAKMJD_predicted_target_average_probability_set_{set_model_average}"
             ] = df_dic_preds[norm][
-                f"average_probability_set_{set_model_average}"
+                f"PEAKMJD_average_probability_set_{set_model_average}"
             ].apply(
-                lambda x: 0 if x > 0.5 else 1
+                lambda x: 0 if x > 0.5 else (1 if x > 0 else np.nan)  # support NaN
             )
+
             # PEAKMJD-2
             # model averaging in probabilities with threshold 0.5
             list_pred_probs_ensemble = [
@@ -589,16 +592,18 @@ def add_ensemble_methods(df_dic_preds, norm):
 
             df_dic_preds[norm][
                 f"PEAKMJD-2_average_probability_set_{set_model_average}"
-            ] = df_dic_preds[norm][list_pred_probs_ensemble].sum(axis=1) / len(
+            ] = df_dic_preds[norm][list_pred_probs_ensemble].sum(
+                axis=1, min_count=1  # min_count=1 to avoid sum of NaN=0
+            ) / len(
                 list_pred_probs_ensemble
             )
             # note that here is a probability threshold so prob>0.5 is target 0
             df_dic_preds[norm][
                 f"PEAKMJD-2_predicted_target_average_probability_set_{set_model_average}"
             ] = df_dic_preds[norm][
-                f"average_probability_set_{set_model_average}"
+                f"PEAKMJD-2_average_probability_set_{set_model_average}"
             ].apply(
-                lambda x: 0 if x > 0.5 else 1
+                lambda x: 0 if x > 0.5 else (1 if x > 0 else np.nan)  # support NaN
             )
 
     return df_dic_preds, list_sets
