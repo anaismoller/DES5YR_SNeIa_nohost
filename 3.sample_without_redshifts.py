@@ -164,6 +164,10 @@ if __name__ == "__main__":
     logger.info("BASIC SELECTION CUTS")
     df_metadata = du.load_headers(args.path_data)
 
+    df_stats = mu.cuts_deep_shallow(
+        df_metadata, photoIa_wz_JLA, cut="DES-SN 5-year candidate sample"
+    )
+
     # OOD cuts
     # detection cuts
     df_metadata_w_dets = cuts.detections("DETECTIONS", df_metadata, logger)
@@ -172,6 +176,12 @@ if __name__ == "__main__":
         "MULTI-SEASON", df_metadata_w_dets, logger
     )
     df_metadata_w_multiseason.to_csv(f"{path_samples}/presel_cuts.csv")
+    df_stats = mu.cuts_deep_shallow(
+        df_metadata_w_multiseason,
+        photoIa_wz_JLA,
+        df_stats=df_stats,
+        cut="Filtering multi-season",
+    )
 
     logger.info("")
     logger.info("SAMPLING SELECTION CUTS")
@@ -185,9 +195,6 @@ if __name__ == "__main__":
     df_photometry = df_photometry[
         df_photometry.SNID.isin(df_metadata_w_multiseason.SNID.values)
     ]
-    overlap_photoIa(
-        df_metadata_w_multiseason, photoIa_wz, photoIa_wz_JLA, mssg="multiseason",
-    )
 
     # eliminate bad photometric points
     # only valid for powers of two combinations
@@ -234,14 +241,23 @@ if __name__ == "__main__":
     # print(f">> PHOTWINDOW reduced measurements to {len(df_pkpho)}")
 
     def group_photo_criteria(df, n_measurements):
+        # unique flt occurences
         tmp = df.groupby("SNID")["FLT"].apply(lambda x: len(list(np.unique(x))))
-        return tmp[tmp >= n_measurements].index
+        id1 = tmp[tmp >= n_measurements].index
+        # unique night occurences
+        df["MJDint"] = df["MJD"].astype(int)
+        tmp2 = df.groupby("SNID")["MJDint"].apply(lambda x: len(list(np.unique(x))))
+        id2 = tmp2[tmp2 >= n_measurements].index
+        # flt + nights requirement
+        inters = list(set(id1) & set(id2))
+        # return tmp[tmp >= n_measurements].index
+        return inters
 
-    # <1 day before max
+    # 2 filter at least <0 day before max
     SNID_measurement_before_max = group_photo_criteria(
-        df_pkpho[df_pkpho["window_delta_time"] < -1], 2
+        df_pkpho[df_pkpho["window_delta_time"] < 0], 2
     )
-    print(f">> 2 point<max-1")
+    print(f">> 2 point<max")
     overlap_photoIa(
         df_metadata_w_multiseason[
             df_metadata_w_multiseason.SNID.isin(SNID_measurement_before_max)
@@ -255,20 +271,19 @@ if __name__ == "__main__":
     SNID_measurement_after_maxplus10 = group_photo_criteria(
         df_pkpho[df_pkpho["window_delta_time"] > 10], 2
     )
-    print(f">> 2 point >max+10")
-    overlap_photoIa(
-        df_metadata_w_multiseason[
-            df_metadata_w_multiseason.SNID.isin(SNID_measurement_after_maxplus10)
-        ],
-        photoIa_wz,
-        photoIa_wz_JLA,
-        mssg="",
-    )
-
     SNID_sampling_measurements_std = np.intersect1d(
         SNID_measurement_before_max,
         SNID_measurement_after_maxplus10,
         assume_unique=True,
+    )
+    print(f">> + 2 point >max+10")
+    overlap_photoIa(
+        df_metadata_w_multiseason[
+            df_metadata_w_multiseason.SNID.isin(SNID_sampling_measurements_std)
+        ],
+        photoIa_wz,
+        photoIa_wz_JLA,
+        mssg="",
     )
 
     # around max -1<x<10
@@ -284,11 +299,10 @@ if __name__ == "__main__":
     print(f">> + 1 point around max {len(SNID_sampling_measurements)}")
 
     # reselect photometry for SNIDs only
-    # df_pkpho = df_pkpho[df_pkpho.SNID.isin(SNID_sampling_measurements)]
-    df_pkpho = df_pkpho[df_pkpho.SNID.isin(SNID_sampling_measurements_std)]
+    df_pkpho = df_pkpho[df_pkpho.SNID.isin(SNID_sampling_measurements)]
     overlap_photoIa(
         df_metadata_w_multiseason[
-            df_metadata_w_multiseason.SNID.isin(SNID_sampling_measurements_std)
+            df_metadata_w_multiseason.SNID.isin(SNID_sampling_measurements)
         ],
         photoIa_wz,
         photoIa_wz_JLA,
@@ -311,6 +325,13 @@ if __name__ == "__main__":
     )
     cuts.spec_subsamples(df_metadata_w_sampling, logger)
 
+    df_stats = mu.cuts_deep_shallow(
+        df_metadata_w_sampling,
+        photoIa_wz_JLA,
+        df_stats=df_stats,
+        cut="Photometric sampling and SNR",
+    )
+
     logger.info("")
     logger.info("PHOTOMETRIC CLASSIFICATION")
     lu.print_blue("Loading predictions without redshift")
@@ -330,6 +351,9 @@ if __name__ == "__main__":
     ]
     lu.print_green(f"photoIa_noz with selcuts set 0: {len(photoIa_noz)}")
     cuts.spec_subsamples(photoIa_noz, logger)
+    df_stats = mu.cuts_deep_shallow(
+        photoIa_noz, photoIa_wz_JLA, df_stats=df_stats, cut="RNN>0.5"
+    )
 
     # load salt fits wzspe
     tmp = du.load_salt_fits(args.path_data_fits)
@@ -568,6 +592,12 @@ if __name__ == "__main__":
     print(
         f"# of events with simultaneous SALT fit {len(salt_fits_noz)} from which {len(photoIa_noz_saltz)} are photoIa"
     )
+    df_stats = mu.cuts_deep_shallow(
+        photoIa_noz_saltz,
+        photoIa_wz_JLA,
+        cut="Converging SALT2 and redshift fit",
+        df_stats=df_stats,
+    )
     to_fup_24, to_fup_24_nozspe = fup_criteria(photoIa_noz_saltz)
 
     pu.plot_mosaic_histograms_listdf(
@@ -621,6 +651,16 @@ if __name__ == "__main__":
     cuts.spec_subsamples(photoIa_noz_saltz_JLA, logger)
     overlap_photoIa(photoIa_noz_saltz_JLA, photoIa_wz, photoIa_wz_JLA, mssg="")
     to_fup_24, to_fup_24_nozspe = fup_criteria(photoIa_noz_saltz_JLA)
+    df_stats = mu.cuts_deep_shallow(
+        photoIa_noz_saltz_JLA, photoIa_wz_JLA, df_stats=df_stats, cut="JLA-like cuts"
+    )
+
+    lu.print_blue("Stats")
+    df_stats[[k for k in df_stats.keys() if k != "cut"]] = df_stats[
+        [k for k in df_stats.keys() if k != "cut"]
+    ].astype(int)
+    print(df_stats.to_latex(index=False))
+    print("")
 
     # distributions of these new events
     list_df = [

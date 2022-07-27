@@ -226,4 +226,3 @@ if __name__ == "__main__":
         prefix2="PEAKMJD",
     )
 
-    # pu.plot_hists_prob(df_dic_noz[norm], pathout=path_plots)
