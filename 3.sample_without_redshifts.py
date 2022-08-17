@@ -24,20 +24,6 @@ plt.switch_backend("agg")
 colors = ["grey"] + pu.ALL_COLORS
 
 
-def fup_criteria(df_sel):
-    to_fup_24_psnid = df_sel[df_sel["HOSTGAL_MAG_r"] < 24]
-    print(
-        "# hosts r<24 that could be followed-up", len(to_fup_24_psnid),
-    )
-    to_fup_24_nozspe_psnid = df_sel[
-        (df_sel["HOSTGAL_MAG_r"] < 24) & (df_sel["REDSHIFT_FINAL"] < 0)
-    ]
-    print(
-        "  and without spec redshift in database", len(to_fup_24_nozspe_psnid),
-    )
-    return to_fup_24_psnid, to_fup_24_nozspe_psnid
-
-
 def overlap_photoIa(df_sel, photoIa_wz, photoIa_wz_JLA, mssg=""):
     # some stats on this sample
     print(
@@ -157,6 +143,9 @@ if __name__ == "__main__":
         f"Photo Ia sample with redshifts w JLA cuts (computed previously with ensemble method) {len(photoIa_wz_JLA)}"
     )
 
+    # Load Redshift catalogue
+    sngals = du.load_sngals(f"extra_lists/SNGALS_DLR_RANK1_INFO.csv")
+
     logger.info("_______________")
     logger.info("PHOTOMETRIC SNE IA")
 
@@ -253,30 +242,36 @@ if __name__ == "__main__":
         # return tmp[tmp >= n_measurements].index
         return inters
 
-    # 2 filter at least <0 day before max
+    # 1 filter at least <0 day before max
     SNID_measurement_before_max = group_photo_criteria(
-        df_pkpho[df_pkpho["window_delta_time"] < 0], 2
+        df_pkpho[df_pkpho["window_delta_time"] < 0], 1
     )
-    print(f">> 2 point<max")
-    overlap_photoIa(
-        df_metadata_w_multiseason[
-            df_metadata_w_multiseason.SNID.isin(SNID_measurement_before_max)
-        ],
-        photoIa_wz,
-        photoIa_wz_JLA,
-        mssg="",
-    )
+    # SNID_measurement_before_max = group_photo_criteria(
+    #     df_pkpho[df_pkpho["window_delta_time"] < 0], 2
+    # )
+    # print(f">> 1 point<max")
+    # overlap_photoIa(
+    #     df_metadata_w_multiseason[
+    #         df_metadata_w_multiseason.SNID.isin(SNID_measurement_before_max)
+    #     ],
+    #     photoIa_wz,
+    #     photoIa_wz_JLA,
+    #     mssg="",
+    # )
 
     # > max+10
+    # SNID_measurement_after_maxplus10 = group_photo_criteria(
+    #     df_pkpho[df_pkpho["window_delta_time"] > 10], 2
+    # )
     SNID_measurement_after_maxplus10 = group_photo_criteria(
-        df_pkpho[df_pkpho["window_delta_time"] > 10], 2
+        df_pkpho[df_pkpho["window_delta_time"] > 10], 1
     )
     SNID_sampling_measurements_std = np.intersect1d(
         SNID_measurement_before_max,
         SNID_measurement_after_maxplus10,
         assume_unique=True,
     )
-    print(f">> + 2 point >max+10")
+    print(f">> + 1 point >max+10")
     overlap_photoIa(
         df_metadata_w_multiseason[
             df_metadata_w_multiseason.SNID.isin(SNID_sampling_measurements_std)
@@ -287,17 +282,17 @@ if __name__ == "__main__":
     )
 
     # around max -1<x<10
-    SNID_measurement_around_max = group_photo_criteria(
-        df_pkpho[
-            (df_pkpho["window_delta_time"] > 0) & (df_pkpho["window_delta_time"] < 10)
-        ],
-        1,
-    )
-    SNID_sampling_measurements = np.intersect1d(
-        SNID_sampling_measurements_std, SNID_measurement_around_max, assume_unique=True,
-    )
-    print(f">> + 1 point around max {len(SNID_sampling_measurements)}")
-
+    # SNID_measurement_around_max = group_photo_criteria(
+    #     df_pkpho[
+    #         (df_pkpho["window_delta_time"] > 0) & (df_pkpho["window_delta_time"] < 10)
+    #     ],
+    #     1,
+    # )
+    # SNID_sampling_measurements = np.intersect1d(
+    #     SNID_sampling_measurements_std, SNID_measurement_around_max, assume_unique=True,
+    # )
+    # print(f">> + 1 point around max {len(SNID_sampling_measurements)}")
+    SNID_sampling_measurements = SNID_sampling_measurements_std
     # reselect photometry for SNIDs only
     df_pkpho = df_pkpho[df_pkpho.SNID.isin(SNID_sampling_measurements)]
     overlap_photoIa(
@@ -311,8 +306,8 @@ if __name__ == "__main__":
 
     # SNR>5
     df_pkpho["SNR"] = df_pkpho["FLUXCAL"] / df_pkpho["FLUXCALERR"]
-    SNID_w_2flt_SNR5 = group_photo_criteria(df_pkpho[abs(df_pkpho.SNR) > 5], 2)
-    print(f">> + 2 points SNR>5 to {len(SNID_w_2flt_SNR5)}")
+    SNID_w_2flt_SNR5 = group_photo_criteria(df_pkpho[abs(df_pkpho.SNR) > 5], 1)
+    print(f">> + 1 points SNR>5 to {len(SNID_w_2flt_SNR5)}")
 
     df_metadata_w_sampling = df_metadata_w_multiseason[
         df_metadata_w_multiseason.SNID.isin(SNID_w_2flt_SNR5)
@@ -374,7 +369,32 @@ if __name__ == "__main__":
         path_plots=path_plots,
         suffix="notin_pIawz",
         list_vars_to_plot=["REDSHIFT_FINAL", "average_probability_set_0"],
+        data_color_override=True,
     )
+
+    # save lost wzJLA
+    lost_photoIawzJLA = df_metadata_preds[
+        (df_metadata_preds.SNID.isin(photoIa_wz_JLA.SNID.values))
+        & (df_metadata_preds["average_probability_set_0"] < 0.5)
+    ]
+    lost_photoIawzJLA.to_csv(f"{path_samples}/photoIawzJLA_notin_noz.csv")
+
+    lost_photoIawzJLA = lost_photoIawzJLA.merge(
+        photoIa_wz_JLA[["SNID", "c", "x1", "zHD"]], on="SNID"
+    )
+    pu.plot_mosaic_histograms_listdf(
+        [lost_photoIawzJLA],
+        list_labels=["lost_photoIawzJLA"],
+        path_plots=path_plots,
+        suffix="lost_photoIawzJLA",
+        data_color_override=True,
+    )
+
+    pu.plot_mosaic_scatter(
+        lost_photoIawzJLA, path_plots=path_plots, suffix="lost_photoIawzJLA",
+    )
+
+    print(df_stats)
 
     # Possible contamination
     # dic_photoIa_sel = {"average_probability_set_0": photoIa_noz}
@@ -399,49 +419,7 @@ if __name__ == "__main__":
         data_color_override=True,
     )
 
-    # without redshift in this sample
-    logger.info("")
-    perc = 100 * len(photoIa_noz[photoIa_noz["REDSHIFT_FINAL"] < 0]) / len(photoIa_noz)
-    logger.info(f"Without redshift {round(perc,2)} \\%")
-
-    # check if there is a correlation with host_mag_r for missing z
-    fig = plt.figure(constrained_layout=True,)
-    photoIa_noz_whostmag = photoIa_noz[photoIa_noz["HOSTGAL_MAG_r"] < 40]
-    print(
-        f"without host {len(photoIa_noz[photoIa_noz['HOSTGAL_MAG_r'] > 40])} equivalent to {round(100*len(photoIa_noz[photoIa_noz['HOSTGAL_MAG_r'] > 40])/len(photoIa_noz),2)} \\%"
-    )
-    print(
-        f'noz host r mag {round(photoIa_noz_whostmag[photoIa_noz_whostmag["REDSHIFT_FINAL"] < 0]["HOSTGAL_MAG_r"].median(),2)}+-{round(photoIa_noz_whostmag[photoIa_noz_whostmag["REDSHIFT_FINAL"] < 0]["HOSTGAL_MAG_r"].std(),2)}, max = {round(photoIa_noz_whostmag[photoIa_noz_whostmag["REDSHIFT_FINAL"] < 0]["HOSTGAL_MAG_r"].max(),2)}'
-    )
-    # hosts that could be followed-up with AAT (mag<24)
-    to_fup_24 = photoIa_noz_whostmag[photoIa_noz_whostmag["HOSTGAL_MAG_r"] < 24]
-    print(
-        "# hosts r<24 that could be followed-up", len(to_fup_24),
-    )
-    to_fup_24_nozspe = photoIa_noz_whostmag[
-        (photoIa_noz_whostmag["HOSTGAL_MAG_r"] < 24)
-        & (photoIa_noz_whostmag["REDSHIFT_FINAL"] < 0)
-    ]
-    print(
-        "  and without spec redshift in database", len(to_fup_24_nozspe),
-    )
-
-    sngals = du.load_sngals(f"extra_lists/SNGALS_DLR_RANK1_INFO.csv")
-    tmp = pd.merge(to_fup_24_nozspe, sngals, on="SNID")
-    aat = tmp[tmp.SPECZ_CATALOG == "DES_AAOmega"]
-    # need to do this only for AAOmega as other instrument have different tags
-    aat["SPECZ_FLAG"] = aat["SPECZ_FLAG"].astype(np.float)
-    plt.hist(aat["SPECZ_FLAG"])
-    plt.yscale("log")
-    plt.savefig(f"{path_plots}/hist_SPECZFLAG_photoIa_wz_JLA.png")
-
-    lu.print_yellow("TO FUP OzDES FLAGS")
-    print(aat.groupby("SPECZ_FLAG").count()["SNID"])
-    print(f"QOP 6 (stars!) {aat[aat.SPECZ_FLAG==6]}")
-
-    #
     # Who are the ones that got noz selected but where not in wz
-    #
     photoIa_noz_wz_notsel_photoIawz = photoIa_noz[
         (photoIa_noz["REDSHIFT_FINAL"] > 0)
         & (~photoIa_noz["SNID"].isin(photoIa_wz.SNID.values))
@@ -477,83 +455,7 @@ if __name__ == "__main__":
         chi_bins=False,
     )
 
-    # hist hostgalmag
-    # DES 5-year (w cuts) + photo ia no z
-    fig = plt.figure(figsize=(12, 8))
-    # DES_whostmag = df_metadata_preds[df_metadata_preds["HOSTGAL_MAG_r"] < 40]
-    # n, bins, tmp = plt.hist(
-    #     DES_whostmag["HOSTGAL_MAG_r"],
-    #     histtype="step",
-    #     label="DES 5-year with selection cuts",
-    #     bins=50,
-    #     lw=2,
-    # )
-    n, bins, tmp = plt.hist(
-        photoIa_noz_whostmag["HOSTGAL_MAG_r"],
-        histtype="step",
-        label="photometric SNe Ia",
-        bins=50,
-        lw=2,
-    )
-    plt.hist(
-        photoIa_noz_whostmag[photoIa_noz_whostmag["REDSHIFT_FINAL"] < 0][
-            "HOSTGAL_MAG_r"
-        ],
-        histtype="step",
-        label="without DES redshift",
-        bins=bins,
-        lw=2,
-    )
-    plt.plot(
-        [24, 24],
-        [0, max(n)],
-        linestyle="--",
-        color="grey",
-        label="follow-up limit approximation",
-    )
-    plt.ylabel("# events", fontsize=20)
-    plt.xlabel("host r magnitude", fontsize=20)
-    # plt.yscale("log")
-    plt.legend(loc=2)
-    plt.savefig(f"{path_plots}/hist_HOSTGAL_MAG_r_vs_REDSHIFT.png")
-
-    plt.clf()
-    fig = plt.figure()
-    # photo Ia no z + photo Ia wz
-    n, bins, tmp = plt.hist(
-        photoIa_noz_whostmag["HOSTGAL_MAG_r"],
-        histtype="step",
-        label="Baseline DES-SNIa sample (Möller et al. 2022)",
-        bins=100,
-        lw=2,
-    )
-    plt.hist(
-        photoIa_noz_whostmag["HOSTGAL_MAG_r"],
-        histtype="step",
-        label="Photometric SNe Ia (this work)",
-        bins=bins,
-        lw=2,
-    )
-    plt.hist(
-        photoIa_noz_whostmag[photoIa_noz_whostmag["REDSHIFT_FINAL"] < 0][
-            "HOSTGAL_MAG_r"
-        ],
-        histtype="step",
-        label="photometric SNe Ia (this work) without redshifts",
-        bins=bins,
-        lw=2,
-    )
-    plt.plot(
-        [24, 24],
-        [0, 170],
-        linestyle="--",
-        color="grey",
-        label="follow-up limit approximation",
-    )
-    plt.ylabel("# events")
-    plt.xlabel("host r magnitude")
-    plt.legend(loc=2)
-    plt.savefig(f"{path_plots}/hist_HOSTGAL_MAG_r_vs_REDSHIFT_wznoz.png")
+    df_stats_fup = mu.fup_hostgals_stats(photoIa_noz, sngals, sample="loose")
 
     # PSNID
     logger.info("")
@@ -565,17 +467,12 @@ if __name__ == "__main__":
         photoIa_noz_psnid["PBAYES_IA"] > 1e-12
     ]
     print(f"photoIa_noz that pass PSNID cut {len(photoIa_noz_psnid_realtime_cut)} ")
-    to_fup_24_psnid, to_fup_24_nozspe_psnid = fup_criteria(
-        photoIa_noz_psnid_realtime_cut
+    df_stats_fup = mu.fup_hostgals_stats(
+        photoIa_noz_psnid_realtime_cut,
+        sngals,
+        df_stats=df_stats_fup,
+        sample="loose PSNID",
     )
-    for var in ["PBAYES_IA", "FITPROB_IA"]:
-        fig = plt.figure()
-        plt.hist(photoIa_noz_psnid_realtime_cut[var])
-        plt.hist(to_fup_24_psnid[var], label="Hostmag<24")
-        plt.xlabel(var)
-        plt.yscale("log")
-        plt.legend()
-        plt.savefig(f"{path_plots}/hist_{var}.png")
 
     logger.info("")
     logger.info("ESTIMATING z,x1,c,t0 WITH SALT2")
@@ -598,16 +495,6 @@ if __name__ == "__main__":
         cut="Converging SALT2 and redshift fit",
         df_stats=df_stats,
     )
-    to_fup_24, to_fup_24_nozspe = fup_criteria(photoIa_noz_saltz)
-
-    pu.plot_mosaic_histograms_listdf(
-        [photoIa_noz_saltz],
-        list_labels=["photometric SNe Ia (fitted z)"],
-        path_plots=path_plots,
-        suffix="_withoutcuts",
-        list_vars_to_plot=["zHD", "c", "x1"],
-        data_color_override=True,
-    )
 
     logger.info("")
     logger.info("SALT FUP BASIC CUTS")
@@ -623,36 +510,47 @@ if __name__ == "__main__":
     print(
         f"# of photoIa_noz with SALT fup cuts (x1ERR,t0,FITPROB, no JLA) {len(photoIa_noz_saltfup_cut)} without zspe {len(photoIa_noz_saltfup_cut_nozspe)}",
     )
-    _, _ = fup_criteria(photoIa_noz_saltfup_cut)
 
     logger.info("")
     logger.info("JLA CUTS")
-    # photoIa_noz_saltz_zrange = photoIa_noz_saltz[
-    #     (photoIa_noz_saltz.zHD > 0.2) & (photoIa_noz_saltz.zHD < 1.2)
-    # ]
-    photoIa_noz_saltz_zrange = photoIa_noz_saltz
-    photoIa_noz_saltz_JLA = su.apply_JLA_cut(photoIa_noz_saltz_zrange)
-
-    # for all preds that pass sel cuts
-    df_metadata_preds_saltz = pd.merge(
-        df_metadata_preds, salt_fits_noz, on=["SNID", "SNTYPE"]
-    )
-    # z
-    df_metadata_preds_saltz_zrange = df_metadata_preds_saltz[
-        (df_metadata_preds_saltz.zHD > 0.2) & (df_metadata_preds_saltz.zHD < 1.2)
-    ]
-    # df_metadata_preds_saltz_zrange = df_metadata_preds_saltz
-    # JLA
-    df_metadata_preds_JLA = su.apply_JLA_cut(df_metadata_preds_saltz_zrange)
+    # JLA here includes redshift range
+    photoIa_noz_saltz_JLA = su.apply_JLA_cut(photoIa_noz_saltz)
 
     lu.print_green(
         f"photoIa_noz set 0 with JLA cuts (fitted z): {len(photoIa_noz_saltz_JLA)}"
     )
     cuts.spec_subsamples(photoIa_noz_saltz_JLA, logger)
     overlap_photoIa(photoIa_noz_saltz_JLA, photoIa_wz, photoIa_wz_JLA, mssg="")
-    to_fup_24, to_fup_24_nozspe = fup_criteria(photoIa_noz_saltz_JLA)
+
     df_stats = mu.cuts_deep_shallow(
-        photoIa_noz_saltz_JLA, photoIa_wz_JLA, df_stats=df_stats, cut="JLA-like cuts"
+        photoIa_noz_saltz_JLA, photoIa_wz_JLA, df_stats=df_stats, cut="JLA-like"
+    )
+
+    logger.info("")
+    logger.info("SAMPLE CONTAMINATION")
+    # hack to use the same contaminant inspection
+    dic_photoIa_sel = {"average_probability_set_0": photoIa_noz_saltz_JLA}
+    dic_tag_SNIDs = cuts.stats_possible_contaminants(
+        dic_photoIa_sel, method_list=["average_probability_set"]
+    )
+    # eliminate the AGNs
+    SNIDs_to_eliminate = [
+        k
+        for k in dic_tag_SNIDs[0]["OzDES_AGN"]
+        if k not in [1286337, 1246527, 1370320, 1643063, 1252970]  # >1'' from AGN
+    ]
+    lu.print_yellow(
+        "Eliminating tagged close-by AGNs (rest of results)", SNIDs_to_eliminate
+    )
+    photoIa_noz_saltz_JLA = photoIa_noz_saltz_JLA[
+        ~photoIa_noz_saltz_JLA.SNID.isin(SNIDs_to_eliminate)
+    ]
+
+    df_stats = mu.cuts_deep_shallow(
+        photoIa_noz_saltz_JLA,
+        photoIa_wz_JLA,
+        df_stats=df_stats,
+        cut="JLA-like (wo AGNs)",
     )
 
     lu.print_blue("Stats")
@@ -662,7 +560,55 @@ if __name__ == "__main__":
     print(df_stats.to_latex(index=False))
     print("")
 
-    # distributions of these new events
+    df_stats_fup = mu.fup_hostgals_stats(
+        photoIa_noz_saltz_JLA, sngals, df_stats=df_stats_fup, sample="JLA-like",
+    )
+    lu.print_blue("Stats FUP")
+    df_stats_fup[[k for k in df_stats_fup.keys() if k != "sample"]] = df_stats_fup[
+        [k for k in df_stats_fup.keys() if k != "sample"]
+    ].astype(int)
+    print(df_stats_fup.to_latex(index=False))
+    print("")
+
+    #
+    # Plots
+    #
+
+    # HOST
+    # hist hostgalmag
+    list_df = [photoIa_noz_saltz, photoIa_noz_saltz_JLA]
+    list_labels = ["photo Ia loose", "photo Ia JLA-like"]
+    list_n = []
+    fig = plt.figure(figsize=(12, 8))
+    for i, df in enumerate(list_df):
+        whost = df[df["HOSTGAL_MAG_r"] < 40]
+        n, bins, tmp = plt.hist(
+            whost["HOSTGAL_MAG_r"],
+            histtype="step",
+            label=list_labels[i],
+            bins=50,
+            lw=2,
+            color=pu.ALL_COLORS[i],
+        )
+        plt.hist(
+            whost[whost["REDSHIFT_FINAL"] < 0]["HOSTGAL_MAG_r"],
+            histtype="step",
+            label=f"{list_labels[i]} no host z",
+            bins=bins,
+            lw=2,
+            color=pu.ALL_COLORS[i],
+            linestyle="dashed",
+        )
+        list_n.append(n)
+    plt.plot(
+        [24, 24], [0, max(n)], linestyle="--", color="grey", label="follow-up limit",
+    )
+    plt.ylabel("# events", fontsize=20)
+    plt.xlabel("host r magnitude", fontsize=20)
+    plt.legend(loc=2)
+    plt.savefig(f"{path_plots}/hist_HOSTGAL_MAG_r_vs_REDSHIFT.png")
+
+    # distributions of new events
     list_df = [
         photoIa_noz_saltz,
         photoIa_noz_saltz[~photoIa_noz_saltz.SNID.isin(photoIa_wz_JLA.SNID.values)],
@@ -770,98 +716,7 @@ if __name__ == "__main__":
         f"{path_plots}/scatter_z_overlap_photoIawz_retro_vs_ori.png",
     )
 
-    logger.info("")
-    logger.info("SAMPLE CONTAMINATION")
-    # hack to use the same contaminant inspection
-    dic_photoIa_sel = {"average_probability_set_0": photoIa_noz_saltz_JLA}
-    dic_tag_SNIDs = cuts.stats_possible_contaminants(
-        dic_photoIa_sel, method_list=["average_probability_set"]
-    )
-    # eliminate the AGNs
-    SNIDs_to_eliminate = [
-        k
-        for k in dic_tag_SNIDs[0]["OzDES_AGN"]
-        if k not in [1286337, 1246527, 1370320, 1643063, 1252970]  # >1'' from AGN
-    ]
-    lu.print_yellow(
-        "Eliminating tagged close-by AGNs (rest of results)", SNIDs_to_eliminate
-    )
-    photoIa_noz_saltz_JLA = photoIa_noz_saltz_JLA[
-        ~photoIa_noz_saltz_JLA.SNID.isin(SNIDs_to_eliminate)
-    ]
-
-    logger.info("")
-    logger.info("SAMPLE STATS")
-    lu.print_green(
-        f"PhotoIa no z set 0 with all cuts (-2 AGNs): {len(photoIa_noz_saltz_JLA)}"
-    )
-    # eliminating for all samples
-    df_metadata_preds = df_metadata_preds[
-        ~df_metadata_preds.SNID.isin(SNIDs_to_eliminate)
-    ]
-    df_metadata_preds_JLA = df_metadata_preds_JLA[
-        ~df_metadata_preds_JLA.SNID.isin(SNIDs_to_eliminate)
-    ]
-
-    # table as in redshift photoIa
-    df_photoIa_stats = du.get_sample_stats(df_metadata_preds)
-    df_photoIa_stats_JLA = du.get_sample_stats(df_metadata_preds_JLA, suffix="_JLA")
-    df_photoIa_stats = pd.merge(
-        df_photoIa_stats, df_photoIa_stats_JLA, on=["norm", "method"], how="left"
-    )
-
-    # just set 0
-    list_suffix = ["", "_JLA"]
-    df_photoIa_stats_tmp = {}
-    for n, df in enumerate([df_metadata_preds, df_metadata_preds_JLA]):
-        df_photoIa_stats_tmp[n] = pd.DataFrame()
-        photoIa, specIa, _, _ = cuts.photo_sel_prob(
-            df, prob_key="average_probability_set_0"
-        )
-        photoIa_tofup, _, _, _ = cuts.photo_sel_prob(
-            df[df.SNID.isin(to_fup_24_nozspe.SNID.values)],
-            prob_key="average_probability_set_0",
-        )
-        suffix = list_suffix[n]
-        dic_tmp = {
-            "method": "ensemble set 0",
-            f"photoIa{suffix}": photoIa,
-            f"specIa{suffix}": specIa,
-            f"fup{suffix}": photoIa_tofup,
-        }
-        df_photoIa_stats_tmp[n] = df_photoIa_stats_tmp[n].append(
-            dic_tmp, ignore_index=True
-        )
-
-    df_photoIa_stats_set0 = pd.merge(
-        df_photoIa_stats_tmp[0], df_photoIa_stats_tmp[1], on="method"
-    )
-    cols_to_change = [k for k in df_photoIa_stats_set0.keys() if k != "method"]
-    df_photoIa_stats_set0[cols_to_change] = df_photoIa_stats_set0[
-        cols_to_change
-    ].astype(int)
-
-    lu.print_blue("cosmo_quantile")
-    latex_table = df_photoIa_stats.to_latex(
-        index=False,
-        columns=["method", "photoIa", "specIa", "photoIa_JLA", "specIa_JLA"],
-    )
-    logger.info(latex_table)
-    latex_table_set0 = df_photoIa_stats_set0.to_latex(
-        index=False,
-        columns=[
-            "method",
-            "photoIa",
-            "specIa",
-            "photoIa_JLA",
-            "specIa_JLA",
-            "fup",
-            "fup_JLA",
-        ],
-    )
-    logger.info(latex_table_set0)
-
-    # Overlap between these samples
+    # Overlap between samples
     dic_venn = {
         "photoIa w z": set(photoIa_wz_JLA.SNID.values),
         "photoIa no z": set(photoIa_noz.SNID.values),

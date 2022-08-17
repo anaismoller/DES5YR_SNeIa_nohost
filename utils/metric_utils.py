@@ -181,3 +181,46 @@ def cuts_deep_shallow(df_sel, photoIa_wz_JLA, df_stats=pd.DataFrame(), cut=""):
     df_stats = df_stats.append(dict_t, ignore_index=True)
 
     return df_stats
+
+
+def fup_hostgals_stats(
+    df, sngals, df_stats=pd.DataFrame(), sample="sample"
+):
+    """
+    returns:
+        df_stats (pd.DataFrame):
+    """
+
+    dict_t = {}
+    dict_t["sample"] = sample
+    dict_t["without redshift"] = len(df[df["REDSHIFT_FINAL"] < 0])
+
+    # with host
+    df_whostmag = df[df["HOSTGAL_MAG_r"] < 40]
+    dict_t["with host"] = len(df_whostmag)
+
+    # hosts that could be followed-up with AAT (mag<24)
+    to_fup_24 = df_whostmag[df_whostmag["HOSTGAL_MAG_r"] < 24]
+    dict_t["<24 mag"] = len(to_fup_24)
+
+    #
+    to_fup_24_nozspe = df_whostmag[
+        (df_whostmag["HOSTGAL_MAG_r"] < 24) & (df_whostmag["REDSHIFT_FINAL"] < 0)
+    ]
+    dict_t["<24 mag and no zspe"] = len(to_fup_24_nozspe)
+
+    # OzDES flags
+    tmp = pd.merge(to_fup_24_nozspe, sngals, on="SNID")
+    aat = tmp[tmp.SPECZ_CATALOG == "DES_AAOmega"]
+    aat["SPECZ_FLAG"] = aat["SPECZ_FLAG"].astype(float)
+    lu.print_yellow("TO FUP OzDES FLAGS")
+    print(aat.groupby("SPECZ_FLAG").count()["SNID"])
+    print(f"QOP 6 (stars!) {aat[aat.SPECZ_FLAG==6]}")
+
+    for ind in aat.groupby("SPECZ_FLAG").count()["SNID"].index:
+        dict_t[f"OzDES QOP {int(ind)}"] = aat.groupby("SPECZ_FLAG").count()["SNID"][ind]
+
+    df_stats = df_stats.append(dict_t, ignore_index=True)
+
+    return df_stats
+

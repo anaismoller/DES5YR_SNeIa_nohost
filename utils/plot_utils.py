@@ -1871,3 +1871,23 @@ def plot_hists_prob(df, pathout="./", xvar="PEAKMJD-2_average_probability_set_0"
         plt.xlim(0, 1)
         plt.savefig(f"{pathout}/hist_prob_{np.round(b,2)}.png")
 
+
+def plot_mosaic_scatter(
+    df, path_plots="./", suffix="", list_vars_to_plot=["zHD", "c", "x1"],
+):
+
+    plt.clf()
+    fig = plt.figure(figsize=(18, 5), constrained_layout=True)
+    gs = fig.add_gridspec(1, len(list_vars_to_plot), hspace=0, wspace=0.05)
+    axs = gs.subplots(sharex=False, sharey=True)
+
+    for i, k in enumerate(list_vars_to_plot):
+        axs[i].scatter(
+            df[k], df["average_probability_set_0"],
+        )
+        axs[i].set_xlabel(k, fontsize=20)
+    axs[0].set_ylabel("average_probability_set_0")
+    axs[-1].legend(bbox_to_anchor=(1.05, 0.5), loc=2, borderaxespad=0.0, fontsize=16)
+    plt.savefig(f"{path_plots}/scatter_{suffix}.png")
+    plt.clf()
+    del fig

@@ -38,21 +38,21 @@ def distance_modulus(df):
     return df
 
 
-def apply_JLA_cut(df, dump_fits=False):
-
-    if dump_fits:
-        # no errors in these sims
-        cut_salt_JLA = (df.x1 > -3) & (df.x1 < 3) & (df.c > -0.3) & (df.c < 0.3)
-    else:
-        cut_salt_JLA = (
-            (df.x1 > -3)
-            & (df.x1 < 3)
-            & (df.c > -0.3)
-            & (df.c < 0.3)
-            & (df.FITPROB > 0.001)
-            & (df.x1ERR < 1)
-            & (df.PKMJDERR < 2)
-        )
+def apply_JLA_cut(df):
+    """
+    can include redshift cut (different from with host zspe)
+    """
+    cut_salt_JLA = (
+        (df.x1 > -3)
+        & (df.x1 < 3)
+        & (df.c > -0.3)
+        & (df.c < 0.3)
+        & (df.FITPROB > 0.001)
+        & (df.x1ERR < 1)
+        & (df.PKMJDERR < 2)
+        # & (df.zHD > 0.2)
+        # & (df.zHD < 1.2)
+    )
     df_JLA = df[cut_salt_JLA]
 
     return df_JLA
