@@ -146,6 +146,12 @@ if __name__ == "__main__":
     # Load Redshift catalogue
     sngals = du.load_sngals(f"extra_lists/SNGALS_DLR_RANK1_INFO.csv")
 
+    # load PSNID info
+    logger.info("")
+    logger.info("PSNID as real-time")
+    lu.print_green("Loading PSNID fits")
+    psnid = du.read_header_fits(f"{DES}/data/PSNID/des_snfit_zprior0.fits")
+
     logger.info("_______________")
     logger.info("PHOTOMETRIC SNE IA")
 
@@ -155,6 +161,9 @@ if __name__ == "__main__":
 
     df_stats = mu.cuts_deep_shallow(
         df_metadata, photoIa_wz_JLA, cut="DES-SN 5-year candidate sample"
+    )
+    df_stats_fup = mu.fup_hostgals_stats(
+        df_metadata, sngals, photoIa_wz_JLA, sample="DES-SN 5-year candidate sample"
     )
 
     # OOD cuts
@@ -326,6 +335,23 @@ if __name__ == "__main__":
         df_stats=df_stats,
         cut="Photometric sampling and SNR",
     )
+    df_stats_fup = mu.fup_hostgals_stats(
+        df_metadata_w_sampling,
+        sngals,
+        photoIa_wz_JLA,
+        sample="Photometric sampling and SNR",
+        df_stats=df_stats_fup,
+    )
+
+    # psnid only
+    tmp = pd.merge(df_metadata_w_sampling, psnid, on="SNID")
+    df_stats_fup = mu.fup_hostgals_stats(
+        tmp[tmp.PBAYES_IA > 1e-12],
+        sngals,
+        photoIa_wz_JLA,
+        df_stats=df_stats_fup,
+        sample="PSNID on Photometric sampling and SNR",
+    )
 
     logger.info("")
     logger.info("PHOTOMETRIC CLASSIFICATION")
@@ -340,14 +366,38 @@ if __name__ == "__main__":
         df_metadata_w_sampling, data_preds, on="SNID", how="left"
     )
 
-    # SELECTING PHOTO IA USING ENSEMBLE METHOD
-    photoIa_noz = df_metadata_preds[
-        df_metadata_preds["average_probability_set_0"] > 0.5
-    ]
+    # stats for different RNN prob cut
+    for rnn_score in [0.01, 0.1, 0.2, 0.3, 0.4, 0.5]:
+        tmp = df_metadata_preds[
+            df_metadata_preds["average_probability_set_0"] > rnn_score
+        ]
+        df_stats_fup = mu.fup_hostgals_stats(
+            tmp,
+            sngals,
+            photoIa_wz_JLA,
+            sample=f"RNN > {rnn_score}",
+            df_stats=df_stats_fup,
+        )
+        if rnn_score == 0.5:
+            photoIa_noz = tmp
+
     lu.print_green(f"photoIa_noz with selcuts set 0: {len(photoIa_noz)}")
     cuts.spec_subsamples(photoIa_noz, logger)
     df_stats = mu.cuts_deep_shallow(
         photoIa_noz, photoIa_wz_JLA, df_stats=df_stats, cut="RNN>0.5"
+    )
+    # photo Ia no z + psnid
+    photoIa_noz_psnid = pd.merge(photoIa_noz, psnid, on="SNID")
+    photoIa_noz_psnid_realtime_cut = photoIa_noz_psnid[
+        photoIa_noz_psnid["PBAYES_IA"] > 1e-12
+    ]
+    print(f"photoIa_noz that pass PSNID cut {len(photoIa_noz_psnid_realtime_cut)} ")
+    df_stats_fup = mu.fup_hostgals_stats(
+        photoIa_noz_psnid_realtime_cut,
+        sngals,
+        photoIa_wz_JLA,
+        df_stats=df_stats_fup,
+        sample="loose + PSNID",
     )
 
     # load salt fits wzspe
@@ -361,6 +411,7 @@ if __name__ == "__main__":
 
     overlap_photoIa(photoIa_noz, photoIa_wz, photoIa_wz_JLA, mssg="photoIa_noz")
 
+    # not in wzJLA
     not_in_photoIa_wz = photoIa_noz[~photoIa_noz.SNID.isin(photoIa_wz.SNID.values)]
     not_in_photoIa_wz.to_csv(f"{path_samples}/photoIanoz_notin_photoIa_wz.csv")
     pu.plot_mosaic_histograms_listdf(
@@ -371,30 +422,6 @@ if __name__ == "__main__":
         list_vars_to_plot=["REDSHIFT_FINAL", "average_probability_set_0"],
         data_color_override=True,
     )
-
-    # save lost wzJLA
-    lost_photoIawzJLA = df_metadata_preds[
-        (df_metadata_preds.SNID.isin(photoIa_wz_JLA.SNID.values))
-        & (df_metadata_preds["average_probability_set_0"] < 0.5)
-    ]
-    lost_photoIawzJLA.to_csv(f"{path_samples}/photoIawzJLA_notin_noz.csv")
-
-    lost_photoIawzJLA = lost_photoIawzJLA.merge(
-        photoIa_wz_JLA[["SNID", "c", "x1", "zHD"]], on="SNID"
-    )
-    pu.plot_mosaic_histograms_listdf(
-        [lost_photoIawzJLA],
-        list_labels=["lost_photoIawzJLA"],
-        path_plots=path_plots,
-        suffix="lost_photoIawzJLA",
-        data_color_override=True,
-    )
-
-    pu.plot_mosaic_scatter(
-        lost_photoIawzJLA, path_plots=path_plots, suffix="lost_photoIawzJLA",
-    )
-
-    print(df_stats)
 
     # Possible contamination
     # dic_photoIa_sel = {"average_probability_set_0": photoIa_noz}
@@ -419,7 +446,11 @@ if __name__ == "__main__":
         data_color_override=True,
     )
 
-    # Who are the ones that got noz selected but where not in wz
+    pu.plot_mosaic_scatter(
+        lost_photoIa_wz_JLA, path_plots=path_plots, suffix="lost_photoIa_wz_JLA",
+    )
+
+    # Who are the ones that got noz selected but were not in wz
     photoIa_noz_wz_notsel_photoIawz = photoIa_noz[
         (photoIa_noz["REDSHIFT_FINAL"] > 0)
         & (~photoIa_noz["SNID"].isin(photoIa_wz.SNID.values))
@@ -453,25 +484,6 @@ if __name__ == "__main__":
             "average_probability_set_0",
         ],
         chi_bins=False,
-    )
-
-    df_stats_fup = mu.fup_hostgals_stats(photoIa_noz, sngals, sample="loose")
-
-    # PSNID
-    logger.info("")
-    logger.info("PSNID as real-time")
-    lu.print_green("Loading PSNID fits")
-    psnid = du.read_header_fits(f"{DES}/data/PSNID/des_snfit_zprior0.fits")
-    photoIa_noz_psnid = pd.merge(photoIa_noz, psnid, on="SNID")
-    photoIa_noz_psnid_realtime_cut = photoIa_noz_psnid[
-        photoIa_noz_psnid["PBAYES_IA"] > 1e-12
-    ]
-    print(f"photoIa_noz that pass PSNID cut {len(photoIa_noz_psnid_realtime_cut)} ")
-    df_stats_fup = mu.fup_hostgals_stats(
-        photoIa_noz_psnid_realtime_cut,
-        sngals,
-        df_stats=df_stats_fup,
-        sample="loose PSNID",
     )
 
     logger.info("")
@@ -561,7 +573,11 @@ if __name__ == "__main__":
     print("")
 
     df_stats_fup = mu.fup_hostgals_stats(
-        photoIa_noz_saltz_JLA, sngals, df_stats=df_stats_fup, sample="JLA-like",
+        photoIa_noz_saltz_JLA,
+        sngals,
+        photoIa_wz_JLA,
+        df_stats=df_stats_fup,
+        sample="JLA-like",
     )
     lu.print_blue("Stats FUP")
     df_stats_fup[[k for k in df_stats_fup.keys() if k != "sample"]] = df_stats_fup[

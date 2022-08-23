@@ -40,7 +40,7 @@ def distance_modulus(df):
 
 def apply_JLA_cut(df):
     """
-    can include redshift cut (different from with host zspe)
+    can includeg redshift cut (different from with host zspe)
     """
     cut_salt_JLA = (
         (df.x1 > -3)
