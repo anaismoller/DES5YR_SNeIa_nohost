@@ -148,7 +148,6 @@ if __name__ == "__main__":
 
     # load PSNID info
     logger.info("")
-    logger.info("PSNID as real-time")
     lu.print_green("Loading PSNID fits")
     psnid = du.read_header_fits(f"{DES}/data/PSNID/des_snfit_zprior0.fits")
 
@@ -281,37 +280,26 @@ if __name__ == "__main__":
         assume_unique=True,
     )
     print(f">> + 1 point >max+10")
-    overlap_photoIa(
-        df_metadata_w_multiseason[
-            df_metadata_w_multiseason.SNID.isin(SNID_sampling_measurements_std)
-        ],
-        photoIa_wz,
-        photoIa_wz_JLA,
-        mssg="",
-    )
-
-    # around max -1<x<10
-    # SNID_measurement_around_max = group_photo_criteria(
-    #     df_pkpho[
-    #         (df_pkpho["window_delta_time"] > 0) & (df_pkpho["window_delta_time"] < 10)
+    # overlap_photoIa(
+    #     df_metadata_w_multiseason[
+    #         df_metadata_w_multiseason.SNID.isin(SNID_sampling_measurements_std)
     #     ],
-    #     1,
+    #     photoIa_wz,
+    #     photoIa_wz_JLA,
+    #     mssg="",
     # )
-    # SNID_sampling_measurements = np.intersect1d(
-    #     SNID_sampling_measurements_std, SNID_measurement_around_max, assume_unique=True,
-    # )
-    # print(f">> + 1 point around max {len(SNID_sampling_measurements)}")
+
     SNID_sampling_measurements = SNID_sampling_measurements_std
     # reselect photometry for SNIDs only
     df_pkpho = df_pkpho[df_pkpho.SNID.isin(SNID_sampling_measurements)]
-    overlap_photoIa(
-        df_metadata_w_multiseason[
-            df_metadata_w_multiseason.SNID.isin(SNID_sampling_measurements)
-        ],
-        photoIa_wz,
-        photoIa_wz_JLA,
-        mssg="df_metadata_w_sampling",
-    )
+    # overlap_photoIa(
+    #     df_metadata_w_multiseason[
+    #         df_metadata_w_multiseason.SNID.isin(SNID_sampling_measurements)
+    #     ],
+    #     photoIa_wz,
+    #     photoIa_wz_JLA,
+    #     mssg="df_metadata_w_sampling",
+    # )
 
     # SNR>5
     df_pkpho["SNR"] = df_pkpho["FLUXCAL"] / df_pkpho["FLUXCALERR"]
@@ -321,12 +309,12 @@ if __name__ == "__main__":
     df_metadata_w_sampling = df_metadata_w_multiseason[
         df_metadata_w_multiseason.SNID.isin(SNID_w_2flt_SNR5)
     ]
-    overlap_photoIa(
-        df_metadata_w_sampling,
-        photoIa_wz,
-        photoIa_wz_JLA,
-        mssg="df_metadata_w_sampling",
-    )
+    # overlap_photoIa(
+    #     df_metadata_w_sampling,
+    #     photoIa_wz,
+    #     photoIa_wz_JLA,
+    #     mssg="df_metadata_w_sampling",
+    # )
     cuts.spec_subsamples(df_metadata_w_sampling, logger)
 
     df_stats = mu.cuts_deep_shallow(
@@ -377,6 +365,7 @@ if __name__ == "__main__":
             photoIa_wz_JLA,
             sample=f"RNN > {rnn_score}",
             df_stats=df_stats_fup,
+            verbose=True if rnn_score == 0.5 else False,
         )
         if rnn_score == 0.5:
             photoIa_noz = tmp
@@ -385,19 +374,6 @@ if __name__ == "__main__":
     cuts.spec_subsamples(photoIa_noz, logger)
     df_stats = mu.cuts_deep_shallow(
         photoIa_noz, photoIa_wz_JLA, df_stats=df_stats, cut="RNN>0.5"
-    )
-    # photo Ia no z + psnid
-    photoIa_noz_psnid = pd.merge(photoIa_noz, psnid, on="SNID")
-    photoIa_noz_psnid_realtime_cut = photoIa_noz_psnid[
-        photoIa_noz_psnid["PBAYES_IA"] > 1e-12
-    ]
-    print(f"photoIa_noz that pass PSNID cut {len(photoIa_noz_psnid_realtime_cut)} ")
-    df_stats_fup = mu.fup_hostgals_stats(
-        photoIa_noz_psnid_realtime_cut,
-        sngals,
-        photoIa_wz_JLA,
-        df_stats=df_stats_fup,
-        sample="loose + PSNID",
     )
 
     # load salt fits wzspe
@@ -578,6 +554,7 @@ if __name__ == "__main__":
         photoIa_wz_JLA,
         df_stats=df_stats_fup,
         sample="JLA-like",
+        verbose=True,
     )
     lu.print_blue("Stats FUP")
     df_stats_fup[[k for k in df_stats_fup.keys() if k != "sample"]] = df_stats_fup[
@@ -585,6 +562,23 @@ if __name__ == "__main__":
     ].astype(int)
     print(df_stats_fup.to_latex(index=False))
     print("")
+
+    pu.hist_fup_targets(df_stats_fup, path_plots=path_plots)
+    print("")
+    perc_kep_001 = (
+        int(
+            df_stats_fup[df_stats_fup["sample"] == "RNN > 0.01"]["photoIa M22"].values[
+                0
+            ]
+        )
+        * 100
+        / int(
+            df_stats_fup[df_stats_fup["sample"] == "DES-SN 5-year candidate sample"][
+                "photoIa M22"
+            ].values[0]
+        )
+    )
+    print(f"RNN>0.01 keeps {perc_kep_001}% of M22 sample")
 
     #
     # Plots

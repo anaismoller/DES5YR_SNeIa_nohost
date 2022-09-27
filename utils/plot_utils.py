@@ -1891,3 +1891,36 @@ def plot_mosaic_scatter(
     plt.savefig(f"{path_plots}/scatter_{suffix}.png")
     plt.clf()
     del fig
+
+
+def hist_fup_targets(df_stats_fup, path_plots="./"):
+    no_PSNID_rows = [k for k in df_stats_fup["sample"].values if "PSNID" not in k] + [
+        "PSNID on photometric sampling and SNR"
+    ]
+    df_sel = df_stats_fup[df_stats_fup["sample"].isin(no_PSNID_rows)]
+    df_sel["sample_simplified"] = [
+        "DES-SN",
+        "sampling",
+        "SNN>0.01",
+        "SNN>0.1",
+        "SNN>0.2",
+        "SNN>0.3",
+        "SNN>0.4",
+        "SNN>0.5",
+        "JLA-like",
+    ]
+    fig = plt.figure(figsize=(12, 8))
+    for n, k in enumerate(["total", "with host", "<24 mag", "photoIa M22"]):
+        plt.bar(
+            df_sel["sample_simplified"],
+            df_sel[k],
+            label=k,
+            zorder=n,
+            color=ALL_COLORS[n],
+        )
+    plt.axhline(y=7000, linewidth=1, color="k", linestyle="--", label="OzDES targets")
+    plt.legend()
+    plt.yscale("log")
+    plt.xticks(rotation=20)
+    plt.ylabel("Number of candidates")
+    plt.savefig(f"{path_plots}/hist_fup_targets.png")

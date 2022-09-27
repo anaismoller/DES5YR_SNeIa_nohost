@@ -183,7 +183,9 @@ def cuts_deep_shallow(df_sel, photoIa_wz_JLA, df_stats=pd.DataFrame(), cut=""):
     return df_stats
 
 
-def fup_hostgals_stats(df, sngals, photoIa_wz_JLA, df_stats=pd.DataFrame(), sample="sample"):
+def fup_hostgals_stats(
+    df, sngals, photoIa_wz_JLA, df_stats=pd.DataFrame(), sample="sample", verbose=False,
+):
     """
     returns:
         df_stats (pd.DataFrame):
@@ -191,6 +193,10 @@ def fup_hostgals_stats(df, sngals, photoIa_wz_JLA, df_stats=pd.DataFrame(), samp
 
     dict_t = {}
     dict_t["sample"] = sample
+
+    # total selected
+    # same as df_stats without follow-up
+    dict_t["total"] = len(df)
 
     # with host
     df_whostmag = df[df["HOSTGAL_MAG_r"] < 40]
@@ -213,9 +219,10 @@ def fup_hostgals_stats(df, sngals, photoIa_wz_JLA, df_stats=pd.DataFrame(), samp
     tmp = pd.merge(to_fup_24_nozspe, sngals, on="SNID")
     aat = tmp[tmp.SPECZ_CATALOG == "DES_AAOmega"]
     aat["SPECZ_FLAG"] = aat["SPECZ_FLAG"].astype(float)
-    lu.print_yellow("TO FUP OzDES FLAGS")
-    print(aat.groupby("SPECZ_FLAG").count()["SNID"])
-    print(f"QOP 6 (stars!) {aat[aat.SPECZ_FLAG==6][['SNID','IAUC']]}")
+    if verbose:
+        lu.print_yellow("TO FUP OzDES FLAGS")
+        print(aat.groupby("SPECZ_FLAG").count()["SNID"])
+        print(f"QOP 6 (stars!) {aat[aat.SPECZ_FLAG==6]['IAUC'].values}")
 
     for ind in np.arange(1.0, 6.0, 1.0):
         if ind in aat["SPECZ_FLAG"].unique():
@@ -230,16 +237,14 @@ def fup_hostgals_stats(df, sngals, photoIa_wz_JLA, df_stats=pd.DataFrame(), samp
         per_year = to_fup_24_nozspe[to_fup_24_nozspe["IAUC"].str.contains(year_str)]
         n_year = len(per_year)
         dict_t[f"Y{y+1}"] = n_year
-        print(f"{year_str} {n_year} = {round(n_year*100/len(to_fup_24_nozspe),2)}%")
+        if verbose:
+            print(f"{year_str} {n_year} = {round(n_year*100/len(to_fup_24_nozspe),2)}%")
 
-    
-    dict_t["total spec Ia"] = len(df[df.SNTYPE.isin(cu.spec_tags["Ia"])])
-    dict_t["total photo Ia M22"] = len(
-        df[df.SNID.isin(photoIa_wz_JLA.SNID.values)]
-    )
+    dict_t["specIa"] = len(df[df.SNTYPE.isin(cu.spec_tags["Ia"])])
+    dict_t["photoIa M22"] = len(df[df.SNID.isin(photoIa_wz_JLA.SNID.values)])
 
     df_stats = df_stats.append(dict_t, ignore_index=True)
-    
+
     cols_int = [k for k in df_stats.keys() if k != "sample"]
     df_stats[cols_int] = df_stats[cols_int].astype(int)
 
