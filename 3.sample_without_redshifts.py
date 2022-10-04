@@ -355,7 +355,7 @@ if __name__ == "__main__":
     )
 
     # stats for different RNN prob cut
-    for rnn_score in [0.01, 0.1, 0.2, 0.3, 0.4, 0.5]:
+    for rnn_score in [0.001, 0.5]:
         tmp = df_metadata_preds[
             df_metadata_preds["average_probability_set_0"] > rnn_score
         ]
@@ -369,6 +369,23 @@ if __name__ == "__main__":
         )
         if rnn_score == 0.5:
             photoIa_noz = tmp
+        if rnn_score == 0.001:
+            lu.print_green("RNN>0.001")
+            photoIa_noz_001 = tmp
+            cols_to_print = [
+                k for k in df_stats_fup.keys() if "OzDES" not in k and "Y" not in k
+            ]
+            print(
+                df_stats_fup[df_stats_fup["sample"] == f"RNN > {rnn_score}"][
+                    cols_to_print
+                ]
+            )
+            print("M22 not selected")
+            print(
+                photoIa_wz_JLA[~photoIa_wz_JLA.SNID.isin(tmp.SNID.values)][
+                    ["SNID", "zHD", "c", "x1"]
+                ]
+            )
 
     lu.print_green(f"photoIa_noz with selcuts set 0: {len(photoIa_noz)}")
     cuts.spec_subsamples(photoIa_noz, logger)
@@ -563,60 +580,17 @@ if __name__ == "__main__":
     print(df_stats_fup.to_latex(index=False))
     print("")
 
-    pu.hist_fup_targets(df_stats_fup, path_plots=path_plots)
-    print("")
-    perc_kep_001 = (
-        int(
-            df_stats_fup[df_stats_fup["sample"] == "RNN > 0.01"]["photoIa M22"].values[
-                0
-            ]
-        )
-        * 100
-        / int(
-            df_stats_fup[df_stats_fup["sample"] == "DES-SN 5-year candidate sample"][
-                "photoIa M22"
-            ].values[0]
-        )
-    )
-    print(f"RNN>0.01 keeps {perc_kep_001}% of M22 sample")
-
     #
     # Plots
     #
 
+    pu.hist_fup_targets(df_stats_fup, path_plots=path_plots)
+
     # HOST
     # hist hostgalmag
-    list_df = [photoIa_noz_saltz, photoIa_noz_saltz_JLA]
-    list_labels = ["photo Ia loose", "photo Ia JLA-like"]
-    list_n = []
-    fig = plt.figure(figsize=(12, 8))
-    for i, df in enumerate(list_df):
-        whost = df[df["HOSTGAL_MAG_r"] < 40]
-        n, bins, tmp = plt.hist(
-            whost["HOSTGAL_MAG_r"],
-            histtype="step",
-            label=list_labels[i],
-            bins=50,
-            lw=2,
-            color=pu.ALL_COLORS[i],
-        )
-        plt.hist(
-            whost[whost["REDSHIFT_FINAL"] < 0]["HOSTGAL_MAG_r"],
-            histtype="step",
-            label=f"{list_labels[i]} no host z",
-            bins=bins,
-            lw=2,
-            color=pu.ALL_COLORS[i],
-            linestyle="dashed",
-        )
-        list_n.append(n)
-    plt.plot(
-        [24, 24], [0, max(n)], linestyle="--", color="grey", label="follow-up limit",
-    )
-    plt.ylabel("# events", fontsize=20)
-    plt.xlabel("host r magnitude", fontsize=20)
-    plt.legend(loc=2)
-    plt.savefig(f"{path_plots}/hist_HOSTGAL_MAG_r_vs_REDSHIFT.png")
+    list_df = [photoIa_noz_001, photoIa_noz_saltz, photoIa_noz_saltz_JLA]
+    list_labels = ["SNN>0.001", "SNN>0.5", "SNN>0.5 JLA"]
+    pu.hist_HOSTGAL_MAG_r_vs_REDSHIFT(list_df, list_labels, path_plots=path_plots)   
 
     # distributions of new events
     list_df = [
@@ -844,6 +818,18 @@ if __name__ == "__main__":
                 "method": desc,
             },
         )
+    # SNN >0.001
+    df_txt_stats_noz = mu.get_multiseed_performance_metrics(
+        sim_preds["cosmo_quantile"],
+        key_pred_targ_prefix="predicted_target_average_probability_001_set_",
+        list_seeds=list_seeds_sets,
+        df_txt=df_txt_stats_noz,
+        dic_prefilled_keywords={
+            "norm": "cosmo_quantile",
+            "dataset": "not balanced",
+            "method": "ensemble (prob. av.) >0.001",
+        },
+    )
     print(
         df_txt_stats_noz[
             ["method", "notbalanced_accuracy", "efficiency", "purity"]
@@ -873,7 +859,7 @@ if __name__ == "__main__":
     tmp_sim_saltz = tmp_sim_saltz.rename(columns={"SNID_retro": "SNID"})
     sim_all_fits = pd.merge(sim_fits, tmp_sim_saltz)
 
-    # define simulatred photo sample
+    # define simulated photo sample
     sim_cut_photoIa = sim_preds["cosmo_quantile"][f"average_probability_set_0"] > 0.5
     sim_photoIa = sim_preds["cosmo_quantile"][sim_cut_photoIa]
 

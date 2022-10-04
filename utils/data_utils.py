@@ -555,6 +555,15 @@ def add_ensemble_methods(df_dic_preds, norm):
                 lambda x: 0 if x > 0.5 else 1
             )
 
+            # note that here is a probability threshold so prob>0.5 is target 0
+            df_dic_preds[norm][
+                f"predicted_target_average_probability_001_set_{set_model_average}"
+            ] = df_dic_preds[norm][
+                f"average_probability_set_{set_model_average}"
+            ].apply(
+                lambda x: 0 if x > 0.001 else 1
+            )
+
             # save sets list
             list_sets.append(set_model_average)
 

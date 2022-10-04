@@ -1894,20 +1894,18 @@ def plot_mosaic_scatter(
 
 
 def hist_fup_targets(df_stats_fup, path_plots="./"):
-    no_PSNID_rows = [k for k in df_stats_fup["sample"].values if "PSNID" not in k] + [
-        "PSNID on photometric sampling and SNR"
+    rows_to_plots = [
+        "DES-SN 5-year candidate sample",
+        "Photometric sampling and SNR",
+        "RNN > 0.001",
+        "RNN > 0.5",
     ]
-    df_sel = df_stats_fup[df_stats_fup["sample"].isin(no_PSNID_rows)]
+    df_sel = df_stats_fup[df_stats_fup["sample"].isin(rows_to_plots)]
     df_sel["sample_simplified"] = [
         "DES-SN",
         "sampling",
-        "SNN>0.01",
-        "SNN>0.1",
-        "SNN>0.2",
-        "SNN>0.3",
-        "SNN>0.4",
+        "SNN>0.001",
         "SNN>0.5",
-        "JLA-like",
     ]
     fig = plt.figure(figsize=(12, 8))
     for n, k in enumerate(["total", "with host", "<24 mag", "photoIa M22"]):
@@ -1918,9 +1916,59 @@ def hist_fup_targets(df_stats_fup, path_plots="./"):
             zorder=n,
             color=ALL_COLORS[n],
         )
-    plt.axhline(y=7000, linewidth=1, color="k", linestyle="--", label="OzDES targets")
+    # PSNID
+    df_sel = df_stats_fup[
+        df_stats_fup["sample"].isin(["PSNID on Photometric sampling and SNR"])
+    ]
+    for n, k in enumerate(["total", "with host", "<24 mag", "photoIa M22"]):
+        plt.bar(
+            ["sampl. + PSNID"],
+            df_sel[k],
+            zorder=n,
+            color=ALL_COLORS[n],
+            hatch="/",
+            edgecolor="white",
+        )
+    plt.axhline(y=7000, linewidth=1, color="k", linestyle="--", label="OzDES lim mag")
     plt.legend()
-    plt.yscale("log")
-    plt.xticks(rotation=20)
+    # plt.yscale("log")
+    # plt.xticks(rotation=20)
     plt.ylabel("Number of candidates")
     plt.savefig(f"{path_plots}/hist_fup_targets.png")
+
+
+def hist_HOSTGAL_MAG_r_vs_REDSHIFT(list_df, list_labels, path_plots="./"):
+    list_n = []
+    fig, ax = plt.subplots(figsize=(12, 8))
+    for i, df in enumerate(list_df):
+        whost = df[df["HOSTGAL_MAG_r"] < 40]
+        n, bins, tmp = plt.hist(
+            whost["HOSTGAL_MAG_r"],
+            histtype="step",
+            label=list_labels[i],
+            bins=50,
+            lw=2,
+            color=ALL_COLORS_nodata[i],
+        )
+        ax.hist(
+            whost[whost["REDSHIFT_FINAL"] < 0]["HOSTGAL_MAG_r"],
+            histtype="step",
+            # label=f"{list_labels[i]} no host z",
+            bins=bins,
+            lw=2,
+            color=ALL_COLORS_nodata[i],
+            linestyle="dashed",
+        )
+        list_n.append(max(n))
+    # ax.plot(
+    #     [24, 24],
+    #     [0, max(list_n)],
+    #     linestyle="-.",
+    #     color="black",
+    #     label="follow-up limit",
+    # )
+    ax.axvline(x=24, linestyle="-.", label="follow-up limit", color="black")
+    plt.ylabel("# events", fontsize=20)
+    plt.xlabel("host r magnitude", fontsize=20)
+    plt.legend(loc=2)
+    plt.savefig(f"{path_plots}/hist_HOSTGAL_MAG_r_vs_REDSHIFT.png")
