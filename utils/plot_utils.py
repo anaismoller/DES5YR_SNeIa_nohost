@@ -1699,7 +1699,12 @@ def overplot_salt_distributions_lists_deep_shallow(
 
 
 def plot_scatter_mosaic_retro(
-    list_df, list_labels, path_out="tmp.png", print_biases=False
+    list_df,
+    list_labels,
+    path_out="tmp.png",
+    print_biases=False,
+    fitted_suffix="_retro",
+    zspe_suffix="",
 ):
     # scatter
     fig = plt.figure(constrained_layout=True, figsize=(17, 5))
@@ -1749,7 +1754,7 @@ def plot_scatter_mosaic_retro(
                 )
         axs[i].plot(
             [df[varx].min(), df[varx].max()],
-            [df[vary].min(), df[vary].max()],
+            [df[varx].min(), df[varx].max()],
             color="black",
             linewidth=1,
             linestyle="--",
