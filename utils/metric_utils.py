@@ -81,8 +81,7 @@ def get_multiseed_performance_metrics(
     df_txt=None,
     dic_prefilled_keywords=None,
 ):
-    """
-    """
+    """ """
     # in case a seed is missing
     list_seeds_updated = [
         k for k in list_seeds if f"{key_pred_targ_prefix}{k}" in df.keys()
@@ -107,7 +106,9 @@ def get_multiseed_performance_metrics(
             efficiency,
             truepositivefraction,
         ) = performance_metrics(
-            df, key_pred_targ=f"{key_pred_targ_prefix}{seed}", compute_auc=False,
+            df,
+            key_pred_targ=f"{key_pred_targ_prefix}{seed}",
+            compute_auc=False,
         )
         balacc_dic.append(balancedaccuracy)
         acc_dic.append(accuracy)
@@ -184,7 +185,12 @@ def cuts_deep_shallow(df_sel, photoIa_wz_JLA, df_stats=pd.DataFrame(), cut=""):
 
 
 def fup_hostgals_stats(
-    df, sngals, photoIa_wz_JLA, df_stats=pd.DataFrame(), sample="sample", verbose=False,
+    df,
+    sngals,
+    photoIa_wz_JLA,
+    df_stats=pd.DataFrame(),
+    sample="sample",
+    verbose=False,
 ):
     """
     returns:
@@ -250,3 +256,142 @@ def fup_hostgals_stats(
 
     return df_stats
 
+
+def cuts_deep_shallow_eventmag(
+    df_sel,
+    photoIa_wz_JLA,
+    df_photo,
+    df_stats=pd.DataFrame(),
+    cut="",
+    return_extra_df=False,
+):
+    """Stats for selection w. deep and shallow fields
+
+    Args:
+        df_sel (pd.DataFrame): _description_
+        photoIa_wz_JLA (pd.DataFrame): _description_
+        df_photo (pd.DataFrame): _description_
+        df_stats (pd.DataFrame, optional): _description_. Defaults to pd.DataFrame().
+        cut (str, optional): _description_. Defaults to "".
+        return_extra_df (bool, optional): _description_. Defaults to False.
+
+    Returns:
+        _type_: _description_
+    """
+
+    if len(df_stats) == 0:
+        df_stats = pd.DataFrame(
+            columns=[
+                "cut",
+                "shallow selected",
+                "shallow spec Ia",
+                "deep selected",
+                "deep spec Ia",
+                "total selected",
+                "total spec Ia",
+            ]
+        )
+
+    # determine shallow or deep
+    deep_fields = ["X3", "C3"]
+    shallow_fields = ["X1", "X2", "C1", "C2", "E1", "E2", "S1", "S2"]
+    df_shallow = df_sel[df_sel.IAUC.str.contains("|".join(shallow_fields))]
+    df_deep = df_sel[df_sel.IAUC.str.contains("|".join(deep_fields))]
+
+    # magnitude cuts
+    df_photo["mag"] = 27.5 - 2.5 * np.log10(df_photo["FLUXCAL"].values)
+    tmp = df_photo.groupby(by="SNID")["mag"].min()
+    df_tmp = pd.DataFrame()
+    df_tmp["SNID"] = tmp.index
+    df_tmp["minmag"] = tmp.values
+
+    # Sample 1.a Smith+2020  mag i|r < 21.5
+    df_tmp_sel = df_tmp[(df_tmp.minmag < 21.5)]
+    maglimSNID = df_tmp_sel.SNID.values
+
+    # Sample 1.b Smith+2020  mag i|r < 22.7 (OzDES)
+    df_tmp_sel = df_tmp[(df_tmp.minmag < 22.7)]
+    maglimOzDES = df_tmp_sel.SNID.values
+
+    # Sample 2. Smith+2020
+    df_tmp_sel = df_sel[(df_sel.HOSTGAL_MAG_r > 24)]
+    maglimFainthosts = df_tmp_sel.SNID.values
+
+    # TiDES maglim sample
+    df_tmp_sel2 = df_tmp[df_tmp.minmag < 22.5]
+    maglimSNIDTiDES = df_tmp_sel2.SNID.values
+
+    dict_t = {}
+    dict_t["cut"] = cut
+    dict_t["shallow selected"] = len(df_shallow)
+    dict_t["shallow spec Ia"] = len(
+        df_shallow[df_shallow.SNTYPE.isin(cu.spec_tags["Ia"])]
+    )
+    dict_t["deep selected"] = len(df_deep)
+    dict_t["deep spec Ia"] = len(df_deep[df_deep.SNTYPE.isin(cu.spec_tags["Ia"])])
+    dict_t["total selected"] = len(df_sel)
+    dict_t["total spec Ia"] = len(df_sel[df_sel.SNTYPE.isin(cu.spec_tags["Ia"])])
+    dict_t["total spec nonnormIa"] = len(
+        df_sel[df_sel.SNTYPE.isin(cu.spec_tags["nonnormIa"])]
+    )
+    dict_t["total spec nonIa"] = len(df_sel[df_sel.SNTYPE.isin(cu.spec_tags["nonIa"])])
+    dict_t["total spec nonSN"] = len(df_sel[df_sel.SNTYPE.isin(cu.spec_tags["nonSN"])])
+    dict_t["total photo Ia M22"] = len(
+        df_sel[df_sel.SNID.isin(photoIa_wz_JLA.SNID.values)]
+    )
+    dict_t["total maglim<21.5"] = len(df_sel[df_sel.SNID.isin(maglimSNID)])
+    dict_t["specIa maglim<21.5"] = len(
+        df_sel[
+            (df_sel.SNID.isin(maglimSNID)) & (df_sel.SNTYPE.isin(cu.spec_tags["Ia"]))
+        ]
+    )
+    dict_t["total maglim<22.7"] = len(df_sel[df_sel.SNID.isin(maglimOzDES)])
+    dict_t["specIa maglim<22.7"] = len(
+        df_sel[
+            (df_sel.SNID.isin(maglimOzDES)) & (df_sel.SNTYPE.isin(cu.spec_tags["Ia"]))
+        ]
+    )
+    dict_t["total maghost>24"] = len(df_sel[df_sel.SNID.isin(maglimFainthosts)])
+    dict_t["specIa maghost>24"] = len(
+        df_sel[
+            (df_sel.SNID.isin(maglimFainthosts))
+            & (df_sel.SNTYPE.isin(cu.spec_tags["Ia"]))
+        ]
+    )
+    dict_t["total maglim<22.5"] = len(df_sel[df_sel.SNID.isin(maglimSNIDTiDES)])
+    dict_t["specIa maglim<22.5"] = len(
+        df_sel[
+            (df_sel.SNID.isin(maglimSNIDTiDES))
+            & (df_sel.SNTYPE.isin(cu.spec_tags["Ia"]))
+        ]
+    )
+    dict_t["M22 maglim<22.5"] = len(
+        df_sel[
+            (df_sel.SNID.isin(photoIa_wz_JLA.SNID.values))
+            & (df_sel.SNID.isin(maglimSNIDTiDES))
+        ]
+    )
+
+    # multiseason
+    single_seasons = [1.0, 2.0, 4.0, 8.0, 16.0]
+
+    dict_t["multiseason maglim<22.5"] = len(
+        df_sel[
+            (~df_sel["PRIVATE(DES_transient_status)"].isin(single_seasons))
+            & (df_sel.SNID.isin(maglimSNIDTiDES))
+        ]
+    )
+    dict_t["multiseason"] = len(
+        df_sel[~df_sel["PRIVATE(DES_transient_status)"].isin(single_seasons)]
+    )
+    dict_t["unights"] = df_sel["unights"].median()
+    dict_t["uflt"] = df_sel["uflt"].median()
+
+    df_stats = pd.concat(
+        [df_stats, pd.DataFrame.from_records([dict_t])], ignore_index=True
+    )
+
+    if return_extra_df:
+        return df_stats, df_tmp
+    else:
+        return df_stats

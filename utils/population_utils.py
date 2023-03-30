@@ -10,6 +10,7 @@ from utils import science_utils as su
 from utils import logging_utils as lu
 from scipy.optimize import curve_fit, least_squares
 
+
 def bin_df_fixed_grid(df, var="zHD", grid=None, group=False):
     # Binning df by var with var_step
     df[f"{var}_bin"] = pd.cut(df[var].copy(), grid)
@@ -26,6 +27,7 @@ def bin_df_fixed_grid(df, var="zHD", grid=None, group=False):
         return df.groupby(f"{var}_bin").agg(["count", "median", "std"])
     else:
         return df
+
 
 def get_migration_matrix(
     fits_sim, dump_sim, var="c", bins=None, verbose=True, path_plots=None, suffix=""
@@ -72,19 +74,20 @@ def get_migration_matrix(
 
     return migration_matrix
 
-def select_df_interval(df, var='zHD',my_min=0,my_max=1.2):
-	sel_df = df[(df[var] >= my_min)& (df[var] < my_max)].copy()
-	return sel_df
+
+def select_df_interval(df, var="zHD", my_min=0, my_max=1.2):
+    sel_df = df[(df[var] >= my_min) & (df[var] < my_max)].copy()
+    return sel_df
+
 
 def bif_gaussian(x, amp, bifurcation, sigma_L, sigma_H):
-    """ Bifurcated Gaussian Function
+    """Bifurcated Gaussian Function
     Args:
         x (float or np.array)
     """
     sigma = np.ones_like(x)
     sigma = np.where(x < bifurcation, sigma_L * sigma, sigma_H * sigma)
     return amp * np.exp(-0.5 * np.square(x - bifurcation) / np.square(sigma))
-
 
 
 def errfunc(params, m, bins, obs, debugmode=False, lstq=False, fix_amp=False):
@@ -226,12 +229,13 @@ def plot_intrinsic_population(
     # plot obs
     ax.errorbar(
         bin_centres,
-        observed / observed.sum(), yerr=np.sqrt(observed)/observed.sum(),
+        observed / observed.sum(),
+        yerr=np.sqrt(observed) / observed.sum(),
         label="observed normalized",
         color="blue",
-        fmt='o',
+        fmt="o",
     )
-    
+
     # plot uncertainties
     ax.fill_between(
         bin_centres,
@@ -241,7 +245,7 @@ def plot_intrinsic_population(
         alpha=0.5,
     )
 
-    #plot intirnsic
+    # plot intirnsic
     ax.plot(
         bin_centres,
         intrinsic / intrinsic.sum(),
@@ -254,11 +258,14 @@ def plot_intrinsic_population(
     plt.savefig(f"{path_plots}/intrinsic_{var}{suffix}.png")
     plt.close("all")
 
+
 def print_result(result):
     result_50 = result[0, :]
     result_16 = result[1, :]
     result_84 = result[2, :]
-    intrinsic_str = f"b={round(result_50[-3],2)}-{round(result_16[-3],2)}+{round(result_84[-3],2)} s_L={round(result_50[-2],2)}-{round(result_16[-2],2)}+{round(result_84[-2],2)} s_H={round(result_50[-1],2)}-{round(result_16[-1],2)}+{round(result_84[-1],2)}",
+    intrinsic_str = (
+        f"b={round(result_50[-3],2)}-{round(result_16[-3],2)}+{round(result_84[-3],2)} s_L={round(result_50[-2],2)}-{round(result_16[-2],2)}+{round(result_84[-2],2)} s_H={round(result_50[-1],2)}-{round(result_16[-1],2)}+{round(result_84[-1],2)}",
+    )
 
     return intrinsic_str
 
@@ -270,18 +277,17 @@ def plot_inspection(
     Suite of inspection plots
     """
 
-    list_df = [fits_data,fits_sim_flat,ori_sim_flat]
-    list_labels = ['observed','simulated_fitted','simulated_oris']
+    list_df = [fits_data, fits_sim_flat, ori_sim_flat]
+    list_labels = ["observed", "simulated_fitted", "simulated_oris"]
     var_list = ["x1", "c"]
     for var in var_list:
-        fig = pu.plot_histograms_listdf(list_df, list_labels, varx=var, density=True, norm_factor=1)
-        plt.xlabel(var)
-        plt.legend()
-        plt.savefig("%s/hist_%s%s.png" % (path_out, var, suffix))
-        plt.clf()
-        del fig
-        plt.close("all")
-
-
+        pu.plot_histograms_listdf(
+            list_df,
+            list_labels,
+            varx=var,
+            density=True,
+            norm_factor=1,
+            outname="%s/hist_%s%s.png" % (path_out, var, suffix),
+        )
     # sim flat evolution vs. z
     # pu.overplot_salt_distributions(fits_data, fits_sim_flat, ori_sim_flat, path_plots=path_out)

@@ -102,7 +102,7 @@ chi_bins_dic = {
 
 
 def my_chisquare(obs_list, obs_error_list, sim_list):
-    """ Computing chi square of two histogram values
+    """Computing chi square of two histogram values
     Args:
     - obs_list (list): list of values in histogram for observations/data
     - obs_error_list (list): list of error values in histogram for observations/data (poisson stats)
@@ -118,7 +118,7 @@ def my_chisquare(obs_list, obs_error_list, sim_list):
 
     num = obs_list[mask] - sim_list[mask]
 
-    fraction = (num ** 2) / (den ** 2)
+    fraction = (num**2) / (den**2)
     chi2 = fraction.sum()
     return chi2
 
@@ -174,7 +174,13 @@ def HRwhisto(df, spec_Ias, ax_left, ax_right, visible=False, prob_key="all_class
     mubins = np.arange(-2, 2 + 0.1, 0.1)
 
     ax_left.scatter(
-        df["zHD"], df["delmu"], c=df[prob_key], cmap=CMAP, vmin=0.5, vmax=1, s=50,
+        df["zHD"],
+        df["delmu"],
+        c=df[prob_key],
+        cmap=CMAP,
+        vmin=0.5,
+        vmax=1,
+        s=50,
     )
     ax_left.errorbar(
         df["zHD"],
@@ -297,7 +303,11 @@ def plot_HD_residuals(preds_with_salt2, path_output, prob_key="all_class0"):
 
     # z histos
     n, bins_to_use, tmp = ax10.hist(
-        df["zHD"], histtype="step", color="black", bins=15, lw=3,
+        df["zHD"],
+        histtype="step",
+        color="black",
+        bins=15,
+        lw=3,
     )
     ax10.hist(
         spec_Ias["zHD"],
@@ -310,7 +320,12 @@ def plot_HD_residuals(preds_with_salt2, path_output, prob_key="all_class0"):
     ax10.set_xlabel("zHD", fontsize=18)
 
     # hist stretch
-    n, bins_to_use, tmp = ax11.hist(df["x1"], color="black", histtype="step", lw=3,)
+    n, bins_to_use, tmp = ax11.hist(
+        df["x1"],
+        color="black",
+        histtype="step",
+        lw=3,
+    )
     ax11.hist(
         spec_Ias["x1"],
         color="maroon",
@@ -404,7 +419,9 @@ def plot_labels(df, dic_SNIDs_vi, path_plots="./", suffix="test"):
     fig = plt.figure(constrained_layout=True)
     for k in dic_SNIDs_vi.keys():
         plt.hist(
-            df[df.SNID.isin(dic_SNIDs_vi[k])].REDSHIFT_FINAL, histtype="step", label=k,
+            df[df.SNID.isin(dic_SNIDs_vi[k])].REDSHIFT_FINAL,
+            histtype="step",
+            label=k,
         )
     plt.xlabel("REDSHIFT_FINAL")
     plt.legend()
@@ -545,7 +562,14 @@ def plot_errorbar_binned(
 
 
 def plot_histograms_listdf(
-    list_df, list_labels, varx="zHD", density=True, norm_factor=1
+    list_df,
+    list_labels,
+    varx="zHD",
+    density=True,
+    norm_factor=1,
+    outname="test.png",
+    log_scale=False,
+    nbins=10,
 ):
     plt.clf()
     fig = plt.figure(constrained_layout=True)
@@ -557,14 +581,28 @@ def plot_histograms_listdf(
             color=col,
             label=list_labels[i],
             density=density,
-            bins=bins_dic[varx],
+            bins=bins_dic[varx] if varx in bins_dic.keys() else nbins,
             weights=norm_factor * np.ones(len(df)),
+            ls=list_linestyle[i],
         )
+        if i == 0 and varx not in bins_dic.keys():
+            bins_dic[varx] = bins
     plt.xlabel(varx)
+    if log_scale:
+        plt.yscale("log")
+    plt.legend(loc="best")
+    plt.savefig(outname)
+    plt.clf()
+    del fig
+    plt.close("all")
 
 
 def plot_salt_distributions(
-    df, target_key="predicted_target_S_0", path_plots="./", suffix="test", data=False,
+    df,
+    target_key="predicted_target_S_0",
+    path_plots="./",
+    suffix="test",
+    data=False,
 ):
 
     list_to_plot = ["REDSHIFT_FINAL", "c", "x1"] if data else ["SIM_ZCMB", "c", "x1"]
@@ -574,7 +612,9 @@ def plot_salt_distributions(
         if data:
             prefix = "DES5yr"
             plt.hist(
-                df[k], histtype="step", label="photo Ia",
+                df[k],
+                histtype="step",
+                label="photo Ia",
             )
             plt.hist(
                 df[df.SNTYPE.isin(cu.spec_tags["Ia"])][k],
@@ -584,7 +624,9 @@ def plot_salt_distributions(
         else:
             prefix = "sim"
             plt.hist(
-                df[df.target == 0][k], histtype="step", label="all sim Ia",
+                df[df.target == 0][k],
+                histtype="step",
+                label="all sim Ia",
             )
             plt.hist(
                 df[(df.target == 0) & (df[target_key] == 0)][k],
@@ -671,7 +713,7 @@ def plot_salt_distributions(
 
 
 def plot_contamination_list(list_tuple, path_plots="./", suffix="", list_labels=[""]):
-    """ Plot contamination as a function of SALT2 parameters 
+    """Plot contamination as a function of SALT2 parameters
     Args:
         - list_tuple (list of tuples):  [(x,saltfitsofx),(...)]
         - path_plots (str): path to save plots
@@ -763,7 +805,7 @@ def plot_contamination_list(list_tuple, path_plots="./", suffix="", list_labels=
 def plot_metrics_list(
     list_sims, path_plots="./", suffix="", list_labels=[""], metric="accuracy"
 ):
-    """ Plot metric as a function of SALT2 parameters 
+    """Plot metric as a function of SALT2 parameters
     Args:
         - list_ (list):  list of sim preds with salt fits to use for the evaluation
         - path_plots (str): path to save plots
@@ -868,7 +910,11 @@ def overplot_salt_distributions(
     sim_photoIa_fits,
     path_plots="./",
     suffix="",
-    list_labels=["photometric Ia", "sim JLA SNN photoIa", "sim photoIa",],
+    list_labels=[
+        "photometric Ia",
+        "sim JLA SNN photoIa",
+        "sim photoIa",
+    ],
 ):
     from numpy import inf
 
@@ -1067,7 +1113,7 @@ def plot_mosaic_histograms_listdf(
             nbins = len(mask[0])
             if len(sim_label_list) > 1:
                 tmptag = sim_label_list[counter]
-                tmp = fr"$\chi^2_{tmptag}=$"
+                tmp = rf"$\chi^2_{tmptag}=$"
                 text_chi2 = f"{tmp} {round(chi,1)}/{nbins}"
             else:
                 tmp = r"$\chi^2/bins=$"
@@ -1406,7 +1452,10 @@ def DESVRO_plot_mosaic_histograms_listdf(
         tmp = r"$\chi^2 = $"
         text_chi2 = f"{tmp} {round(chi,1)}/{nbins}"
         axs[i].annotate(
-            text_chi2, xy=(0.6, 0.9), size=14, xycoords="axes fraction",
+            text_chi2,
+            xy=(0.6, 0.9),
+            size=14,
+            xycoords="axes fraction",
         )
 
         axs[i].set_xlabel(k)
@@ -1574,7 +1623,7 @@ def plot_mosaic_histograms_listdf_deep_shallow(
             nbins = len(mask[0])
             if len(sim_label_list_deep) > 1:
                 tmptag = sim_label_list_deep[counter]
-                tmp = fr"$\chi^2_{tmptag}=$"
+                tmp = rf"$\chi^2_{tmptag}=$"
                 text_chi2 = f"{tmp} {round(chi,1)}/{nbins}"
             else:
                 tmp = r"$\chi^2/bins=$"
@@ -1603,7 +1652,7 @@ def plot_mosaic_histograms_listdf_deep_shallow(
                     import ipdb
 
                     ipdb.set_trace()
-                tmp = fr"$\chi^2_{tmptag}=$"
+                tmp = rf"$\chi^2_{tmptag}=$"
                 text_chi2 = f"{tmp} {round(chi,1)}/{nbins}"
             else:
                 tmp = r"$\chi^2/bins=$"
@@ -1733,7 +1782,8 @@ def plot_scatter_mosaic_retro(
             if print_biases:
                 print(f"Biases for {varx}")
                 print(
-                    "bins", [round(mean_bins[i], 3) for i in range(len(mean_bins))],
+                    "bins",
+                    [round(mean_bins[i], 3) for i in range(len(mean_bins))],
                 )
                 print(
                     "bias",
@@ -1747,7 +1797,8 @@ def plot_scatter_mosaic_retro(
                     for i in range(len(mean_bins))
                 ]
                 print(
-                    "%", perc,
+                    "%",
+                    perc,
                 )
                 print(
                     f"% median {np.median(perc)}; max {np.max(perc)}; min {np.min(perc)}"
@@ -1810,13 +1861,17 @@ def plot_probas_set_vs_seed(
     )
     # bin in av prob set 0
     to_plot["bins"] = pd.cut(
-        to_plot.loc[:, (xvar)], tmp_bins["proba"], labels=mean_bins,
+        to_plot.loc[:, (xvar)],
+        tmp_bins["proba"],
+        labels=mean_bins,
     )
 
     # all
     cols = [f"{prefix1}_class0_S_{s}" for s in cu.list_seeds_set[set_to_plot]]
     plt.errorbar(
-        mean_bins, to_plot[cols + ["bins"]].groupby("bins").apply(med), color="maroon",
+        mean_bins,
+        to_plot[cols + ["bins"]].groupby("bins").apply(med),
+        color="maroon",
     )
     plt.fill_between(
         mean_bins,
@@ -1831,7 +1886,9 @@ def plot_probas_set_vs_seed(
     # Beware these may have missing pred values
     # bin in av prob set 0
     to_plot["bins"] = pd.cut(
-        to_plot.loc[:, (f"{prefix2}_{xvar}")], tmp_bins["proba"], labels=mean_bins,
+        to_plot.loc[:, (f"{prefix2}_{xvar}")],
+        tmp_bins["proba"],
+        labels=mean_bins,
     )
     cols = [f"{prefix2}_class0_S_{s}" for s in cu.list_seeds_set[set_to_plot]]
     tmp = to_plot[cols + ["bins"]].dropna()
@@ -1864,7 +1921,11 @@ def plot_hists_prob(df, pathout="./", xvar="PEAKMJD-2_average_probability_set_0"
         tmp_bins["proba"][:-1] + (tmp_bins["proba"][1] - tmp_bins["proba"][0]) / 2
     )
     # bin in av prob set 0
-    df["bins"] = pd.cut(df.loc[:, (xvar)], tmp_bins["proba"], labels=mean_bins,)
+    df["bins"] = pd.cut(
+        df.loc[:, (xvar)],
+        tmp_bins["proba"],
+        labels=mean_bins,
+    )
 
     for b in df["bins"].unique():
         sel = df[df["bins"] == b]
@@ -1878,7 +1939,10 @@ def plot_hists_prob(df, pathout="./", xvar="PEAKMJD-2_average_probability_set_0"
 
 
 def plot_mosaic_scatter(
-    df, path_plots="./", suffix="", list_vars_to_plot=["zHD", "c", "x1"],
+    df,
+    path_plots="./",
+    suffix="",
+    list_vars_to_plot=["zHD", "c", "x1"],
 ):
 
     plt.clf()
@@ -1888,7 +1952,8 @@ def plot_mosaic_scatter(
 
     for i, k in enumerate(list_vars_to_plot):
         axs[i].scatter(
-            df[k], df["average_probability_set_0"],
+            df[k],
+            df["average_probability_set_0"],
         )
         axs[i].set_xlabel(k, fontsize=20)
     axs[0].set_ylabel("average_probability_set_0")

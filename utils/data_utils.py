@@ -48,8 +48,7 @@ def read_header_fits(fname, drop_separators=False):
 
 
 def load_sngals(fname):
-    """ Load SNGALS csv dump
-    """
+    """Load SNGALS csv dump"""
     sngals = pd.read_csv(fname)
 
     sngals["TRANSIENT_NAME"] = (
@@ -135,6 +134,9 @@ def load_photometry(path_files):
         df_list.append(read_fits(fname, drop_separators=True))
     df = pd.concat(df_list)
 
+    df["FLT"] = df["FLT"].str.decode("utf-8")
+    df["FLT"] = df["FLT"].str.replace(" ", "")
+
     print(f"Loaded {len(df_list)} photometry files in {path_files}")
     return df
 
@@ -144,7 +146,11 @@ def load_salt_fits(path_files):
     Load headers and photometry
     """
     df = pd.read_csv(
-        path_files, index_col=False, comment="#", delimiter=" ", skipinitialspace=True,
+        path_files,
+        index_col=False,
+        comment="#",
+        delimiter=" ",
+        skipinitialspace=True,
     )
     df = df.rename(columns={"CID": "SNID"})
     df = df.rename(columns={"TYPE": "SNTYPE"})
@@ -155,7 +161,7 @@ def load_salt_fits(path_files):
 
 
 def read_metric_filesingle(f, suffix=None):
-    """ Read a metric file
+    """Read a metric file
 
     Args:
         metric_file (filename): file to be read
@@ -186,7 +192,7 @@ def read_metric_filesingle(f, suffix=None):
 
 
 def read_metric_files(metric_files, suffix=None):
-    """ Read and concatenate all metric files
+    """Read and concatenate all metric files
 
     Args:
         metric_files (list): list of files to be read and concat
@@ -212,7 +218,7 @@ def read_metric_files(metric_files, suffix=None):
 
 
 def get_metric_singleseed_files(path_in, arg_name, model_name=None):
-    """ Get list of metric files
+    """Get list of metric files
 
     Args:
         path_in (Path): path to metrics files
@@ -260,7 +266,7 @@ def get_stats_cal(metric_files_singleseed, path_dump, description):
 
 
 def get_mean_stats(metric_files_singleseed, what="calibration", output_path=None):
-    """ Get stats from metrics for set 0 seeds
+    """Get stats from metrics for set 0 seeds
 
     Args:
         metric_files_singleseed (list): list of files with Seed 0
@@ -461,7 +467,10 @@ def load_preds_addsuffix(path_p, prob_key="all_class0", suffix=None):
             to_max = 0
         else:
             df_preds_tmp = df_preds_tmp.rename(
-                {prob_key: "all_class0", prob_key.replace("0", "1"): "all_class1",},
+                {
+                    prob_key: "all_class0",
+                    prob_key.replace("0", "1"): "all_class1",
+                },
                 axis="columns",
             )
             df_preds_tmp = df_preds_tmp.reset_index(drop=True)
@@ -478,7 +487,10 @@ def load_preds_addsuffix(path_p, prob_key="all_class0", suffix=None):
             .astype(int)
         )
         df_preds_tmp = df_preds_tmp.rename(
-            {f"{prefix}0": f"{prefix}0_{suffix}", f"{prefix}1": f"{prefix}1_{suffix}",},
+            {
+                f"{prefix}0": f"{prefix}0_{suffix}",
+                f"{prefix}1": f"{prefix}1_{suffix}",
+            },
             axis="columns",
         )
 
@@ -504,9 +516,9 @@ def load_preds_addsuffix(path_p, prob_key="all_class0", suffix=None):
 
 
 def add_ensemble_methods(df_dic_preds, norm):
-    """ Add columns for targets using ensemble methods
+    """Add columns for targets using ensemble methods
     Args:
-        df_dic_preds (DataFrame): 
+        df_dic_preds (DataFrame):
         norm (str): norm to process in dictionary
     Returns:
 
@@ -652,7 +664,14 @@ def get_preds_seeds_merge(
         import ipdb
 
         ipdb.set_trace()
-    df_dic = reduce(lambda df1, df2: pd.merge(df1, df2, on=["SNID", "target"],), dfList)
+    df_dic = reduce(
+        lambda df1, df2: pd.merge(
+            df1,
+            df2,
+            on=["SNID", "target"],
+        ),
+        dfList,
+    )
 
     return df_dic
 
@@ -702,10 +721,10 @@ def get_norm(hist_data, hist_sim, err_data, method="likelihood"):
         def log_likelihood(theta, x, y, e, sigma_B):
             dy = y - theta[0] - theta[1] * x
 
-            logL1 = -0.5 * np.log(2 * np.pi * e ** 2) - 0.5 * (dy / e) ** 2
+            logL1 = -0.5 * np.log(2 * np.pi * e**2) - 0.5 * (dy / e) ** 2
             logL2 = (
                 np.log(1)
-                - 0.5 * np.log(2 * np.pi * sigma_B ** 2)
+                - 0.5 * np.log(2 * np.pi * sigma_B**2)
                 - 0.5 * (dy / sigma_B) ** 2
             )
             return np.sum(np.logaddexp(logL1, logL2))
@@ -970,7 +989,12 @@ def load_merge_all_preds(
     # merge all predictions
     if len(list_df_preds) > 0:
         preds[norm] = reduce(
-            lambda df1, df2: pd.merge(df1, df2, on=["SNID", "target"],), list_df_preds
+            lambda df1, df2: pd.merge(
+                df1,
+                df2,
+                on=["SNID", "target"],
+            ),
+            list_df_preds,
         )
         # ensemble methods + metadata
         preds, list_sets = add_ensemble_methods(preds, norm)
@@ -985,7 +1009,9 @@ def load_merge_all_preds(
 
 
 def get_sample_stats(
-    df_sel, suffix="", methods=["single_model", "average_probability"],
+    df_sel,
+    suffix="",
+    methods=["single_model", "average_probability"],
 ):
     """
     Mean and std of samples with photo/specc subs
@@ -1000,7 +1026,12 @@ def get_sample_stats(
             for modelset in cu.list_sets:
                 target_key = f"predicted_target_{method}_set_{modelset}"
                 if target_key in df_sel.keys():
-                    arr.append(cuts.photo_sel_target(df_sel, target_key=target_key,))
+                    arr.append(
+                        cuts.photo_sel_target(
+                            df_sel,
+                            target_key=target_key,
+                        )
+                    )
                 else:
                     lu.print_red(f"Set {modelset} not available for stats")
         photoIa, specIa, specCC, specother = cuts.do_arr_stats(arr)

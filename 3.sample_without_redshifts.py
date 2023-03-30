@@ -404,23 +404,17 @@ if __name__ == "__main__":
 
     overlap_photoIa(photoIa_noz, photoIa_wz, photoIa_wz_JLA, mssg="photoIa_noz")
 
-    # not in wzJLA
+    # new
     not_in_photoIa_wz = photoIa_noz[~photoIa_noz.SNID.isin(photoIa_wz.SNID.values)]
     not_in_photoIa_wz.to_csv(f"{path_samples}/photoIanoz_notin_photoIa_wz.csv")
     pu.plot_mosaic_histograms_listdf(
         [not_in_photoIa_wz],
-        list_labels=["notin_pIawz"],
+        list_labels=["new"],
         path_plots=path_plots,
-        suffix="notin_pIawz",
+        suffix="new",
         list_vars_to_plot=["REDSHIFT_FINAL", "average_probability_set_0"],
         data_color_override=True,
     )
-
-    # Possible contamination
-    # dic_photoIa_sel = {"average_probability_set_0": photoIa_noz}
-    # dic_tag_SNIDs = cuts.stats_possible_contaminants(
-    #     dic_photoIa_sel, method_list=["average_probability_set"]
-    # )
 
     # who are the missing events?
     lost_photoIa_wz_JLA = photoIa_wz_JLA[
@@ -462,14 +456,12 @@ if __name__ == "__main__":
     photoIa_noz_wz_notsel_photoIawz_saltzspe = photoIa_noz_wz_notsel_photoIawz[
         photoIa_noz_wz_notsel_photoIawz.SNID.isin(salt_fits_wz.SNID.values)
     ]
-    print(
-        f"photoIa_noz but NOT photoIa_wz and HAVE a saltfit {len(photoIa_noz_wz_notsel_photoIawz_saltzspe)}"
-    )
+    print(f"new w salt fit {len(photoIa_noz_wz_notsel_photoIawz_saltzspe)}")
     pu.plot_mosaic_histograms_listdf(
         [photoIa_noz_wz_notsel_photoIawz_saltzspe],
         list_labels=[""],
         path_plots=path_plots,
-        suffix="photoIa_noz_wz_notsel_photoIawz_saltzspe",
+        suffix="new_wsaltfit",
         list_vars_to_plot=[
             "zHD_zspe",
             "c_zspe",
@@ -551,6 +543,14 @@ if __name__ == "__main__":
         ~photoIa_noz_saltz_JLA.SNID.isin(SNIDs_to_eliminate)
     ]
 
+    # save sample
+    photoIa_noz_saltz_JLA.to_csv(
+        f"{path_samples}/photoIa_noz_cosmo_quantile_average_probability_set_0.csv"
+    )
+    print(
+        f"Saved {len(photoIa_noz_saltz_JLA)} average_probability_set_0>0.5 after ALL quality cuts"
+    )
+
     df_stats = mu.cuts_deep_shallow(
         photoIa_noz_saltz_JLA,
         photoIa_wz_JLA,
@@ -573,6 +573,7 @@ if __name__ == "__main__":
         sample="JLA-like",
         verbose=True,
     )
+
     lu.print_blue("Stats FUP")
     df_stats_fup[[k for k in df_stats_fup.keys() if k != "sample"]] = df_stats_fup[
         [k for k in df_stats_fup.keys() if k != "sample"]
@@ -590,7 +591,7 @@ if __name__ == "__main__":
     # hist hostgalmag
     list_df = [photoIa_noz_001, photoIa_noz_saltz, photoIa_noz_saltz_JLA]
     list_labels = ["SNN>0.001", "SNN>0.5", "SNN>0.5 JLA"]
-    pu.hist_HOSTGAL_MAG_r_vs_REDSHIFT(list_df, list_labels, path_plots=path_plots)   
+    pu.hist_HOSTGAL_MAG_r_vs_REDSHIFT(list_df, list_labels, path_plots=path_plots)
 
     # distributions of new events
     list_df = [
@@ -607,129 +608,109 @@ if __name__ == "__main__":
         list_df,
         list_labels=list_labels,
         path_plots=path_plots,
-        suffix="_newevents",
+        suffix="_newJLA",
         list_vars_to_plot=["zHD", "c", "x1"],
         data_color_override=True,
     )
 
     logger.info("")
-    logger.info("INSPECT MISSING WZ NOT IN NOZ")
-    # stats
+    logger.info("NOZ vs. M22")
+
+    # common
+    print("COMMON EVENTS")
     overlap = photoIa_noz_saltz_JLA[
         photoIa_noz_saltz_JLA.SNID.isin(photoIa_wz_JLA.SNID.values)
     ]
     print(
         f"Overlap photoIa no z and with z {len(overlap)} ~{round(100*len(overlap)/len(photoIa_wz_JLA),2)}%"
     )
+    for k in ["zHD", "c", "x1"]:
+        overlap[f"delta_{k}"] = abs(overlap[k] - overlap[f"{k}_zspe"])
+        n_good_overlap = len(overlap[overlap[f"delta_{k}"] < 0.1])
+        print(
+            f"   Good {k}: (fitted - zspe<0.1) {n_good_overlap} {round(n_good_overlap*100/len(overlap),2)}% ",
+        )
+    # overlap simultaneous salt fit effect
+    # terrible way of coding this
+    # but it is done to mimic sims format
+    tmp_retro = salt_fits_noz.add_suffix("_retro")
+    tmp_retro = tmp_retro.rename(columns={"SNID_retro": "SNID"})
+    df_tmp = pd.merge(overlap, tmp_retro, on="SNID")
+    pu.plot_scatter_mosaic_retro(
+        [df_tmp],
+        ["overlap"],
+        path_out=f"{path_plots}/scatter_overlapJLA_retro_vs_ori.png",
+    )
+    pu.plot_delta_vs_var(
+        df_tmp,
+        "zHD",
+        "zPHOT_retro",
+        f"{path_plots}/scatter_z_overlapJLA_retro_vs_ori.png",
+    )
+
+    dic_venn = {
+        "photoIa w z": set(photoIa_wz_JLA.SNID.values),
+        "photoIa no z": set(photoIa_noz.SNID.values),
+        "photoIa no z + JLA": set(photoIa_noz_saltz_JLA.SNID.values),
+    }
+    pu.plot_venn(dic_venn, path_plots=path_plots, suffix="all")
+
+    # lost
+    print("LOST M22")
     lost_photoIa_wz_JLA = photoIa_wz_JLA[
         ~photoIa_wz_JLA.SNID.isin(photoIa_noz_saltz_JLA.SNID.values)
     ]
-    print("Lost photoIa with z", len(lost_photoIa_wz_JLA))
+    print("Lost M22 JLA", len(lost_photoIa_wz_JLA))
     sel = salt_fits_noz[salt_fits_noz.SNID.isin(lost_photoIa_wz_JLA.SNID.values)]
     print("   have simultaneous fit", len(sel))
-    # sel = sel[(sel.zHD > 0.2) & (sel.zHD < 1.2)]
-    # print("   pass zrange", len(sel))
     sel = su.apply_JLA_cut(sel)
     print("   pass JLA cuts", len(sel))
 
-    # extra check how far the redshift was chosen
-    sel = sel.add_suffix("_retro")
-    sel = sel.rename(columns={"SNID_retro": "SNID"})
-    merged = pd.merge(sel, lost_photoIa_wz_JLA, on="SNID")
-    merged["delta_zHD"] = abs(merged["zHD"] - merged["zHD_retro"])
-    print(
-        "   Good z: (fitted - host-galaxy<0.1)", len(merged[merged["delta_zHD"] < 0.1]),
-    )
-    merged["delta_c"] = abs(merged["c"] - merged["c_retro"])
-    print(
-        "   Good c: (fitted - host-galaxy<0.1)", len(merged[merged["delta_c"] < 0.1]),
-    )
-    merged["delta_x1"] = abs(merged["x1"] - merged["x1_retro"])
-    print(
-        "   Good x1: (fitted - host-galaxy<0.1)", len(merged[merged["delta_x1"] < 0.1]),
-    )
-
-    # histo
-    list_df = [
-        lost_photoIa_wz_JLA,
-        salt_fits_noz[salt_fits_noz.SNID.isin(lost_photoIa_wz_JLA.SNID.values)],
-    ]
-    list_labels = [
-        "lost_photoIa_wz_JLA",
-        "lost_photoIa_wz_JLA fitted z",
-    ]
-    pu.plot_mosaic_histograms_listdf(
-        list_df,
-        list_labels=list_labels,
-        path_plots=path_plots,
-        suffix="lostphotoIa_wz_JLA_in_noz_differentsalt",
-    )
     # lost simultaneous salt fit effect
+    # again terrible way of doing this
     tmp_retro = salt_fits_noz.add_suffix("_retro")
     tmp_retro = tmp_retro.rename(columns={"SNID_retro": "SNID"})
     df_tmp = pd.merge(lost_photoIa_wz_JLA, tmp_retro, on="SNID")
     pu.plot_scatter_mosaic_retro(
         [df_tmp],
         ["lost_photoIa_wz_JLA"],
-        path_out=f"{path_plots}/scatter_lost_photoIawzJLA_retro_vs_ori.png",
+        path_out=f"{path_plots}/scatter_lostJLA_retro_vs_ori.png",
     )
     pu.plot_delta_vs_var(
         df_tmp,
         "zHD",
         "zPHOT_retro",
-        f"{path_plots}/scatter_z_lost_photoIawz_retro_vs_ori.png",
+        f"{path_plots}/scatter_z_lostJLA_retro_vs_ori.png",
     )
     pu.plot_delta_vs_var(
-        df_tmp,
-        "c",
-        "c_retro",
-        f"{path_plots}/scatter_c_lost_photoIawz_retro_vs_ori.png",
+        df_tmp, "c", "c_retro", f"{path_plots}/scatter_c_lostJLA_retro_vs_ori.png",
     )
 
-    # overlap simultaneous salt fit effect
-    df_tmp = pd.merge(overlap, tmp_retro, on="SNID")
-    pu.plot_scatter_mosaic_retro(
-        [df_tmp],
-        ["lost_photoIa_wz_JLA"],
-        path_out=f"{path_plots}/scatter_overlap_photoIawz_retro_vs_ori.png",
-    )
-    pu.plot_delta_vs_var(
-        df_tmp,
-        "zHD",
-        "zPHOT_retro",
-        f"{path_plots}/scatter_z_overlap_photoIawz_retro_vs_ori.png",
+    for k in ["zHD", "c", "x1"]:
+        df_tmp[f"delta_{k}"] = abs(df_tmp[f"{k}_retro"] - df_tmp[f"{k}"])
+        n_good_tmp = len(df_tmp[df_tmp[f"delta_{k}"] < 0.1])
+        print(
+            f"   Good {k}: (fitted - zspe<0.1) {n_good_tmp} {round(n_good_tmp*100/len(df_tmp),2)}%",
+        )
+
+    # New events
+    print("NEW")
+    photoIa_noz_wz_notsel_photoIawz = photoIa_noz_saltz_JLA[
+        (photoIa_noz_saltz_JLA["REDSHIFT_FINAL"] > 0)
+        & (~photoIa_noz_saltz_JLA["SNID"].isin(photoIa_wz.SNID.values))
+    ]
+    print(f"new with zspe {len(photoIa_noz_wz_notsel_photoIawz)}")
+    photoIa_noz_wz_notsel_photoIawz.to_csv(f"{path_samples}/new_wzspe.csv")
+    pu.plot_mosaic_histograms_listdf(
+        [photoIa_noz_wz_notsel_photoIawz],
+        list_labels=["newJLA"],
+        path_plots=path_plots,
+        suffix="new_JLA_wz",
+        list_vars_to_plot=["REDSHIFT_FINAL", "average_probability_set_0"],
     )
 
-    # Overlap between samples
-    dic_venn = {
-        "photoIa w z": set(photoIa_wz_JLA.SNID.values),
-        "photoIa no z": set(photoIa_noz.SNID.values),
-        "photoIa no z + JLA": set(photoIa_noz_saltz_JLA.SNID.values),
-    }
-    pu.plot_venn(dic_venn, path_plots=path_plots, suffix="noz_cuts")
-
-    dic_venn = {
-        "photoIa w z (JLA)": set(photoIa_wz_JLA.SNID.values),
-        "photoIa no z (JLA)": set(photoIa_noz_saltz_JLA.SNID.values),
-        "photoIa no z, without z": set(
-            photoIa_noz[photoIa_noz["REDSHIFT_FINAL"] < 0].SNID.values
-        ),
-    }
-    pu.plot_venn(dic_venn, path_plots=path_plots, suffix="noz_wz")
-
-    dic_venn = {
-        "photoIa w z (JLA)": set(photoIa_wz_JLA.SNID.values),
-        "photoIa no z (JLA)": set(photoIa_noz_saltz_JLA.SNID.values),
-    }
-    pu.plot_venn2(dic_venn, path_plots=path_plots, suffix="wz_noz_JLA")
-
-    # save sample
-    photoIa_noz_saltz_JLA.to_csv(
-        f"{path_samples}/photoIa_noz_cosmo_quantile_average_probability_set_0.csv"
-    )
-    print(
-        f"Saved {len(photoIa_noz_saltz_JLA)} average_probability_set_0>0.5 after ALL quality cuts"
-    )
+    logger.info("")
+    logger.info("SIMULATIONS: EFFICIENCY & CONTAMINATION (REALISTIC = NOT BALANCED)")
 
     # load predictions of snn
     sim_preds = du.load_merge_all_preds(
@@ -738,61 +719,6 @@ if __name__ == "__main__":
         norm="cosmo_quantile",
     )
 
-    #
-    # Who are the ones that got noz selected but where not in wz
-    #
-    photoIa_noz_wz_notsel_photoIawz = photoIa_noz_saltz_JLA[
-        (photoIa_noz_saltz_JLA["REDSHIFT_FINAL"] > 0)
-        & (~photoIa_noz_saltz_JLA["SNID"].isin(photoIa_wz.SNID.values))
-    ]
-    print(
-        f"photoIa_noz but NOT photoIa_wz JLA and HAVE a redshift {len(photoIa_noz_wz_notsel_photoIawz)}"
-    )
-    photoIa_noz_wz_notsel_photoIawz.to_csv(
-        f"{path_samples}/not_Iawz_buthavez_JLAlike.csv"
-    )
-    pu.plot_mosaic_histograms_listdf(
-        [photoIa_noz_wz_notsel_photoIawz],
-        list_labels=[""],
-        path_plots=path_plots,
-        suffix="photoIa_noz_wz_notsel_photoIawz_JLAlike",
-        list_vars_to_plot=["REDSHIFT_FINAL", "average_probability_set_0"],
-    )
-    # load salt fits wzspe
-    # salt_fits_wz = du.load_salt_fits(args.path_data_fits)
-    tmp = pd.merge(
-        photoIa_noz_wz_notsel_photoIawz[["SNID", "REDSHIFT_FINAL"]],
-        salt_fits_wz,
-        on="SNID",
-        how="left",
-    )
-    photoIa_noz_wz_notsel_photoIawz_saltzspe = tmp[
-        tmp.SNID.isin(salt_fits_wz.SNID.values)
-    ]
-    print(
-        f"photoIa_noz JLAlike but NOT photoIa_wz and HAVE a saltfit {len(photoIa_noz_wz_notsel_photoIawz_saltzspe)}"
-    )
-    photoIa_noz_wz_notsel_photoIawz_saltzspe = pd.merge(
-        photoIa_noz_wz_notsel_photoIawz_saltzspe,
-        photoIa_wz[["SNID", "average_probability_set_0"]],
-        on="SNID",
-        how="left",
-    )
-    pu.plot_mosaic_histograms_listdf(
-        [photoIa_noz_wz_notsel_photoIawz_saltzspe],
-        list_labels=[""],
-        path_plots=path_plots,
-        suffix="photoIa_noz_wz_notsel_photoIawz_saltzspe_JLAlike",
-        list_vars_to_plot=[
-            "zHD_zspe",
-            "c_zspe",
-            "x1_zspe",
-            "average_probability_set_0",
-        ],
-    )
-
-    logger.info("")
-    logger.info("SIMULATIONS: EFFICIENCY & CONTAMINATION (REALISTIC = NOT BALANCED)")
     df_txt_stats_noz = pd.DataFrame(
         columns=[
             "norm",
