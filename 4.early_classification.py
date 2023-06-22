@@ -104,7 +104,95 @@ def get_lc_stats(df, dfmetadata):
     df_uflt["uflt"] = tmp2.values
 
     df_unuf = pd.merge(df_unights, df_uflt)
-    return pd.merge(dfmetadata, df_unuf)
+
+    tmp3 = df.groupby("SNID")["MJDint"].count()
+    df_photo_points = pd.DataFrame()
+    df_photo_points["SNID"] = tmp3.index
+    df_photo_points["photo_points"] = tmp3.values
+
+    df_out = pd.merge(df_unuf, df_photo_points)
+
+    return pd.merge(dfmetadata, df_out)
+
+
+def early_class(df_photo_sel, df_metadata, photoIa_wz_JLA, df_stats, path_model):
+    """_summary_
+
+    Args:
+        df_photo_sel (_type_): _description_
+        df_metadata (_type_): _description_
+        photoIa_wz_JLA (_type_): _description_
+        df_stats (_type_): _description_
+        path_model (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    nflt = 1
+    n_nights = 2
+    snr = 5
+
+    SNID_measurements_criteria = sampling_criteria(df_photo_sel, nflt, n_nights, snr)
+    df_metadata_sampling_trigger = df_metadata[
+        df_metadata.SNID.isin(SNID_measurements_criteria)
+    ]
+
+    df_metadata_sampling_trigger_u = get_lc_stats(
+        df_photo_sel, df_metadata_sampling_trigger
+    )
+
+    df_stats = mu.cuts_deep_shallow_eventmag(
+        df_metadata_sampling_trigger_u,
+        photoIa_wz_JLA,
+        df_photo_sel,
+        df_stats=df_stats,
+        cut=f"-7<t<20 nflt:{nflt} nights:{n_nights} snr:{snr}",
+    )
+
+    # PREDICTIONS
+    # 1. reformat photometry for SuperNNova
+    missing_cols = [
+        "HOSTGAL_PHOTOZ",
+        "HOSTGAL_SPECZ",
+        "HOSTGAL_PHOTOZ_ERR",
+        "HOSTGAL_SPECZ_ERR",
+    ]
+    df_snn = df_photo_sel.copy()
+    for k in missing_cols:
+        df_snn[k] = np.zeros(len(df_snn))
+    df_snn = df_snn.sort_values(by=["MJD"])
+
+    print("Obtain predictions")
+    ids_preds, pred_probs = classify_lcs(df_snn, path_model, "cpu")
+    preds_df = reformat_preds(pred_probs, ids=df_snn.SNID.unique())
+    preds_df = pd.merge(
+        preds_df,
+        df_metadata_sampling_trigger_u[
+            [
+                "SNID",
+                "IAUC",
+                "SNTYPE",
+                "unights",
+                "uflt",
+                "photo_points",
+                "REDSHIFT_FINAL",
+                "PRIVATE(DES_transient_status)",
+                "HOSTGAL_MAG_r",
+            ]
+        ],
+    )
+
+    for thres in [0.1, 0.2, 0.3, 0.4, 0.5]:
+        df_stats, _ = mu.cuts_deep_shallow_eventmag(
+            preds_df[preds_df.prob_class0 > thres],
+            photoIa_wz_JLA,
+            df_photo_sel,
+            df_stats=df_stats,
+            cut=f"SNN>{thres}",
+            return_extra_df=True,
+        )
+
+    return df_stats
 
 
 if __name__ == "__main__":
@@ -180,66 +268,103 @@ if __name__ == "__main__":
         presel,
         photoIa_wz_JLA,
         df_photometry,
+        df_stats=df_stats,
         cut="+ transient status",
+    )
+
+    print("PEAKMJD")
+    # Using M22 peak
+    salt_peak = du.load_salt_fits(
+        f"{args.path_data}/DESALL_forcePhoto_real_snana_fits.SNANA.TEXT"
+    )
+    # Photometry
+    df_peakpho = pd.merge(
+        df_photometry[["SNID", "MJD", "FLT", "FLUXCAL", "FLUXCALERR", "PHOTFLAG"]],
+        salt_peak[["SNID", "PKMJDINI", "SNTYPE"]],
+        on="SNID",
+        how="left",
+    )
+    df_peakpho["SNR"] = df_peakpho["FLUXCAL"] / df_peakpho["FLUXCALERR"]
+    df_peakpho["window_time_cut"] = True
+    mask = df_peakpho["MJD"] != -777.00
+    df_peakpho["window_delta_time"] = df_peakpho["MJD"] - df_peakpho["PKMJDINI"]
+    df_peakpho.loc[mask, "window_time_cut"] = df_peakpho["window_delta_time"].apply(
+        lambda x: True if x < 5 and x > -30 else False
+    )
+    df_peakpho_sel = df_peakpho[
+        (df_peakpho["window_time_cut"]) & (df_peakpho.SNID.isin(idxs_presel))
+    ]
+    lu.print_blue("Selected before peak (-30<p<5)")
+
+    df_stats_peak = early_class(
+        df_peakpho_sel, df_metadata, photoIa_wz_JLA, df_stats, path_model
     )
 
     print("TRIGGER")
     # Using PHOTFLAG 4096 (bit mask)
     # as PRIVATE(DES_mjd_trigger) in header may not be acurate
     estimate_trig = pd.read_csv(f"{args.path_data}/trigger_MJD.csv", delimiter=" ")
-
-    # comparisson between estimated peak and trigger time
-    salt_peak = du.load_salt_fits(
-        f"{args.path_data}/DESALL_forcePhoto_real_snana_fits.SNANA.TEXT"
-    )
     peak_merged = salt_peak[["SNID", "PKMJDINI", "SNTYPE"]].merge(estimate_trig)
-    peak_merged["PKMJDINI-trigger"] = (
-        peak_merged["PKMJDINI"] - peak_merged["trigger_MJD"]
-    )
+    peak_merged["Peak-trigger"] = peak_merged["PKMJDINI"] - peak_merged["trigger_MJD"]
     toplot_peak_merged = peak_merged[
-        peak_merged.PKMJDINI > 1
+        (peak_merged.PKMJDINI > 1)
     ]  # to eliminate non estimates
-
-    # spec
-    list_sntypes = [
+    list_spec_sntypes = [
         cu.spec_tags["Ia"],
         cu.spec_tags["Ia"] + cu.spec_tags["CC"] + cu.spec_tags["SLSN"],
-        cu.spec_tags["nonSN"],
     ]
     list_df_spec = [
-        toplot_peak_merged[toplot_peak_merged["SNTYPE"].isin(k)] for k in list_sntypes
+        toplot_peak_merged[toplot_peak_merged["SNTYPE"].isin(k)]
+        for k in list_spec_sntypes
     ]
     pu.plot_histograms_listdf(
         [toplot_peak_merged] + list_df_spec,
-        ["DES-SN"] + ["spec Ia", "spec SN", "spec non-SN"],
+        ["DES-SN"] + ["spec Ia", "spec SN"],
         density=False,
-        varx="PKMJDINI-trigger",
+        varx="Peak-trigger",
         outname=f"{path_plots}/peak-trigger.png",
         log_scale=True,
         nbins=30,
     )
-    # for my statistics I should evaluate only spec Ia where trigger is close to the SNIa
-    # sanity check: verify PKMJDINI close to fitted t0 for SNe Ia
-    salt_zspe = du.load_salt_fits(
-        f"{DES}/data/DESALL_forcePhoto_real_snana_fits/D_JLA_DATA5YR_DENSE_SNR/output/DESALL_forcePhoto_real_snana_fits/FITOPT000.FITRES.gz"
+
+    # list of events with peak variation near trigger
+    # near_trigger = toplot_peak_merged[abs(toplot_peak_merged["Peak-trigger"]) < 20]
+    # idxs_near_trigger = near_trigger["SNID"].values
+    # list_spec_sntypes = [cu.spec_tags["Ia"], cu.spec_tags["CC"] + cu.spec_tags["SLSN"]]
+    # list_near_trigger_spec = [
+    #     near_trigger[near_trigger["SNTYPE"].isin(k)] for k in list_spec_sntypes
+    # ]
+    # df_stats = mu.cuts_deep_shallow_eventmag(
+    #     presel[presel.SNID.isin(idxs_near_trigger)],
+    #     photoIa_wz_JLA,
+    #     df_photometry,
+    #     df_stats=df_stats,
+    #     cut="+ near trigger",
+    # )
+
+    # how about SNe Ia with t0 estimation?
+    salt_JLA = du.load_salt_fits(f"{args.path_data}/FITOPT000.FITRES")
+    JLA_merged = salt_JLA[["SNID", "PKMJD", "SNTYPE"]].merge(estimate_trig)
+    JLA_merged["t0-trigger"] = JLA_merged["PKMJD"] - JLA_merged["trigger_MJD"]
+    list_spec_sntypes = []
+
+    pu.plot_histograms_listdf(
+        [JLA_merged[JLA_merged["SNTYPE"].isin(cu.spec_tags["Ia"])]],
+        ["spec Ia"],
+        density=False,
+        varx="t0-trigger",
+        outname=f"{path_plots}/t0-trigger.png",
+        log_scale=True,
+        nbins=30,
     )
-    salt_zspe = salt_zspe.rename(columns={"PKMJDINI": "PKMJDINI_salt"})
-    peak_merged = peak_merged.merge(salt_zspe)
-    peak_merged["PKMJDINI_salt-trigger"] = (
-        peak_merged["PKMJDINI_salt"] - peak_merged["trigger_MJD"]
-    )
-    fig = plt.figure()
-    plt.hist(
-        peak_merged[peak_merged.SNTYPE.isin(cu.spec_tags["Ia"])][
-            "PKMJDINI_salt-trigger"
-        ],
-        bins=20,
-    )
-    plt.yscale("log")
-    plt.xlabel("peak_salt-trigger")
-    plt.savefig(f"{path_plots}/peak_salt-peak_specIa.png")
-    plt.clf()
+
     # sadly trigger is not a great indicator
+    # where SNe are...
+    # other methods can be used once SN has reached maximum
+    # but early, this is all we have for the time being
+    #
+    # EARLY CLASSIFICATION
+    #
 
     # Photometry
     df_trigpho = pd.merge(
@@ -256,102 +381,63 @@ if __name__ == "__main__":
     # Early classification
     # apply window of "SN-like event"
     # -7 (in case there is forced phot before trigger)
-    for plus_trigger in [7, 14, 30]:
-        # +14 which should include maximum
-        df_trigpho.loc[mask, "window_time_cut"] = df_trigpho["window_delta_time"].apply(
-            lambda x: True if x < plus_trigger and x > -7 else False
-        )
-        df_trigpho_sel = df_trigpho[
-            (df_trigpho["window_time_cut"]) & (df_trigpho.SNID.isin(idxs_presel))
-        ]
-        lu.print_blue(f"Selected -7<trigger<{plus_trigger}")
-
-        # # select those SNe Ia which trigger ~peak
-        # idxs_specIa_good_trigger = peak_merged[
-        #     (peak_merged.SNTYPE.isin(cu.spec_tags["Ia"]))
-        #     & (peak_merged["PKMJDINI_salt-trigger"] < plus_trigger)
-        # ]
-
-        print("SAMPLING TRIGGER")
-        nflt = 2
-        n_nights = 3
-        for snr in [3, 5]:
-            SNID_measurements_criteria = sampling_criteria(
-                df_trigpho_sel, nflt, n_nights, snr
-            )
-            df_metadata_sampling_trigger = df_metadata[
-                df_metadata.SNID.isin(SNID_measurements_criteria)
-            ]
-
-            df_metadata_sampling_trigger_u = get_lc_stats(
-                df_trigpho_sel, df_metadata_sampling_trigger
-            )
-
-            df_stats = mu.cuts_deep_shallow_eventmag(
-                df_metadata_sampling_trigger_u,
-                photoIa_wz_JLA,
-                df_trigpho_sel,
-                df_stats=df_stats,
-                cut=f"-7<t<{plus_trigger} nflt:{nflt} nights:{n_nights} snr:{snr}",
-            )
-
-            # PREDICTIONS
-            # 1. reformat photometry for SuperNNova
-            missing_cols = [
-                "HOSTGAL_PHOTOZ",
-                "HOSTGAL_SPECZ",
-                "HOSTGAL_PHOTOZ_ERR",
-                "HOSTGAL_SPECZ_ERR",
-            ]
-            df_snn = df_trigpho_sel.copy()
-            for k in missing_cols:
-                df_snn[k] = np.zeros(len(df_snn))
-            df_snn = df_snn.sort_values(by=["MJD"])
-
-            print("Obtain predictions")
-            ids_preds, pred_probs = classify_lcs(df_snn, path_model, "cpu")
-            preds_df = reformat_preds(pred_probs, ids=df_snn.SNID.unique())
-            preds_df = pd.merge(
-                preds_df,
-                df_metadata_sampling_trigger_u[
-                    [
-                        "SNID",
-                        "IAUC",
-                        "SNTYPE",
-                        "unights",
-                        "uflt",
-                        "REDSHIFT_FINAL",
-                        "PRIVATE(DES_transient_status)",
-                        "HOSTGAL_MAG_r",
-                    ]
-                ],
-            )
-
-            df_stats, df_minmag = mu.cuts_deep_shallow_eventmag(
-                preds_df[preds_df.prob_class0 > 0.1],
-                photoIa_wz_JLA,
-                df_trigpho_sel,
-                df_stats=df_stats,
-                cut=f"-7<t<{plus_trigger} SNN>0.1 snr:{snr}",
-                return_extra_df=True,
-            )
-
-    print(
-        df_stats[
-            [
-                "cut",
-                "total selected",
-                "total spec Ia",
-                "total photo Ia M22",
-                "multiseason",
-                "total maglim<22.5",
-                "specIa maglim<22.5",
-                "M22 maglim<22.5",
-                "multiseason maglim<22.5",
-            ]
-        ]
+    df_trigpho.loc[mask, "window_time_cut"] = df_trigpho["window_delta_time"].apply(
+        lambda x: True if x < 20 and x > -7 else False
     )
-    # no ses super super y si bajo el SNN>0.1/.2?
+    df_trigpho_sel = df_trigpho[
+        (df_trigpho["window_time_cut"])
+        & (df_trigpho.SNID.isin(idxs_presel))
+        # & (df_trigpho.SNID.isin(idxs_near_trigger))
+    ]
+    lu.print_blue(f"Selected -7<trigger<{20}")
+
+    df_stats_trigger = early_class(
+        df_trigpho_sel, df_metadata, photoIa_wz_JLA, df_stats, path_model
+    )
+
+    cols_to_print = [
+        "cut",
+        "total maglim<22.7",
+        "specIa maglim<22.7",
+        "M22 maglim<22.7",
+        "nonIa maglim<22.7",
+        "multiseason maglim<22.7",
+        "photo_points",
+        "photo_points_std",
+        "unights",
+        "unights_std",
+    ]
+    lu.print_blue("PEAK")
+    print(df_stats_peak[cols_to_print])
+    lu.print_blue("trigger")
+    print(df_stats_trigger[cols_to_print].to_latex(index=False))
+
+    pu.hist_fup_targets_early(
+        df_stats_trigger,
+        path_plots=path_plots,
+        subsamples_to_plot=[
+            "total maglim<22.7",
+            "M22 maglim<22.7",
+            "specIa maglim<22.7",
+            "multiseason maglim<22.7",
+            "nonIa maglim<22.7",
+        ],
+        colors=["maroon", "darkorange", "royalblue", "indigo", "grey"],
+    )
+    pu.hist_fup_targets_early(
+        df_stats_trigger,
+        path_plots=path_plots,
+        subsamples_to_plot=[
+            "total maglim<22.7",
+            "M22 maglim<22.7",
+            "specIa maglim<22.7",
+            "multiseason maglim<22.7",
+            "nonIa maglim<22.7",
+        ],
+        colors=["maroon", "darkorange", "royalblue", "indigo", "grey"],
+        suffix="log",
+        log_scale=True,
+    )
     import ipdb
 
     ipdb.set_trace()

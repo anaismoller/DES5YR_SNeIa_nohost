@@ -279,6 +279,9 @@ def cuts_deep_shallow_eventmag(
         _type_: _description_
     """
 
+    # multiseason
+    single_seasons = [1.0, 2.0, 4.0, 8.0, 16.0]
+
     if len(df_stats) == 0:
         df_stats = pd.DataFrame(
             columns=[
@@ -308,18 +311,27 @@ def cuts_deep_shallow_eventmag(
     # Sample 1.a Smith+2020  mag i|r < 21.5
     df_tmp_sel = df_tmp[(df_tmp.minmag < 21.5)]
     maglimSNID = df_tmp_sel.SNID.values
+    mask_maglimSNID = df_sel.SNID.isin(maglimSNID)
 
     # Sample 1.b Smith+2020  mag i|r < 22.7 (OzDES)
     df_tmp_sel = df_tmp[(df_tmp.minmag < 22.7)]
     maglimOzDES = df_tmp_sel.SNID.values
+    mask_maglimOzDES = df_sel.SNID.isin(maglimOzDES)
 
     # Sample 2. Smith+2020
     df_tmp_sel = df_sel[(df_sel.HOSTGAL_MAG_r > 24)]
     maglimFainthosts = df_tmp_sel.SNID.values
+    mask_maglimFainthosts = df_sel.SNID.isin(maglimFainthosts)
 
     # TiDES maglim sample
     df_tmp_sel2 = df_tmp[df_tmp.minmag < 22.5]
     maglimSNIDTiDES = df_tmp_sel2.SNID.values
+    mask_maglimSNIDTiDES = df_sel.SNID.isin(maglimSNIDTiDES)
+
+    # masks
+    mask_specIa = df_sel.SNTYPE.isin(cu.spec_tags["Ia"])
+    mask_M22 = df_sel.SNID.isin(photoIa_wz_JLA.SNID.values)
+    mask_multiseason = ~df_sel["PRIVATE(DES_transient_status)"].isin(single_seasons)
 
     dict_t = {}
     dict_t["cut"] = cut
@@ -329,67 +341,50 @@ def cuts_deep_shallow_eventmag(
     )
     dict_t["deep selected"] = len(df_deep)
     dict_t["deep spec Ia"] = len(df_deep[df_deep.SNTYPE.isin(cu.spec_tags["Ia"])])
+
+    # total
     dict_t["total selected"] = len(df_sel)
-    dict_t["total spec Ia"] = len(df_sel[df_sel.SNTYPE.isin(cu.spec_tags["Ia"])])
+    dict_t["total spec Ia"] = len(df_sel[mask_specIa])
     dict_t["total spec nonnormIa"] = len(
         df_sel[df_sel.SNTYPE.isin(cu.spec_tags["nonnormIa"])]
     )
     dict_t["total spec nonIa"] = len(df_sel[df_sel.SNTYPE.isin(cu.spec_tags["nonIa"])])
     dict_t["total spec nonSN"] = len(df_sel[df_sel.SNTYPE.isin(cu.spec_tags["nonSN"])])
-    dict_t["total photo Ia M22"] = len(
-        df_sel[df_sel.SNID.isin(photoIa_wz_JLA.SNID.values)]
-    )
-    dict_t["total maglim<21.5"] = len(df_sel[df_sel.SNID.isin(maglimSNID)])
-    dict_t["specIa maglim<21.5"] = len(
-        df_sel[
-            (df_sel.SNID.isin(maglimSNID)) & (df_sel.SNTYPE.isin(cu.spec_tags["Ia"]))
-        ]
-    )
-    dict_t["total maglim<22.7"] = len(df_sel[df_sel.SNID.isin(maglimOzDES)])
-    dict_t["specIa maglim<22.7"] = len(
-        df_sel[
-            (df_sel.SNID.isin(maglimOzDES)) & (df_sel.SNTYPE.isin(cu.spec_tags["Ia"]))
-        ]
-    )
-    dict_t["total maghost>24"] = len(df_sel[df_sel.SNID.isin(maglimFainthosts)])
-    dict_t["specIa maghost>24"] = len(
-        df_sel[
-            (df_sel.SNID.isin(maglimFainthosts))
-            & (df_sel.SNTYPE.isin(cu.spec_tags["Ia"]))
-        ]
-    )
-    dict_t["total maglim<22.5"] = len(df_sel[df_sel.SNID.isin(maglimSNIDTiDES)])
-    dict_t["specIa maglim<22.5"] = len(
-        df_sel[
-            (df_sel.SNID.isin(maglimSNIDTiDES))
-            & (df_sel.SNTYPE.isin(cu.spec_tags["Ia"]))
-        ]
-    )
-    dict_t["M22 maglim<22.5"] = len(
-        df_sel[
-            (df_sel.SNID.isin(photoIa_wz_JLA.SNID.values))
-            & (df_sel.SNID.isin(maglimSNIDTiDES))
-        ]
-    )
+    dict_t["total photo Ia M22"] = len(df_sel[mask_M22])
 
-    # multiseason
-    single_seasons = [1.0, 2.0, 4.0, 8.0, 16.0]
+    for name_mask, this_mask in zip(
+        ["21.5", "22.7", "24", "22.5"],
+        [
+            mask_maglimSNID,
+            mask_maglimOzDES,
+            mask_maglimFainthosts,
+            mask_maglimSNIDTiDES,
+        ],
+    ):
+        dict_t[f"total maglim<{name_mask}"] = len(df_sel[this_mask])
+        dict_t[f"specIa maglim<{name_mask}"] = len(df_sel[(this_mask) & (mask_specIa)])
+        dict_t[f"nonIa maglim<{name_mask}"] = len(
+            df_sel[(this_mask) & (df_sel.SNTYPE.isin(cu.spec_tags["nonIa"]))]
+        )
+        dict_t[f"M22 maglim<{name_mask}"] = len(df_sel[(mask_M22) & (this_mask)])
+        dict_t[f"multiseason maglim<{name_mask}"] = len(
+            df_sel[(mask_multiseason) & (this_mask)]
+        )
 
-    dict_t["multiseason maglim<22.5"] = len(
-        df_sel[
-            (~df_sel["PRIVATE(DES_transient_status)"].isin(single_seasons))
-            & (df_sel.SNID.isin(maglimSNIDTiDES))
-        ]
-    )
-    dict_t["multiseason"] = len(
-        df_sel[~df_sel["PRIVATE(DES_transient_status)"].isin(single_seasons)]
-    )
+    # general
+    dict_t["multiseason"] = len(df_sel[mask_multiseason])
     dict_t["unights"] = df_sel["unights"].median()
+    dict_t["unights_std"] = df_sel["unights"].std()
     dict_t["uflt"] = df_sel["uflt"].median()
+    dict_t["photo_points"] = df_sel["photo_points"].median()
+    dict_t["photo_points_std"] = df_sel["photo_points"].std()
 
     df_stats = pd.concat(
         [df_stats, pd.DataFrame.from_records([dict_t])], ignore_index=True
     )
+
+    cols_to_int = [k for k in df_stats.keys() if k != "cut"]
+    df_stats[cols_to_int] = df_stats[cols_to_int].astype(int)
 
     if return_extra_df:
         return df_stats, df_tmp

@@ -2007,6 +2007,56 @@ def hist_fup_targets(df_stats_fup, path_plots="./"):
     plt.savefig(f"{path_plots}/hist_fup_targets.png")
 
 
+def hist_fup_targets_early(
+    df_stats_fup,
+    path_plots="./",
+    subsamples_to_plot=[
+        "total maglim<22.7",
+        "M22 maglim<22.7",
+        "multiseason maglim<22.7",
+    ],
+    suffix="",
+    colors=[],
+    log_scale=False
+):
+    rows_to_plots = [
+        # "DES-SN 5-year candidate sample",
+        "-7<t<20 nflt:1 nights:2 snr:5",
+        "SNN>0.1",
+        "SNN>0.2",
+        "SNN>0.3",
+        "SNN>0.4",
+        "SNN>0.5",
+    ]
+    df_sel = df_stats_fup[df_stats_fup["cut"].isin(rows_to_plots)]
+    df_sel["sample_simplified"] = [
+        # "DES-SN",
+        "sampling",
+        "SNN>0.1",
+        "SNN>0.2",
+        "SNN>0.3",
+        "SNN>0.4",
+        "SNN>0.5",
+    ]
+    fig = plt.figure(figsize=(12, 8))
+    for n, k in enumerate(subsamples_to_plot):
+        plt.bar(
+            df_sel["sample_simplified"],
+            df_sel[k],
+            label=k.replace(" maglim<22.7", ""),
+            zorder=n,
+            color=colors[n] if len(colors) > 0 else ALL_COLORS[n],
+        )
+
+    # plt.axhline(y=7000, linewidth=1, color="k", linestyle="--", label="OzDES lim mag")
+    plt.legend()
+    if log_scale:
+        plt.yscale("log")
+    # plt.xticks(rotation=20)
+    plt.ylabel("Number of candidates")
+    plt.savefig(f"{path_plots}/hist_fup_targets_early{suffix}.png")
+
+
 def hist_HOSTGAL_MAG_r_vs_REDSHIFT(list_df, list_labels, path_plots="./"):
     list_n = []
     fig, ax = plt.subplots(figsize=(12, 8))
