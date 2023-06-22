@@ -164,7 +164,7 @@ def early_class(df_photo_sel, df_metadata, photoIa_wz_JLA, df_stats, path_model)
 
     print("Obtain predictions")
     ids_preds, pred_probs = classify_lcs(df_snn, path_model, "cpu")
-    preds_df = reformat_preds(pred_probs, ids=df_snn.SNID.unique())
+    preds_df = reformat_preds(pred_probs, ids=ids_preds)
     preds_df = pd.merge(
         preds_df,
         df_metadata_sampling_trigger_u[
@@ -221,6 +221,12 @@ if __name__ == "__main__":
         default=f"{DES5}/snndump_26XBOOSTEDDES/models/vanilla_S_100_CLF_2_R_none_photometry_DF_1.0_N_cosmo_lstm_64x4_0.05_1024_True_mean/vanilla_S_100_CLF_2_R_none_photometry_DF_1.0_N_cosmo_lstm_64x4_0.05_1024_True_mean.pt",
         help="Path to model for predictions",
     )
+    # parser.add_argument(
+    #     "--path_model_with_z",
+    #     type=str,
+    #     default=f"{DES5}/snndump_26XBOOSTEDDES/models/vanilla_S_100_CLF_2_R_zspe_photometry_DF_1.0_N_cosmo_lstm_64x4_0.05_1024_True_mean/vanilla_S_100_CLF_2_R_zspe_photometry_DF_1.0_N_cosmo_lstm_64x4_0.05_1024_True_mean.pt",
+    #     help="Path to data predictions",
+    # )
 
     # Init
     args = parser.parse_args()
@@ -407,8 +413,8 @@ if __name__ == "__main__":
         "unights",
         "unights_std",
     ]
-    lu.print_blue("PEAK")
-    print(df_stats_peak[cols_to_print])
+    # lu.print_blue("PEAK")
+    # print(df_stats_peak[cols_to_print])
     lu.print_blue("trigger")
     print(df_stats_trigger[cols_to_print].to_latex(index=False))
 
@@ -438,6 +444,20 @@ if __name__ == "__main__":
         suffix="log",
         log_scale=True,
     )
-    import ipdb
 
-    ipdb.set_trace()
+    #
+    # With host galaxy photometric redshifts
+    #
+    # args.path_model_with_z
+
+    # Rubin + 4MOST TiDES
+    lu.print_blue("Rubin + 4MOST TiDES")
+    cols_to_print = [
+        "cut",
+        "total maglim<23.5",
+        "specIa maglim<23.5",
+        "M22 maglim<23.5",
+        "nonIa maglim<23.5",
+        "multiseason maglim<23.5",
+    ]
+    print(df_stats_trigger[cols_to_print].to_latex(index=False))

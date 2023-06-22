@@ -327,6 +327,10 @@ def cuts_deep_shallow_eventmag(
     df_tmp_sel2 = df_tmp[df_tmp.minmag < 22.5]
     maglimSNIDTiDES = df_tmp_sel2.SNID.values
     mask_maglimSNIDTiDES = df_sel.SNID.isin(maglimSNIDTiDES)
+    # extending 1 mag higher as AAT we did for fup to cover the complete
+    df_tmp_sel3 = df_tmp[df_tmp.minmag < 23.5]
+    maglimSNIDTiDES1 = df_tmp_sel3.SNID.values
+    mask_maglimTiDES1 = df_sel.SNID.isin(maglimSNIDTiDES1)
 
     # masks
     mask_specIa = df_sel.SNTYPE.isin(cu.spec_tags["Ia"])
@@ -353,12 +357,13 @@ def cuts_deep_shallow_eventmag(
     dict_t["total photo Ia M22"] = len(df_sel[mask_M22])
 
     for name_mask, this_mask in zip(
-        ["21.5", "22.7", "24", "22.5"],
+        ["21.5", "22.7", "24", "22.5", "23.5"],
         [
             mask_maglimSNID,
             mask_maglimOzDES,
             mask_maglimFainthosts,
             mask_maglimSNIDTiDES,
+            mask_maglimTiDES1,
         ],
     ):
         dict_t[f"total maglim<{name_mask}"] = len(df_sel[this_mask])

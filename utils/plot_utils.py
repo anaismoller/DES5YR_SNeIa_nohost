@@ -2017,11 +2017,11 @@ def hist_fup_targets_early(
     ],
     suffix="",
     colors=[],
-    log_scale=False
+    log_scale=False,
 ):
     rows_to_plots = [
         # "DES-SN 5-year candidate sample",
-        "-7<t<20 nflt:1 nights:2 snr:5",
+        # "-7<t<20 nflt:1 nights:2 snr:5",
         "SNN>0.1",
         "SNN>0.2",
         "SNN>0.3",
@@ -2031,7 +2031,7 @@ def hist_fup_targets_early(
     df_sel = df_stats_fup[df_stats_fup["cut"].isin(rows_to_plots)]
     df_sel["sample_simplified"] = [
         # "DES-SN",
-        "sampling",
+        # "sampling",
         "SNN>0.1",
         "SNN>0.2",
         "SNN>0.3",
