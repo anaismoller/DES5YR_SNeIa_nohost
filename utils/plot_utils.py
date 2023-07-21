@@ -1503,7 +1503,7 @@ def plot_mosaic_histograms_listdf_deep_shallow(
                 sim_vals_deep, _, _ = axs[1][i].hist(
                     deep[k],
                     histtype="step",
-                    label=f"{list_labels[df_idx]} deep",
+                    label=f"{list_labels[df_idx]}",
                     density=False,
                     bins=bins_to_plot[k],
                     weights=norm * np.ones(len(deep)),
@@ -1520,7 +1520,7 @@ def plot_mosaic_histograms_listdf_deep_shallow(
                 sim_vals_shallow, _, _ = axs[0][i].hist(
                     shallow[k],
                     histtype="step",
-                    label=f"{list_labels[df_idx]} shallow",
+                    label=f"{list_labels[df_idx]}",
                     density=False,
                     bins=bins_to_plot[k],
                     weights=norm * np.ones(len(shallow)),
@@ -1554,7 +1554,7 @@ def plot_mosaic_histograms_listdf_deep_shallow(
                     axs[0][i].hist(
                         df[k],
                         histtype="step",
-                        label=list_labels[f"{df_idx} deep"],
+                        label=list_labels[f"{df_idx}"],
                         density=False,
                         bins=bins_to_plot[k],
                         linewidth=5,
@@ -1583,7 +1583,7 @@ def plot_mosaic_histograms_listdf_deep_shallow(
                     axs[0][i].hist(
                         df[k],
                         histtype="step",
-                        label=f"{list_labels[df_idx]} shallow",
+                        label=f"{list_labels[df_idx]}",
                         density=False,
                         bins=bins_to_plot[k],
                         linewidth=5,
@@ -1596,7 +1596,7 @@ def plot_mosaic_histograms_listdf_deep_shallow(
                         bin_edges[1:] - (bin_edges[1] - bin_edges[0]) / 2.0,
                         data_hist_vals_deep,
                         yerr=err,
-                        label=f"{list_labels[df_idx]} deep",
+                        label=f"{list_labels[df_idx]}",
                         fmt="o",
                         color=color_dic["data"]
                         if data_color_override == False
@@ -1611,7 +1611,7 @@ def plot_mosaic_histograms_listdf_deep_shallow(
                         bin_edges[1:] - (bin_edges[1] - bin_edges[0]) / 2.0,
                         data_hist_vals_shallow,
                         yerr=err,
-                        label=f"{list_labels[df_idx]} shallow",
+                        label=f"{list_labels[df_idx]}",
                         fmt="o",
                         color=color_dic["data"],
                         markersize=8,
@@ -1674,8 +1674,20 @@ def plot_mosaic_histograms_listdf_deep_shallow(
             axs[0][i].set_yscale("log")
     axs[1][0].set_ylabel("# events")
     axs[0][0].set_ylabel("# events")
-    axs[1][-1].legend(bbox_to_anchor=(1.05, 0.5), loc=2, borderaxespad=0.0, fontsize=16)
-    axs[0][-1].legend(bbox_to_anchor=(1.05, 0.5), loc=2, borderaxespad=0.0, fontsize=16)
+    axs[1][-1].legend(
+        bbox_to_anchor=(1.05, 0.5),
+        loc=2,
+        borderaxespad=0.0,
+        fontsize=16,
+        title="Deep fields",
+    )
+    axs[0][-1].legend(
+        bbox_to_anchor=(1.05, 0.5),
+        loc=2,
+        borderaxespad=0.0,
+        fontsize=16,
+        title="Shallow fields",
+    )
     plt.savefig(f"{path_plots}/hists_sample_sim_Ia{suffix}.png")
     plt.clf()
     del fig
@@ -1712,7 +1724,7 @@ def overplot_salt_distributions_lists_deep_shallow(
         # shallow
         plot_errorbar_binned(
             list_df_shallow,
-            [f"{l} shallow" for l in list_labels],
+            [f"{l}" for l in list_labels],
             binname=f"{xbin}_bin",
             varx=xbin,
             vary=k,
@@ -1723,7 +1735,7 @@ def overplot_salt_distributions_lists_deep_shallow(
         # deep
         plot_errorbar_binned(
             list_df_deep,
-            [f"{l} deep" for l in list_labels],
+            [f"{l}" for l in list_labels],
             binname=f"{xbin}_bin",
             varx=xbin,
             vary=k,
@@ -1733,8 +1745,14 @@ def overplot_salt_distributions_lists_deep_shallow(
             ignore_y_label=True,
             color_offset=2,
         )
-    axs[0][0].legend(loc="best")
-    axs[0][1].legend(loc="best")
+    axs[0][0].legend(
+        loc="best",
+        title="Shallow fields",
+    )
+    axs[0][1].legend(
+        loc="best",
+        title="Deep fields",
+    )
     axs[1][0].set_xlabel(xbin, fontsize=20)
     axs[1][1].set_xlabel(xbin, fontsize=20)
     # lims
@@ -2081,7 +2099,7 @@ def hist_HOSTGAL_MAG_r_vs_REDSHIFT(list_df, list_labels, path_plots="./"):
             bins=bins,
             lw=2,
             color=ALL_COLORS_nodata[i],
-            linestyle="dashed",
+            linestyle="dotted",
         )
         list_n.append(max(n))
     # ax.plot(
