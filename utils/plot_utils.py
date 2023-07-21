@@ -11,6 +11,10 @@ from utils import metric_utils as mu
 from utils import data_utils as du
 
 
+import warnings
+
+warnings.simplefilter(action="ignore", category=FutureWarning)
+
 CMAP = plt.cm.YlOrBr
 pd.options.mode.chained_assignment = None
 np.seterr(divide="ignore", invalid="ignore")

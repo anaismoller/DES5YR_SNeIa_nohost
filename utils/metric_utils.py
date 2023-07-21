@@ -240,11 +240,11 @@ def fup_hostgals_stats(
 
     # stats per year
     for y, year_str in enumerate(["DES13", "DES14", "DES15", "DES16", "DES17"]):
-        per_year = to_fup_24_nozspe[to_fup_24_nozspe["IAUC"].str.contains(year_str)]
+        per_year = aat[aat["IAUC"].str.contains(year_str)]
         n_year = len(per_year)
         dict_t[f"Y{y+1}"] = n_year
         if verbose:
-            print(f"{year_str} {n_year} = {round(n_year*100/len(to_fup_24_nozspe),2)}%")
+            print(f"{year_str} {n_year} = {round(n_year*100/len(aat),2)}%")
 
     dict_t["specIa"] = len(df[df.SNTYPE.isin(cu.spec_tags["Ia"])])
     dict_t["photoIa M22"] = len(df[df.SNID.isin(photoIa_wz_JLA.SNID.values)])

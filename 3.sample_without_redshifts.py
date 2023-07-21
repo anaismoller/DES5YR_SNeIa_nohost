@@ -114,7 +114,9 @@ if __name__ == "__main__":
         help="Path to simulation predictions without host-efficiency SALT2 fits",
     )
     parser.add_argument(
-        "--nofit", action="store_true", help="if no fit to selection function",
+        "--nofit",
+        action="store_true",
+        help="if no fit to selection function",
     )
 
     # Init
@@ -368,6 +370,7 @@ if __name__ == "__main__":
             verbose=True if rnn_score == 0.5 else False,
         )
         if rnn_score == 0.5:
+            lu.print_green("RNN>0.5")
             photoIa_noz = tmp
         if rnn_score == 0.001:
             lu.print_green("RNN>0.001")
@@ -392,6 +395,17 @@ if __name__ == "__main__":
     df_stats = mu.cuts_deep_shallow(
         photoIa_noz, photoIa_wz_JLA, df_stats=df_stats, cut="RNN>0.5"
     )
+    # paper stats
+    rnn05 = df_stats_fup[df_stats_fup["sample"] == "RNN > 0.5"]
+    print(
+        f"% of M22 in this sample {np.round(rnn05['photoIa M22'].values*100/df_stats_fup[df_stats_fup['sample']=='DES-SN 5-year candidate sample']['photoIa M22'].values,2)}%"
+    )
+    print(
+        f"% without host-galaxy {100-np.round(rnn05['with host'].values*100/rnn05['total'].values)}%"
+    )
+    print(f"mag<24 {rnn05['<24 mag'].values}")
+    print(f"mag<24 and no zfinal {rnn05['<24 mag and no zspe'].values}")
+    print(f"OzDES QOP 2 {rnn05['OzDES QOP 2'].values}")
 
     # load salt fits wzspe
     tmp = du.load_salt_fits(args.path_data_fits)
@@ -421,7 +435,8 @@ if __name__ == "__main__":
         ~photoIa_wz_JLA.SNID.isin(photoIa_noz.SNID.values)
     ]
     print(
-        "Missing photoIa_wz_JLA set 0", len(lost_photoIa_wz_JLA),
+        "Missing photoIa_wz_JLA set 0",
+        len(lost_photoIa_wz_JLA),
     )
     list_df = [photoIa_wz_JLA, lost_photoIa_wz_JLA]
     list_labels = ["photoIa_wz_JLA", "photoIa_wz_JLA not in photoIa_noz"]
@@ -434,7 +449,9 @@ if __name__ == "__main__":
     )
 
     pu.plot_mosaic_scatter(
-        lost_photoIa_wz_JLA, path_plots=path_plots, suffix="lost_photoIa_wz_JLA",
+        lost_photoIa_wz_JLA,
+        path_plots=path_plots,
+        suffix="lost_photoIa_wz_JLA",
     )
 
     # Who are the ones that got noz selected but were not in wz
@@ -683,7 +700,10 @@ if __name__ == "__main__":
         f"{path_plots}/scatter_z_lostJLA_retro_vs_ori.png",
     )
     pu.plot_delta_vs_var(
-        df_tmp, "c", "c_retro", f"{path_plots}/scatter_c_lostJLA_retro_vs_ori.png",
+        df_tmp,
+        "c",
+        "c_retro",
+        f"{path_plots}/scatter_c_lostJLA_retro_vs_ori.png",
     )
 
     for k in ["zHD", "c", "x1"]:
@@ -913,7 +933,10 @@ if __name__ == "__main__":
     logger.info("")
     logger.info("SAMPLE PROPERTIES")
     pu.overplot_salt_distributions_lists(
-        [sim_saltz_Ia_JLA, photoIa_noz_saltz_JLA,],
+        [
+            sim_saltz_Ia_JLA,
+            photoIa_noz_saltz_JLA,
+        ],
         path_plots=path_plots,
         list_labels=[
             "sim Ia JLA (z from SALT)",
@@ -937,7 +960,11 @@ if __name__ == "__main__":
 
     # add m0obs_i
     pu.plot_mosaic_histograms_listdf(
-        [sim_Ia_fits_JLA, sim_saltz_Ia_JLA, photoIa_noz_saltz_JLA,],
+        [
+            sim_Ia_fits_JLA,
+            sim_saltz_Ia_JLA,
+            photoIa_noz_saltz_JLA,
+        ],
         list_labels=[
             "sim Ia JLA (z fixed)",
             "sim Ia JLA (z from SALT)",
@@ -994,4 +1021,3 @@ if __name__ == "__main__":
         data_color_override=True,
         chi_bins=False,
     )
-
