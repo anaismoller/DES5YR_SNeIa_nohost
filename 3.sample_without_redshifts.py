@@ -537,7 +537,7 @@ if __name__ == "__main__":
     overlap_photoIa(photoIa_noz_saltz_JLA, photoIa_wz, photoIa_wz_JLA, mssg="")
 
     df_stats = mu.cuts_deep_shallow(
-        photoIa_noz_saltz_JLA, photoIa_wz_JLA, df_stats=df_stats, cut="JLA-like"
+        photoIa_noz_saltz_JLA, photoIa_wz_JLA, df_stats=df_stats, cut="HQ"
     )
 
     logger.info("")
@@ -572,7 +572,7 @@ if __name__ == "__main__":
         photoIa_noz_saltz_JLA,
         photoIa_wz_JLA,
         df_stats=df_stats,
-        cut="JLA-like (wo AGNs)",
+        cut="HQ (wo AGNs)",
     )
 
     lu.print_blue("Stats")
@@ -587,7 +587,7 @@ if __name__ == "__main__":
         sngals,
         photoIa_wz_JLA,
         df_stats=df_stats_fup,
-        sample="JLA-like",
+        sample="HQ",
         verbose=True,
     )
 
@@ -607,7 +607,7 @@ if __name__ == "__main__":
     # HOST
     # hist hostgalmag
     list_df = [photoIa_noz_001, photoIa_noz_saltz, photoIa_noz_saltz_JLA]
-    list_labels = ["SNN>0.001", "SNN>0.5", "SNN>0.5 JLA"]
+    list_labels = ["SNN>0.001", "SNN>0.5", "SNN>0.5 + HQ"]
     pu.hist_HOSTGAL_MAG_r_vs_REDSHIFT(list_df, list_labels, path_plots=path_plots)
 
     # distributions of new events
@@ -668,7 +668,7 @@ if __name__ == "__main__":
     dic_venn = {
         "photoIa w z": set(photoIa_wz_JLA.SNID.values),
         "photoIa no z": set(photoIa_noz.SNID.values),
-        "photoIa no z + JLA": set(photoIa_noz_saltz_JLA.SNID.values),
+        "photoIa no z + HQ": set(photoIa_noz_saltz_JLA.SNID.values),
     }
     pu.plot_venn(dic_venn, path_plots=path_plots, suffix="all")
 
@@ -939,8 +939,8 @@ if __name__ == "__main__":
         ],
         path_plots=path_plots,
         list_labels=[
-            "sim Ia JLA (z from SALT)",
-            "photometric Ia noz JLA (z from SALT)",
+            "sim Ia HQ (z from SALT)",
+            "SNe Ia noz HQ (z from SALT)",
         ],
         suffix="noz",
         sim_scale_factor=30,
@@ -950,9 +950,9 @@ if __name__ == "__main__":
         [sim_Ia_fits_JLA, sim_saltz_Ia_JLA, photoIa_noz_saltz_JLA],
         path_plots=path_plots,
         list_labels=[
-            "sim Ia JLA (sim z)",
-            "sim Ia JLA (z from SALT)",
-            "photometric SNe Ia JLA (z from SALT)",
+            "sim Ia HQ (sim z)",
+            "sim Ia HQ (z from SALT)",
+            "SNe Ia HQ (z from SALT)",
         ],
         suffix="noz_simz",
         sim_scale_factor=30,
@@ -966,9 +966,9 @@ if __name__ == "__main__":
             photoIa_noz_saltz_JLA,
         ],
         list_labels=[
-            "sim Ia JLA (z fixed)",
-            "sim Ia JLA (z from SALT)",
-            "photometric SNe Ia JLA (z from SALT)",
+            "sim Ia HQ (z fixed)",
+            "sim Ia HQ (z from SALT)",
+            "SNe Ia HQ (z from SALT)",
         ],
         path_plots=path_plots,
         suffix="noz_wm0obsi",
@@ -984,9 +984,9 @@ if __name__ == "__main__":
     pu.overplot_salt_distributions_lists_deep_shallow(
         [sim_Ia_fits_JLA, sim_saltz_Ia_JLA, photoIa_noz_saltz_JLA],
         list_labels=[
-            "sim Ia JLA (z fixed)",
-            "sim Ia JLA (z from SALT)",
-            "photometric SNe Ia JLA (z from SALT)",
+            "simulations (z fixed)",
+            "simulations (z from SALT)",
+            "DES SNe Ia HQ (z from SALT)",
         ],
         path_plots=path_plots,
         suffix="deep_and_shallow_fields",
