@@ -157,14 +157,37 @@ def early_class(df_photo_sel, df_metadata, photoIa_wz_JLA, df_stats, path_model)
         "HOSTGAL_PHOTOZ_ERR",
         "HOSTGAL_SPECZ_ERR",
     ]
-    df_snn = df_photo_sel.copy()
+    df_snn_tmp = df_photo_sel.copy()
     for k in missing_cols:
-        df_snn[k] = np.zeros(len(df_snn))
-    df_snn = df_snn.sort_values(by=["MJD"])
+        df_snn_tmp[k] = np.zeros(len(df_snn_tmp))
+    df_snn_tmp = df_snn_tmp.sort_values(by=["SNID", "MJD"])
+    df_snn_tmp = df_snn_tmp.replace([np.inf, -np.inf], np.nan, inplace=False)
+    df_snn = df_snn_tmp.dropna()
 
     print("Obtain predictions")
-    ids_preds, pred_probs = classify_lcs(df_snn, path_model, "cpu")
+
+    num_elem = len(df_snn.SNID.unique())
+    num_chunks = num_elem // 10 + 1
+    list_chunks = np.array_split(df_snn.SNID.unique(), num_chunks)
+    # Loop over chunks of SNIDs
+    list_ids_preds = []
+    list_pred_prob = []
+    for chunk_idx in list_chunks:
+        try:
+            ids_preds_tmp, pred_probs_tmp = classify_lcs(
+                df_snn[df_snn.SNID.isin(chunk_idx)], path_model, "cpu"
+            )
+            list_ids_preds.append(ids_preds_tmp)
+            list_pred_prob.append(pred_probs_tmp)
+        except Exception:
+            print("ERROR on classification, data must be corrupted")
+            raise ValueError
+    ids_preds = [item for sublist in list_ids_preds for item in sublist]
+    pred_probs = np.vstack(list_pred_prob)
+    print("Reformat")
     preds_df = reformat_preds(pred_probs, ids=ids_preds)
+
+    print("Merge")
     preds_df = pd.merge(
         preds_df,
         df_metadata_sampling_trigger_u[
@@ -182,6 +205,7 @@ def early_class(df_photo_sel, df_metadata, photoIa_wz_JLA, df_stats, path_model)
         ],
     )
 
+    print("Set thresholds for selection")
     for thres in [0.1, 0.2, 0.3, 0.4, 0.5]:
         df_stats, _ = mu.cuts_deep_shallow_eventmag(
             preds_df[preds_df.prob_class0 > thres],
@@ -413,8 +437,6 @@ if __name__ == "__main__":
         "unights",
         "unights_std",
     ]
-    # lu.print_blue("PEAK")
-    # print(df_stats_peak[cols_to_print])
     lu.print_blue("trigger")
     print(df_stats_trigger[cols_to_print].to_latex(index=False))
 
