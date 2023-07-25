@@ -1844,15 +1844,54 @@ def plot_scatter_mosaic_retro(
     plt.savefig(path_out)
 
 
-def plot_delta_vs_var(df, varx, vary2, fout):
+def plot_delta_vs_var(df, varx, vary2, fout, ylabel=None, xlabel=None):
     fig = plt.figure(figsize=(10, 7))
-    plt.plot(df[varx], np.zeros(len(df)), alpha=0.5, color="grey")
-    plt.scatter(df[varx], df[varx] - df[vary2])
-    plt.xlabel(varx)
-    plt.ylabel(f"{varx}-{vary2}")
-    plt.title(
-        f"{np.median(df[varx] - df[vary2]):.3f} \pm {np.std(df[varx] - df[vary2]):.3f} & max: {np.max(df[varx] - df[vary2]):.3f}"
+    plt.plot(df[varx], np.zeros(len(df)), linestyle="dashed", color="grey")
+    plt.errorbar(
+        df[varx],
+        df[varx] - df[vary2],
+        xerr=df[f"{varx}ERR"],
+        fmt="o",
     )
+    plt.xlabel(xlabel if xlabel != None else varx)
+    plt.ylabel(ylabel if ylabel != None else f"{varx}-{vary2}")
+    # plt.title(
+    #     f"{np.median(df[varx] - df[vary2]):.3f} \pm {np.std(df[varx] - df[vary2]):.3f} & max: {np.max(df[varx] - df[vary2]):.3f}"
+    # )
+    plt.savefig(fout)
+    del fig
+
+
+def plot_list_delta_vs_var(
+    df_list, varx, vary2, fout, ylabel=None, xlabel=None, labels=None
+):
+    fig = plt.figure(figsize=(10, 7))
+    plt.plot(
+        df_list[0][varx], np.zeros(len(df_list[0])), linestyle="dashed", color="grey"
+    )
+    if labels == None:
+        tmp_label = [f"{k}" for k in np.zeros(len(df_list))]
+    else:
+        tmp_label = labels
+    for n, df in enumerate(df_list):
+        plt.errorbar(
+            df[varx],
+            df[varx] - df[vary2],
+            # xerr=df[f"{varx}ERR"],
+            # yerr=np.sqrt(df[f"{varx}ERR"] ** 2 + df[f"{vary2}ERR"] ** 2),
+            color="grey" if n < 1 else ALL_COLORS[n],
+            fmt="o",
+            label=tmp_label[n],
+        )
+    plt.xlabel(xlabel if xlabel != None else varx)
+    plt.ylabel(ylabel if ylabel != None else f"{varx}-{vary2}")
+    # plt.title(
+    #     f"{np.median(df[varx] - df[vary2]):.3f} \pm {np.std(df[varx] - df[vary2]):.3f} & max: {np.max(df[varx] - df[vary2]):.3f}"
+    # )
+    if labels != None:
+        plt.legend()
+    plt.xlim(0, 1.3)
+    plt.ylim(-0.1, 0.1)
     plt.savefig(fout)
     del fig
 
