@@ -663,12 +663,40 @@ if __name__ == "__main__":
         "zHD",
         "zPHOT_retro",
         f"{path_plots}/scatter_z_overlapJLA_retro_vs_ori.png",
+        ylabel="spectroscopic - fitted redshift",
+        xlabel="spectroscopic redshift",
+    )
+    # all w zspe
+    df_IaHQ_tmp = pd.merge(photoIa_noz_saltz_JLA, tmp_retro, on="SNID")
+    df_IaHQ_tmp = df_IaHQ_tmp[df_IaHQ_tmp["zHD"] > 0]
+    df_IaHQ_tmp = df_IaHQ_tmp.rename(columns={"zPHOTERR_retro": "zPHOT_retroERR"})
+    df_tmp = df_tmp.rename(columns={"zPHOTERR_retro": "zPHOT_retroERR"})
+    pu.plot_list_delta_vs_var(
+        [df_IaHQ_tmp, df_tmp],
+        "zHD",
+        "zPHOT_retro",
+        f"{path_plots}/scatter_deltaz_HQ.png",
+        ylabel="spectroscopic - fitted redshift",
+        xlabel="spectroscopic redshift",
+        labels=["SNN>0.5 + HQ", "SNN>0.5 + HQ in M22"],
     )
 
+    # plt.clf()
+    # df_Ianoz_tmp = pd.merge(photoIa_noz, tmp_retro, on="SNID", how="right")
+    # df_Ianoz_tmp = df_Ianoz_tmp[df_Ianoz_tmp["HOSTGAL_SPECZ"] > 0]
+    # plt.hist(
+    #     df_Ianoz_tmp["HOSTGAL_SPECZ"] - df_Ianoz_tmp["zPHOT_retro"], histtype="step"
+    # )
+    # plt.hist(df_IaHQ_tmp["zHD"] - df_IaHQ_tmp["zPHOT_retro"], histtype="step")
+    # plt.hist(df_tmp["zHD"] - df_tmp["zPHOT_retro"], histtype="step")
+    # plt.yscale("log")
+    # plt.xlim(-0.002, 0)
+    # plt.savefig("tmp.png")
+
     dic_venn = {
-        "photoIa w z": set(photoIa_wz_JLA.SNID.values),
-        "photoIa no z": set(photoIa_noz.SNID.values),
-        "photoIa no z + HQ": set(photoIa_noz_saltz_JLA.SNID.values),
+        "M22": set(photoIa_wz_JLA.SNID.values),
+        "this work SNN>0.5": set(photoIa_noz.SNID.values),
+        "this work SNN>0.5 + HQ": set(photoIa_noz_saltz_JLA.SNID.values),
     }
     pu.plot_venn(dic_venn, path_plots=path_plots, suffix="all")
 
