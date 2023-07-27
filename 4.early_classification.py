@@ -105,12 +105,13 @@ def get_lc_stats(df, dfmetadata):
 
     df_unuf = pd.merge(df_unights, df_uflt)
 
-    tmp3 = df.groupby("SNID")["MJDint"].count()
-    df_photo_points = pd.DataFrame()
-    df_photo_points["SNID"] = tmp3.index
-    df_photo_points["photo_points"] = tmp3.values
+    df_detections = df[df["photo_detection"]]
+    tmp3 = df_detections.groupby("SNID")["MJDint"].count()
+    df_photo_dets = pd.DataFrame()
+    df_photo_dets["SNID"] = tmp3.index
+    df_photo_dets["detections"] = tmp3.values
 
-    df_out = pd.merge(df_unuf, df_photo_points)
+    df_out = pd.merge(df_unuf, df_photo_dets)
 
     return pd.merge(dfmetadata, df_out)
 
@@ -197,7 +198,7 @@ def early_class(df_photo_sel, df_metadata, photoIa_wz_JLA, df_stats, path_model)
                 "SNTYPE",
                 "unights",
                 "uflt",
-                "photo_points",
+                "detections",
                 "REDSHIFT_FINAL",
                 "PRIVATE(DES_transient_status)",
                 "HOSTGAL_MAG_r",
@@ -280,6 +281,11 @@ if __name__ == "__main__":
         else True
     )
     df_photometry = df_photometry[df_photometry["phot_reject"]]
+    df_photometry["photo_detection"] = df_photometry["PHOTFLAG"].apply(
+        lambda x: True
+        if len(set([4096]).intersection(set(powers_of_two(x)))) > 0
+        else False
+    )
 
     df_metadata_u = get_lc_stats(df_photometry, df_metadata)
     # STATS all metadata
@@ -309,7 +315,17 @@ if __name__ == "__main__":
     )
     # Photometry
     df_peakpho = pd.merge(
-        df_photometry[["SNID", "MJD", "FLT", "FLUXCAL", "FLUXCALERR", "PHOTFLAG"]],
+        df_photometry[
+            [
+                "SNID",
+                "MJD",
+                "FLT",
+                "FLUXCAL",
+                "FLUXCALERR",
+                "PHOTFLAG",
+                "photo_detection",
+            ]
+        ],
         salt_peak[["SNID", "PKMJDINI", "SNTYPE"]],
         on="SNID",
         how="left",
@@ -319,29 +335,50 @@ if __name__ == "__main__":
     mask = df_peakpho["MJD"] != -777.00
     df_peakpho["window_delta_time"] = df_peakpho["MJD"] - df_peakpho["PKMJDINI"]
     df_peakpho.loc[mask, "window_time_cut"] = df_peakpho["window_delta_time"].apply(
-        lambda x: True if x < 5 and x > -30 else False
+        lambda x: True if x < 1 and x > -30 else False
     )
     df_peakpho_sel = df_peakpho[
         (df_peakpho["window_time_cut"]) & (df_peakpho.SNID.isin(idxs_presel))
     ]
-    lu.print_blue("Selected before peak (-30<p<5)")
+    lu.print_blue("Selected before peak (-30<p<0)")
 
     df_stats_peak = early_class(
         df_peakpho_sel, df_metadata, photoIa_wz_JLA, df_stats, path_model
     )
+    cols_to_print = [
+        "cut",
+        "total maglim<22.7",
+        "specIa maglim<22.7",
+        "M22 maglim<22.7",
+        "nonIa maglim<22.7",
+        "multiseason maglim<22.7",
+    ]
+    print(df_stats_peak[cols_to_print].to_latex(index=False))
+
+    cols_to_print = ["detections", "detections_std", "unights", "unights_std"]
+    print(df_stats_peak[cols_to_print].to_latex(index=False))
 
     print("TRIGGER")
     # Using PHOTFLAG 4096 (bit mask)
-    # as PRIVATE(DES_mjd_trigger) in header may not be acurate
-    estimate_trig = pd.read_csv(f"{args.path_data}/trigger_MJD.csv", delimiter=" ")
+    trigger_tmp = df_photometry[df_photometry["photo_detection"]]
+    trigger_tmp = trigger_tmp.sort_values(by=["SNID", "MJD"])
+    trigger_tmp = trigger_tmp[["SNID", "MJD"]]
+    trigger_group = trigger_tmp.groupby("SNID").min()
+    estimate_trig = pd.DataFrame()
+    estimate_trig["SNID"] = trigger_group.index
+    estimate_trig["trigger_MJD"] = trigger_group.MJD.values
+
     peak_merged = salt_peak[["SNID", "PKMJDINI", "SNTYPE"]].merge(estimate_trig)
-    peak_merged["Peak-trigger"] = peak_merged["PKMJDINI"] - peak_merged["trigger_MJD"]
+    peak_merged["observed peak - trigger"] = (
+        peak_merged["PKMJDINI"] - peak_merged["trigger_MJD"]
+    )
     toplot_peak_merged = peak_merged[
         (peak_merged.PKMJDINI > 1)
     ]  # to eliminate non estimates
     list_spec_sntypes = [
         cu.spec_tags["Ia"],
-        cu.spec_tags["Ia"] + cu.spec_tags["CC"] + cu.spec_tags["SLSN"],
+        # cu.spec_tags["Ia"] + cu.spec_tags["CC"] + cu.spec_tags["SLSN"],
+        cu.spec_tags["nonSN"],
     ]
     list_df_spec = [
         toplot_peak_merged[toplot_peak_merged["SNTYPE"].isin(k)]
@@ -349,28 +386,13 @@ if __name__ == "__main__":
     ]
     pu.plot_histograms_listdf(
         [toplot_peak_merged] + list_df_spec,
-        ["DES-SN"] + ["spec Ia", "spec SN"],
+        ["DES-SN"] + ["spec SN", "spec non SN"],
         density=False,
-        varx="Peak-trigger",
+        varx="observed peak - trigger",
         outname=f"{path_plots}/peak-trigger.png",
         log_scale=True,
         nbins=30,
     )
-
-    # list of events with peak variation near trigger
-    # near_trigger = toplot_peak_merged[abs(toplot_peak_merged["Peak-trigger"]) < 20]
-    # idxs_near_trigger = near_trigger["SNID"].values
-    # list_spec_sntypes = [cu.spec_tags["Ia"], cu.spec_tags["CC"] + cu.spec_tags["SLSN"]]
-    # list_near_trigger_spec = [
-    #     near_trigger[near_trigger["SNTYPE"].isin(k)] for k in list_spec_sntypes
-    # ]
-    # df_stats = mu.cuts_deep_shallow_eventmag(
-    #     presel[presel.SNID.isin(idxs_near_trigger)],
-    #     photoIa_wz_JLA,
-    #     df_photometry,
-    #     df_stats=df_stats,
-    #     cut="+ near trigger",
-    # )
 
     # how about SNe Ia with t0 estimation?
     salt_JLA = du.load_salt_fits(f"{args.path_data}/FITOPT000.FITRES")
@@ -398,7 +420,17 @@ if __name__ == "__main__":
 
     # Photometry
     df_trigpho = pd.merge(
-        df_photometry[["SNID", "MJD", "FLT", "FLUXCAL", "FLUXCALERR", "PHOTFLAG"]],
+        df_photometry[
+            [
+                "SNID",
+                "MJD",
+                "FLT",
+                "FLUXCAL",
+                "FLUXCALERR",
+                "PHOTFLAG",
+                "photo_detection",
+            ]
+        ],
         estimate_trig[["SNID", "trigger_MJD"]],
         on="SNID",
         how="left",
@@ -432,8 +464,8 @@ if __name__ == "__main__":
         "M22 maglim<22.7",
         "nonIa maglim<22.7",
         "multiseason maglim<22.7",
-        "photo_points",
-        "photo_points_std",
+        "detections",
+        "detections_std",
         "unights",
         "unights_std",
     ]

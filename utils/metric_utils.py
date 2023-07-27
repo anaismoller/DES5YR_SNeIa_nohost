@@ -381,8 +381,8 @@ def cuts_deep_shallow_eventmag(
     dict_t["unights"] = df_sel["unights"].median()
     dict_t["unights_std"] = df_sel["unights"].std()
     dict_t["uflt"] = df_sel["uflt"].median()
-    dict_t["photo_points"] = df_sel["photo_points"].median()
-    dict_t["photo_points_std"] = df_sel["photo_points"].std()
+    dict_t["detections"] = df_sel["detections"].median()
+    dict_t["detections_std"] = df_sel["detections"].std()
 
     df_stats = pd.concat(
         [df_stats, pd.DataFrame.from_records([dict_t])], ignore_index=True

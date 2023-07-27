@@ -595,7 +595,7 @@ def plot_histograms_listdf(
     plt.xlabel(varx)
     if log_scale:
         plt.yscale("log")
-    plt.legend(loc="best")
+    plt.legend(loc="upper left")
     plt.savefig(outname)
     plt.clf()
     del fig
