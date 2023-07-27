@@ -56,6 +56,7 @@ ALL_COLORS_nodata = (
     + ["darkorange"]
     + [k for k in ALL_COLORS if k != "maroon"]
 )
+override_color = ["grey", "maroon", "black", "royalblue", "indigo"]
 BI_COLORS = ["darkorange", "royalblue"]
 CONTRAST_COLORS = ["darkorange", "grey", "indigo"]
 MARKER_DIC = {"randomforest": "o", "CNN": "D", "vanilla": "s"}
@@ -786,14 +787,14 @@ def plot_contamination_list(list_tuple, path_plots="./", suffix="", list_labels=
                 + np.array(error_content).mean(axis=0),
                 label=list_labels[idx_tuple],
                 ls=list_linestyle[idx_tuple],
+                color=override_color[idx_tuple],
             )
             if i in [0, 2]:
                 axp.set_ylabel("contamination percentage", fontsize=20)
             axp.set_xticks(plot_bins)
-            if k == "c" or k == "zHD":
-                axp.set_xticklabels(plot_bins.round(2), fontsize=16)
-            else:
-                axp.set_xticklabels(plot_bins.round(1), fontsize=16)
+
+            tmp = [k if bool(n % 2) else "" for n, k in enumerate(plot_bins.round(2))]
+            axp.set_xticklabels(plot_bins.round(2), fontsize=15)
             xlabel = k if k != "m0obs_i" else r"$i_{peak}$"
             xlabel = xlabel if k != "zHD" else "redshift"
             axp.set_xlabel(xlabel, fontsize=20)
@@ -889,16 +890,16 @@ def plot_metrics_list(
                 yerr=err_to_plot,
                 label=f"{list_labels[idx_sim]}",
                 ls=list_linestyle[idx_sim],
+                color=override_color[idx_sim],
             )
             if i in [0, 2]:
                 axp.set_ylabel(metric, fontsize=20)
             axp.set_xticks(mean_bins)
-            if k == "c" or k == "zHD":
-                axp.set_xticklabels(mean_bins.round(2), fontsize=16)
-            else:
-                axp.set_xticklabels(mean_bins.round(1), fontsize=16)
+            tmp = [k if bool(n % 2) else "" for n, k in enumerate(mean_bins.round(2))]
+            axp.set_xticklabels(tmp, fontsize=16)
+
             xlabel = k if k != "m0obs_i" else r"$i_{peak}$"
-            axp.set_xlabel(xlabel, fontsize=20)
+            axp.set_xlabel(xlabel, fontsize=24)
     axp.legend(loc="best", prop={"size": 20})
     if suffix != "":
         plt.savefig(f"{path_plots}/{metric}_photoIa_{suffix}.png")

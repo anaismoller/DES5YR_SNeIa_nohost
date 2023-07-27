@@ -82,7 +82,8 @@ def plot_scatter_mosaic_retro(
             if print_biases:
                 print(f"Biases for {varx}")
                 print(
-                    "bins", [round(mean_bins[i], 3) for i in range(len(mean_bins))],
+                    "bins",
+                    [round(mean_bins[i], 3) for i in range(len(mean_bins))],
                 )
                 print(
                     "bias",
@@ -96,7 +97,8 @@ def plot_scatter_mosaic_retro(
                     for i in range(len(mean_bins))
                 ]
                 print(
-                    "%", perc,
+                    "%",
+                    perc,
                 )
                 print(
                     f"% median {np.median(perc)}; max {np.max(perc)}; min {np.min(perc)}"
@@ -234,7 +236,7 @@ def plot_freez_correlations(list_df, list_labels=["tmp"], path_plots="./"):
                 width=0.002,
             )
     axs[1].axis("equal")
-    axs[1].set_ylim(-0.04,0.04)
+    axs[1].set_ylim(-0.04, 0.04)
     axs[1].set_xlabel(f"true to fitted redshift", fontsize=20)
     axs[1].set_ylabel(r"$\alpha x_1$ with true redshift to fitted", fontsize=20)
     plt.savefig(f"{path_plots}/migration_cx1_zHD.png")
@@ -340,9 +342,9 @@ if __name__ == "__main__":
         (sim_preds, sim_saltz_JLA),
     ]
     list_labels = [
-        "true z",
-        "fitted z",
-        "fitted z + JLA-like cut",
+        "z fixed",
+        "z from SALT",
+        "z from SALT + HQ",
     ]
     pu.plot_contamination_list(
         list_tuple, path_plots=path_plots, list_labels=list_labels, suffix="noz"
@@ -354,7 +356,7 @@ if __name__ == "__main__":
     pu.plot_metrics_list(
         [sim_fits_wpreds, sim_saltz_wpreds, sim_saltz_wpreds_JLA],
         path_plots=path_plots,
-        list_labels=["true z", "fitted z", "fitted z + JLA-like cut"],
+        list_labels=["z fixed", "z from SALT", "z from SALT + HQ"],
         metric="efficiency",
     )
 
