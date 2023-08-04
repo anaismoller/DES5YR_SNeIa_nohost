@@ -967,8 +967,8 @@ if __name__ == "__main__":
         ],
         path_plots=path_plots,
         list_labels=[
-            "sim Ia HQ (z from SALT)",
-            "SNe Ia noz HQ (z from SALT)",
+            "sim Ia HQ (z from SALT2)",
+            "SNe Ia noz HQ (z from SALT2)",
         ],
         suffix="noz",
         sim_scale_factor=30,
@@ -979,8 +979,8 @@ if __name__ == "__main__":
         path_plots=path_plots,
         list_labels=[
             "sim Ia HQ (sim z)",
-            "sim Ia HQ (z from SALT)",
-            "SNe Ia HQ (z from SALT)",
+            "sim Ia HQ (z from SALT2)",
+            "SNe Ia HQ (z from SALT2)",
         ],
         suffix="noz_simz",
         sim_scale_factor=30,
@@ -995,8 +995,8 @@ if __name__ == "__main__":
         ],
         list_labels=[
             "sim Ia HQ (z fixed)",
-            "sim Ia HQ (z from SALT)",
-            "SNe Ia HQ (z from SALT)",
+            "sim Ia HQ (z from SALT2)",
+            "SNe Ia HQ (z from SALT2)",
         ],
         path_plots=path_plots,
         suffix="noz_wm0obsi",
@@ -1013,8 +1013,8 @@ if __name__ == "__main__":
         [sim_Ia_fits_JLA, sim_saltz_Ia_JLA, photoIa_noz_saltz_JLA],
         list_labels=[
             "simulations (z fixed)",
-            "simulations (z from SALT)",
-            "DES SNe Ia HQ (z from SALT)",
+            "simulations (z from SALT2)",
+            "DES SNe Ia HQ (z from SALT2)",
         ],
         path_plots=path_plots,
         suffix="deep_and_shallow_fields",

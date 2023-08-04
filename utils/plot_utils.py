@@ -1643,6 +1643,8 @@ def plot_mosaic_histograms_listdf_deep_shallow(
             )
             counter += 1
         xlabel = k if k != "m0obs_i" else r"$i_{peak}$"
+        if k == "zHD":
+            xlabel = "z"
         axs[1][i].set_xlabel(xlabel, fontsize=20)
         if log_scale:
             axs[1][i].set_yscale("log")
@@ -1672,6 +1674,8 @@ def plot_mosaic_histograms_listdf_deep_shallow(
             )
             counter += 1
         xlabel = k if k != "m0obs_i" else r"$i_{peak}$"
+        if k == "zHD":
+            xlabel = "z"
         axs[0][i].set_xlabel(xlabel, fontsize=20)
         if log_scale:
             axs[0][i].set_yscale("log")
@@ -1756,8 +1760,12 @@ def overplot_salt_distributions_lists_deep_shallow(
         loc="best",
         title="Deep fields",
     )
-    axs[1][0].set_xlabel(xbin, fontsize=20)
-    axs[1][1].set_xlabel(xbin, fontsize=20)
+    if xbin == "zHD":
+        xlabel = "z"
+    else:
+        xlabel = xbin
+    axs[1][0].set_xlabel(xlabel, fontsize=20)
+    axs[1][1].set_xlabel(xlabel, fontsize=20)
     # lims
     axs[0][0].set_ylim(-0.17, 0.17)
     axs[1][0].set_ylim(-2, 2)
