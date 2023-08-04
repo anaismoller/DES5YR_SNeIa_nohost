@@ -899,6 +899,8 @@ def plot_metrics_list(
             axp.set_xticklabels(tmp, fontsize=16)
 
             xlabel = k if k != "m0obs_i" else r"$i_{peak}$"
+            if k == "zHD":
+                xlabel = "redshift"
             axp.set_xlabel(xlabel, fontsize=24)
     axp.legend(loc="best", prop={"size": 20})
     if suffix != "":

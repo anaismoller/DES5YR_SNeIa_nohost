@@ -343,8 +343,8 @@ if __name__ == "__main__":
     ]
     list_labels = [
         "z fixed",
-        "z from SALT",
-        "z from SALT + HQ",
+        "z from SALT2",
+        "z from SALT2 + HQ",
     ]
     pu.plot_contamination_list(
         list_tuple, path_plots=path_plots, list_labels=list_labels, suffix="noz"
@@ -356,7 +356,7 @@ if __name__ == "__main__":
     pu.plot_metrics_list(
         [sim_fits_wpreds, sim_saltz_wpreds, sim_saltz_wpreds_JLA],
         path_plots=path_plots,
-        list_labels=["z fixed", "z from SALT", "z from SALT + HQ"],
+        list_labels=["z fixed", "z from SALT2", "z from SALT2 + HQ"],
         metric="efficiency",
     )
 
