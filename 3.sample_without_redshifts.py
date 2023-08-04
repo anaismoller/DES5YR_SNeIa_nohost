@@ -3,8 +3,9 @@ import argparse
 import numpy as np
 import pandas as pd
 import os, sys
-import matplotlib.pyplot as plt
 import matplotlib as mpl
+import matplotlib.pyplot as plt
+from supervenn import supervenn
 
 from utils import cuts as cuts
 from utils import plot_utils as pu
@@ -700,6 +701,19 @@ if __name__ == "__main__":
     }
     pu.plot_venn(dic_venn, path_plots=path_plots, suffix="all")
 
+    plt.clf()
+    plt.figure(figsize=(16, 8))
+    sets = [
+        set(photoIa_wz_JLA.SNID.values),
+        set(photoIa_noz.SNID.values),
+        set(photoIa_noz_saltz_JLA.SNID.values),
+    ]
+    labels = ["M22", "SNN>0.5", "SNN>0.5 + HQ"]
+    supervenn(sets, labels, side_plots=False)
+    plt.ylabel("Datasets")
+    plt.xlabel(" ")
+    plt.savefig(f"{path_plots}/alternative_to_venn.png")
+
     # lost
     print("LOST M22")
     lost_photoIa_wz_JLA = photoIa_wz_JLA[
@@ -1034,14 +1048,32 @@ if __name__ == "__main__":
     tmp_salt_fits_wz = salt_fits_wz.rename(
         columns={"zHD_zspe": "zHD", "c_zspe": "c", "x1_zspe": "x1"}
     )
-
     tmp.update(tmp_salt_fits_wz[cols_to_keep])
+
     pu.plot_mosaic_histograms_listdf(
         [tmp, photoIa_noz_saltz_JLA, photoIa_wz_JLA],
         list_labels=[
-            "photoIa_noz_JLA_mixedz",
-            "photoIa_noz_JLA_saltz",
-            "photoIa_wz_JLA",
+            "DES SNe Ia HQ (z mixed)",
+            "DES SNe Ia HQ (z from SALT2)",
+            "M22",
+        ],
+        path_plots=path_plots,
+        suffix="comparisonDES5_mixed",
+        list_vars_to_plot=["zHD", "c", "x1"],
+        data_color_override=True,
+        chi_bins=False,
+    )
+
+    # DES5 samples comparissons
+    tmpsalt = du.load_salt_fits(args.path_data_fits)
+    spec_ia = tmpsalt[tmpsalt.SNTYPE.isin(cu.spec_tags["Ia"])]
+
+    pu.plot_mosaic_histograms_listdf(
+        [photoIa_noz_saltz_JLA, photoIa_wz_JLA, spec_ia],
+        list_labels=[
+            "DES SNe Ia HQ (z from SALT2)",
+            "DES SNe Ia M22",
+            "DES SNe Ia spectroscopic",
         ],
         path_plots=path_plots,
         suffix="comparisonDES5",
