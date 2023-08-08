@@ -384,6 +384,50 @@ if __name__ == "__main__":
         toplot_peak_merged[toplot_peak_merged["SNTYPE"].isin(k)]
         for k in list_spec_sntypes
     ]
+
+    # stats
+    lu.print_blue("observed peak - trigger STATS")
+    for deltat in [30, 50]:
+        # M22
+        tmp = toplot_peak_merged[
+            (np.abs(toplot_peak_merged["observed peak - trigger"]) < deltat)
+            & (toplot_peak_merged.SNID.isin(photoIa_wz_JLA.SNID.values))
+        ]
+        perc = (
+            len(tmp)
+            * 100
+            / len(
+                toplot_peak_merged[
+                    toplot_peak_merged.SNID.isin(photoIa_wz_JLA.SNID.values)
+                ]
+            )
+        )
+        print(f"M22 within {deltat} {round(perc,1)} %")
+        # spec
+        tmp = toplot_peak_merged[
+            (np.abs(toplot_peak_merged["observed peak - trigger"]) < deltat)
+            & (toplot_peak_merged.SNTYPE.isin(cu.spec_tags["Ia"]))
+        ]
+        perc = (
+            len(tmp)
+            * 100
+            / len(
+                toplot_peak_merged[toplot_peak_merged.SNTYPE.isin(cu.spec_tags["Ia"])]
+            )
+        )
+        print(f"spec Ia within {deltat} {round(perc,1)} %")
+
+    pu.plot_histograms_listdf(
+        [toplot_peak_merged[toplot_peak_merged.SNID.isin(photoIa_wz_JLA.SNID.values)]]
+        + list_df_spec,
+        ["M22", "SN (spectroscopic)", "non SN (spectroscopic)"],
+        density=False,
+        varx="observed peak - trigger",
+        outname=f"{path_plots}/peak-trigger_M22spec.png",
+        log_scale=True,
+        nbins=30,
+    )
+
     pu.plot_histograms_listdf(
         [toplot_peak_merged] + list_df_spec,
         ["DES-SN"] + ["spec SN", "spec non SN"],
@@ -392,6 +436,32 @@ if __name__ == "__main__":
         outname=f"{path_plots}/peak-trigger.png",
         log_scale=True,
         nbins=30,
+    )
+    pu.plot_histograms_listdf(
+        list_df_spec,
+        ["spec SN", "spec non SN"],
+        density=False,
+        varx="observed peak - trigger",
+        outname=f"{path_plots}/peak-trigger_speconly.png",
+        log_scale=True,
+        nbins=30,
+    )
+
+    pu.plot_scatter_mosaic(
+        [toplot_peak_merged] + list_df_spec,
+        ["DES-SN"] + ["spec SN", "spec non SN"],
+        "PKMJDINI",
+        "trigger_MJD",
+        path_out=f"{path_plots}/scatter_peak_trigger.png",
+    )
+
+    fig = plt.figure()
+    plt.scatter(
+        toplot_peak_merged["PKMJDINI"],
+        toplot_peak_merged["trigger_MJD"],
+    )
+    plt.savefig(
+        f"{path_plots}/scatter_peak_trigger_onebyone.png",
     )
 
     # how about SNe Ia with t0 estimation?

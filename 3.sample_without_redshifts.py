@@ -701,6 +701,12 @@ if __name__ == "__main__":
     }
     pu.plot_venn(dic_venn, path_plots=path_plots, suffix="all")
 
+    dic_venn = {
+        "M22": set(photoIa_wz_JLA.SNID.values),
+        "this work SNN>0.5": set(photoIa_noz.SNID.values),
+    }
+    pu.plot_venn(dic_venn, path_plots=path_plots, suffix="M2205")
+
     plt.clf()
     plt.figure(figsize=(16, 8))
     sets = [
@@ -1066,7 +1072,8 @@ if __name__ == "__main__":
 
     # DES5 samples comparissons
     tmpsalt = du.load_salt_fits(args.path_data_fits)
-    spec_ia = tmpsalt[tmpsalt.SNTYPE.isin(cu.spec_tags["Ia"])]
+    tmpsalt2 = pd.merge(tmpsalt, df_metadata[["SNID", "HOSTGAL_MAG_r"]], how="left")
+    spec_ia = tmpsalt2[tmpsalt2.SNTYPE.isin(cu.spec_tags["Ia"])]
 
     pu.plot_mosaic_histograms_listdf(
         [photoIa_noz_saltz_JLA, photoIa_wz_JLA, spec_ia],
@@ -1077,7 +1084,7 @@ if __name__ == "__main__":
         ],
         path_plots=path_plots,
         suffix="comparisonDES5",
-        list_vars_to_plot=["zHD", "c", "x1"],
+        list_vars_to_plot=["zHD", "c", "x1", "HOSTGAL_MAG_r"],
         data_color_override=True,
         chi_bins=False,
     )

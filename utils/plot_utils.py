@@ -89,6 +89,7 @@ bins_dic = {
     "HOST_LOGMASS_zspe": np.linspace(7, 13, 12),
     "m0obs_i_zspe": np.linspace(21, 25, 12),
     "average_probability_set_0": np.linspace(0.0, 1.0, 12),
+    "HOSTGAL_MAG_r": np.linspace(17, 29, 12),
 }
 chi_bins_dic = {
     "zHD": np.linspace(0.1, 1.1, 12),
@@ -103,6 +104,7 @@ chi_bins_dic = {
     "x1_zspe": np.linspace(-3, 3, 12),
     "HOST_LOGMASS_zspe": np.linspace(7, 13, 12),
     "m0obs_i_zspe": np.linspace(21, 25, 12),
+    "HOSTGAL_MAG_r": np.linspace(17, 29, 12),
 }
 
 
@@ -1026,17 +1028,6 @@ def plot_mosaic_histograms_listdf(
 ):
 
     bins_to_plot = chi_bins_dic if chi_bins == True else bins_dic
-    # save data histogramms for norm
-    # dic_hist_data = {}
-    # for i, k in enumerate(list_vars_to_plot):
-    #     dic_hist_data[k] = 0  # in case there is no norm needed
-    #     for idx, df in enumerate(list_df):
-    #         if "photometric" in list_labels[idx]:
-    #             hist_vals, bin_edges = np.histogram(
-    #                 df[k], density=False, bins=bins_dic[k]
-    #             )
-    #             dat = np.max(hist_vals)
-    #             dic_hist_data[k] = dat
 
     plt.clf()
     fig = plt.figure(figsize=(18, 5), constrained_layout=True)
@@ -1048,12 +1039,6 @@ def plot_mosaic_histograms_listdf(
         sim_label_list = []
         for df_idx, df in enumerate(list_df):
             if "sim" in list_labels[df_idx]:
-                # hist_vals, bin_edges = np.histogram(
-                #     df[k], density=False, bins=bins_dic[k]
-                # )
-                # norm = (
-                #     dic_hist_data[k] / np.max(hist_vals) if dic_hist_data[k] != 0 else 1
-                # )
                 norm = norm
                 sim_vals, _, _ = axs[i].hist(
                     df[k],
@@ -1077,7 +1062,7 @@ def plot_mosaic_histograms_listdf(
                 data_hist_vals, bin_edges = np.histogram(
                     df[k], density=False, bins=bins_to_plot[k]
                 )
-                du.print_stats(df[k], context=f"{k} {list_labels[df_idx]}")
+                # du.print_stats(df[k], context=f"{k} {list_labels[df_idx]}")
                 if data_color_override == True:
                     axs[i].errorbar(
                         bin_edges[1:] - (bin_edges[1] - bin_edges[0]) / 2.0,
@@ -1133,6 +1118,10 @@ def plot_mosaic_histograms_listdf(
             )
             counter += 1
         xlabel = k if k != "m0obs_i" else r"$i_{peak}$"
+        if k == "zHD":
+            xlabel = "z"
+        if k == "HOSTGAL_MAG_r":
+            xlabel = "host r magnitude"
         axs[i].set_xlabel(xlabel, fontsize=20)
         if log_scale:
             axs[i].set_yscale("log")
@@ -1852,6 +1841,58 @@ def plot_scatter_mosaic_retro(
         axs[i].set_ylim(lims[0], lims[1])
 
     # axs[i].legend(loc="best", prop={"size": 10})
+    plt.savefig(path_out)
+
+
+def plot_scatter_mosaic(
+    list_df,
+    labels,
+    varx,
+    vary,
+    path_out="tmp.png",
+):
+    # scatter
+    fig = plt.figure(constrained_layout=True, figsize=(17, 5))
+    gs = fig.add_gridspec(1, 3, hspace=0.05, wspace=0.05)
+    axs = gs.subplots(sharex=False, sharey=True)
+
+    for idx_df, df in enumerate(list_df):
+        h2d, xedges, yedges, _ = axs[idx_df].hist2d(
+            df[varx],
+            df[vary],
+            bins=30,
+            cmap="viridis",
+            vmin=1,
+        )
+        # check distribution for a given x bin
+        tmp_bins = xedges
+        mean_bins = tmp_bins[:-1] + (tmp_bins[1] - tmp_bins[0]) / 2
+        df[f"{varx}_bin"] = pd.cut(df.loc[:, (varx)], tmp_bins, labels=mean_bins)
+        result_median = (
+            df[[f"{varx}_bin", varx]].groupby(f"{varx}_bin").median()[varx].values
+        )
+        axs[idx_df].plot(
+            [56520, 58167],
+            [56520, 58167],
+            color="black",
+            linewidth=1,
+            linestyle="--",
+            zorder=10,
+        )
+        axs[idx_df].plot(
+            [56520, 58167],
+            [56550, 58197],
+            color="black",
+            linewidth=1,
+            linestyle="--",
+            zorder=10,
+        )
+        xlabel = "Observed peak"
+        axs[idx_df].set_xlabel(xlabel)
+        axs[idx_df].legend(title=labels[idx_df])
+
+    ylabel = "Trigger"
+    axs[0].set_ylabel(ylabel)
     plt.savefig(path_out)
 
 
