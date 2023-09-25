@@ -409,10 +409,14 @@ if __name__ == "__main__":
     print(f"OzDES QOP 2 {rnn05['OzDES QOP 2'].values}")
 
     # load salt fits wzspe
-    tmp = du.load_salt_fits(args.path_data_fits)
-    tmp = tmp[["SNID", "zHD", "zHDERR", "c", "x1", "m0obs_i"]].add_suffix("_zspe")
-    tmp = tmp.rename(columns={"SNID_zspe": "SNID"})
-    salt_fits_wz = tmp[
+    tmpsalt = du.load_salt_fits(args.path_data_fits)
+    tmpsalt_zspe = tmpsalt[
+        ["SNID", "zHD", "zHDERR", "c", "x1", "m0obs_i", "SNTYPE"]
+    ].add_suffix("_zspe")
+    tmpsalt_zspe = tmpsalt_zspe.rename(
+        columns={"SNID_zspe": "SNID", "SNTYPE_zspe": "SNTYPE"}
+    )
+    salt_fits_wz = tmpsalt_zspe[
         ["SNID", "zHD_zspe", "zHDERR_zspe", "c_zspe", "x1_zspe", "m0obs_i_zspe"]
     ]
     photoIa_noz = pd.merge(photoIa_noz, salt_fits_wz, on="SNID", how="left")
@@ -1071,9 +1075,9 @@ if __name__ == "__main__":
     )
 
     # DES5 samples comparissons
-    tmpsalt = du.load_salt_fits(args.path_data_fits)
     tmpsalt2 = pd.merge(tmpsalt, df_metadata[["SNID", "HOSTGAL_MAG_r"]], how="left")
     spec_ia = tmpsalt2[tmpsalt2.SNTYPE.isin(cu.spec_tags["Ia"])]
+    photoIa_wz_JLA = pd.merge(photoIa_wz_JLA, tmpsalt[["SNID", "m0obs_i"]], how="left")
 
     pu.plot_mosaic_histograms_listdf(
         [photoIa_noz_saltz_JLA, photoIa_wz_JLA, spec_ia],
@@ -1084,7 +1088,66 @@ if __name__ == "__main__":
         ],
         path_plots=path_plots,
         suffix="comparisonDES5",
-        list_vars_to_plot=["zHD", "c", "x1", "HOSTGAL_MAG_r"],
+        list_vars_to_plot=["zHD", "c", "x1", "m0obs_i", "HOSTGAL_MAG_r"],
         data_color_override=True,
         chi_bins=False,
     )
+
+    # All samples properties
+    fig = plt.figure(figsize=(20, 20), constrained_layout=True)
+    gs = fig.add_gridspec(3, 1, hspace=0, wspace=0)
+    axs = gs.subplots(sharex=True, sharey=False)
+    for i, var in enumerate(["HOSTGAL_MAG_r", "x1", "c"]):
+        # binning
+        list_df = []
+        for df in [photoIa_noz_saltz_JLA, photoIa_wz_JLA, spec_ia]:
+            sel = df[df["HOSTGAL_MAG_r"] < 30] if var == "HOSTGAL_MAG_r" else df
+            sel[f"zHD_bin"] = pd.cut(sel.loc[:, ("zHD")], pu.bins_dic["zHD"])
+            list_df.append(sel)
+
+        axs[i] = pu.plot_errorbar_binned(
+            list_df,
+            [
+                "DES SNe Ia HQ (z from SALT2)",
+                "DES SNe Ia M22",
+                "DES SNe Ia spectroscopic",
+            ],
+            axs=axs[i],
+            binname="zHD_bin",
+            varx="zHD",
+            vary=var,
+            data_color_override=True,
+            color_list=pu.ALL_COLORS,
+        )
+
+        ylabel = "host r magnitude" if var == "HOSTGAL_MAG_r" else var
+        axs[i].set_ylabel(ylabel, fontsize=20)
+    axs[i].legend(fontsize=16)
+    axs[i].set_xlabel("z", fontsize=20)
+    plt.savefig(f"{path_plots}/2ddist_all_sample_zHD.png")
+
+    # Only host mag r
+    fig = plt.figure(figsize=(10, 10), constrained_layout=True)
+    # binning
+    list_df = []
+    for df in [photoIa_noz_saltz_JLA, photoIa_wz_JLA, spec_ia]:
+        sel = df[df["HOSTGAL_MAG_r"] < 30]
+        sel[f"zHD_bin"] = pd.cut(sel.loc[:, ("zHD")], pu.bins_dic["zHD"])
+        list_df.append(sel)
+    fig = pu.plot_errorbar_binned(
+        list_df,
+        [
+            "DES SNe Ia HQ (z from SALT2)",
+            "DES SNe Ia M22",
+            "DES SNe Ia spectroscopic",
+        ],
+        binname="zHD_bin",
+        varx="zHD",
+        vary="HOSTGAL_MAG_r",
+        data_color_override=True,
+        color_list=pu.ALL_COLORS,
+    )
+    plt.ylabel("host r magnitude", fontsize=20)
+    plt.legend(fontsize=16)
+    plt.xlabel("z", fontsize=20)
+    plt.savefig(f"{path_plots}/2ddist_all_sample_HOSTGAL_MAG_r_zHD.png")

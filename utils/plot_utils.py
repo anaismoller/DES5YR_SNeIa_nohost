@@ -498,7 +498,9 @@ def plot_errorbar_binned(
     data_color_override=False,
     ignore_y_label=False,
     color_offset=0,
+    color_list=[],
 ):
+    color_list = ALL_COLORS_nodata if len(color_list) < 2 else color_list
     if axs == None:
         plt.clf()
         fig = plt.figure(constrained_layout=True, figsize=(12, 6))
@@ -548,13 +550,13 @@ def plot_errorbar_binned(
             or "photo" in list_labels[i]
             or "DES" in list_labels[i]
             else "",
-            color=ALL_COLORS_nodata[i + color_offset]
+            color=color_list[i + color_offset]
             if data_color_override
             else color_dic["data"]
             if "data" in list_labels[i]
             or "photo" in list_labels[i]
             or "DES" in list_labels[i]
-            else ALL_COLORS_nodata[i + color_offset],
+            else color_list[i + color_offset],
             zorder=50 if "data" in list_labels[i] else i,  # hack to put data on top
         )
     if not ignore_y_label:
@@ -1000,6 +1002,7 @@ def overplot_salt_distributions(
         ]
 
         to_plot = ["c", "x1", "HOST_LOGMASS"] if xbin == "zHD" else ["c", "x1", "zHD"]
+
         for k in to_plot:
             fig = plot_errorbar_binned(
                 list_df, list_labels, binname=f"{xbin}_bin", varx=xbin, vary=k
@@ -1030,7 +1033,8 @@ def plot_mosaic_histograms_listdf(
     bins_to_plot = chi_bins_dic if chi_bins == True else bins_dic
 
     plt.clf()
-    fig = plt.figure(figsize=(18, 5), constrained_layout=True)
+    ysize = 4 if len(list_vars_to_plot) > 4 else 5
+    fig = plt.figure(figsize=(18, ysize), constrained_layout=True)
     gs = fig.add_gridspec(1, len(list_vars_to_plot), hspace=0, wspace=0.05)
     axs = gs.subplots(sharex=False, sharey=True)
 
@@ -1126,7 +1130,10 @@ def plot_mosaic_histograms_listdf(
         if log_scale:
             axs[i].set_yscale("log")
     axs[0].set_ylabel("# events")
-    axs[-1].legend(bbox_to_anchor=(1.05, 0.5), loc=2, borderaxespad=0.0, fontsize=16)
+    legfont = 14 if len(list_vars_to_plot) > 4 else 16
+    axs[-1].legend(
+        bbox_to_anchor=(1.05, 0.5), loc=2, borderaxespad=0.0, fontsize=legfont
+    )
     plt.savefig(f"{path_plots}/hists_sample_sim_Ia{suffix}.png")
     plt.clf()
     del fig
