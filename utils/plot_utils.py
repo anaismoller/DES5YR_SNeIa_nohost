@@ -649,77 +649,6 @@ def plot_salt_distributions(
         plt.clf()
         del fig
 
-    # scatter plots
-    # plots_vs_z(df, path_plots=path_plots, prefix=prefix, suffix=suffix, data=data)
-
-
-# def plot_contamination(sim_preds, sim_fits, path_plots="./", suffix=""):
-#     """
-#     """
-
-#     sim_cut_nonIa = sim_preds["cosmo_quantile"]["target"] == 1
-#     contamination = sim_preds["cosmo_quantile"][sim_cut_nonIa]
-#     contamination_fits = sim_fits[sim_fits.SNID.isin(contamination.SNID.values)]
-
-#     fig = plt.figure(figsize=(12, 12))
-#     gs = fig.add_gridspec(2, 2, hspace=0.1, wspace=0.05)
-#     axs = gs.subplots(sharex=False, sharey=True)
-
-#     for i, k in enumerate(["m0obs_i", "c", "zHD", "x1"]):
-#         # bin
-#         bins = bins_dic[k]
-#         contamination_fits[f"{k}_bin"] = pd.cut(contamination_fits.loc[:, (k)], bins)
-#         sim_fits[f"{k}_bin"] = pd.cut(sim_fits.loc[:, (k)], bins)
-#         tmp = sim_fits[f"{k}_bin"].unique().astype(str)
-#         my_bins = tmp[tmp != "nan"]
-#         my_bins = bins[:-1] + (bins[1] - bins[0]) / 2
-
-#         percentage_contamination = []
-#         error_content = []
-#         for classset in [0, 1, 2]:
-#             # photo Ia
-#             SNID_photoIa_tmp = sim_preds["cosmo_quantile"][
-#                 sim_preds["cosmo_quantile"][f"average_probability_set_{classset}"] > 0.5
-#             ].SNID.values
-#             sim_cut_photo = sim_fits.SNID.isin(SNID_photoIa_tmp)
-#             conta_cut = contamination_fits.SNID.isin(SNID_photoIa_tmp)
-
-#             photo = sim_fits[sim_cut_photo].groupby(f"{k}_bin").count()["SNID"]
-#             conta = contamination_fits[conta_cut].groupby(f"{k}_bin").count()["SNID"]
-#             percentage_contamination.append(100 * conta.values / photo.values)
-
-#             error_content.append(
-#                 100
-#                 * (np.sqrt(conta) / photo - conta / np.power(photo, 2) * np.sqrt(photo))
-#             )
-
-#         axp = axs[0][i] if k in ["m0obs_i", "c"] else axs[1][i - 2]
-#         # assuming additive error which is not necssarily true!!!!!
-#         axp.errorbar(
-#             my_bins,
-#             np.array(percentage_contamination).mean(axis=0),
-#             yerr=np.array(percentage_contamination).std(axis=0)
-#             + np.array(error_content).mean(axis=0),
-#             label="+SNN",
-#         )
-
-#         if i in [0, 2]:
-#             axp.set_ylabel("contamination percentage")
-#         tmp = (
-#             sim_fits[sim_fits.SNID.isin(SNID_photoIa_tmp)]
-#             .groupby(f"{k}_bin")
-#             .mean()[k]
-#             .round(1)
-#         )
-#         axp.set_xticklabels(tmp)
-#         axp.set_xlabel(k)
-#     if suffix != "":
-#         plt.savefig(f"{path_plots}/contamination_photoIa_{suffix}.png")
-#     else:
-#         plt.savefig(f"{path_plots}/contamination_photoIa.png")
-#     plt.clf()
-#     del fig
-
 
 def plot_contamination_list(list_tuple, path_plots="./", suffix="", list_labels=[""]):
     """Plot contamination as a function of SALT2 parameters
@@ -730,13 +659,12 @@ def plot_contamination_list(list_tuple, path_plots="./", suffix="", list_labels=
         - list_labels (list): list of strings to tag the tuples
     """
 
-    my_bins_dic = {
-        "zHD": np.linspace(0.1, 1.2, 10),
-        "c": np.linspace(-0.35, 0.35, 10),
-        "x1": np.linspace(-3.5, 3.5, 10),
-        "m0obs_i": np.linspace(21, 25, 10),
+    my_bins_dic = acc_bins_dic = {
+        "zHD": np.linspace(0.0, 1.2, 12),
+        "c": np.linspace(-0.4, 0.4, 14),
+        "x1": np.linspace(-4, 4, 14),
+        "m0obs_i": np.linspace(21, 25, 12),
     }
-
     fig = plt.figure(figsize=(12, 12), constrained_layout=True)
     gs = fig.add_gridspec(2, 2, hspace=0.05, wspace=0.01)
     axs = gs.subplots(sharex=False, sharey=True)
@@ -794,11 +722,10 @@ def plot_contamination_list(list_tuple, path_plots="./", suffix="", list_labels=
                 color=override_color[idx_tuple],
             )
             if i in [0, 2]:
-                axp.set_ylabel("contamination percentage", fontsize=20)
+                axp.set_ylabel("contamination", fontsize=20)
             axp.set_xticks(plot_bins)
-
-            tmp = [k if bool(n % 2) else "" for n, k in enumerate(plot_bins.round(2))]
-            axp.set_xticklabels(plot_bins.round(2), fontsize=15)
+            tmp = [k if bool(n % 2) else "" for n, k in enumerate(plot_bins.round(1))]
+            axp.set_xticklabels(tmp, fontsize=15)
             xlabel = k if k != "m0obs_i" else r"$i_{peak}$"
             xlabel = xlabel if k != "zHD" else "redshift"
             axp.set_xlabel(xlabel, fontsize=20)
@@ -833,10 +760,10 @@ def plot_metrics_list(
     }
 
     fig = plt.figure(figsize=(12, 12), constrained_layout=True)
-    gs = fig.add_gridspec(2, 2, hspace=0.1, wspace=0.01)
+    gs = fig.add_gridspec(2, 2, hspace=0.05, wspace=0.01)
     axs = gs.subplots(sharex=False, sharey=True)
 
-    for i, k in enumerate(["m0obs_i", "c", "zHD", "x1"]):
+    for i, k in enumerate(["m0obs_i", "zHD", "c", "x1"]):
         bins = acc_bins_dic[k]
         mean_bins = bins[:-1] + (bins[1] - bins[0]) / 2
 
@@ -877,7 +804,7 @@ def plot_metrics_list(
                 list_efficiency.append(eff_bins)
                 list_notbalaccuracy.append(notbalacc_bins)
 
-            axp = axs[0][i] if k in ["m0obs_i", "c"] else axs[1][i - 2]
+            axp = axs[0][i] if k in ["m0obs_i", "zHD"] else axs[1][i - 2]
             if metric == "accuracy":
                 to_plot = list_accuracy
             elif metric == "efficiency":
@@ -899,7 +826,7 @@ def plot_metrics_list(
             if i in [0, 2]:
                 axp.set_ylabel(metric, fontsize=20)
             axp.set_xticks(mean_bins)
-            tmp = [k if bool(n % 2) else "" for n, k in enumerate(mean_bins.round(2))]
+            tmp = [k if bool(n % 2) else "" for n, k in enumerate(mean_bins.round(1))]
             axp.set_xticklabels(tmp, fontsize=16)
 
             xlabel = k if k != "m0obs_i" else r"$i_{peak}$"

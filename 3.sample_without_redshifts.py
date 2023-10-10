@@ -991,8 +991,8 @@ if __name__ == "__main__":
         ],
         path_plots=path_plots,
         list_labels=[
-            "sim Ia HQ (z from SALT2)",
-            "SNe Ia noz HQ (z from SALT2)",
+            "sim Ia HQ (fitted z)",
+            "SNe Ia noz HQ (fitted z)",
         ],
         suffix="noz",
         sim_scale_factor=30,
@@ -1002,9 +1002,9 @@ if __name__ == "__main__":
         [sim_Ia_fits_JLA, sim_saltz_Ia_JLA, photoIa_noz_saltz_JLA],
         path_plots=path_plots,
         list_labels=[
-            "sim Ia HQ (sim z)",
-            "sim Ia HQ (z from SALT2)",
-            "SNe Ia HQ (z from SALT2)",
+            "sim Ia HQ (fixed true z)",
+            "sim Ia HQ (fitted z)",
+            "SNe Ia HQ (fitted z)",
         ],
         suffix="noz_simz",
         sim_scale_factor=30,
@@ -1018,9 +1018,9 @@ if __name__ == "__main__":
             photoIa_noz_saltz_JLA,
         ],
         list_labels=[
-            "sim Ia HQ (z fixed)",
-            "sim Ia HQ (z from SALT2)",
-            "SNe Ia HQ (z from SALT2)",
+            "sim Ia HQ (fixed true z)",
+            "sim Ia HQ (fitted z)",
+            "SNe Ia HQ (fitted z)",
         ],
         path_plots=path_plots,
         suffix="noz_wm0obsi",
@@ -1036,9 +1036,9 @@ if __name__ == "__main__":
     pu.overplot_salt_distributions_lists_deep_shallow(
         [sim_Ia_fits_JLA, sim_saltz_Ia_JLA, photoIa_noz_saltz_JLA],
         list_labels=[
-            "simulations (z fixed)",
-            "simulations (z from SALT2)",
-            "DES SNe Ia HQ (z from SALT2)",
+            "simulations (fixed true z)",
+            "simulations (fitted z)",
+            "DES SNe Ia HQ (fitted z)",
         ],
         path_plots=path_plots,
         suffix="deep_and_shallow_fields",
@@ -1064,7 +1064,7 @@ if __name__ == "__main__":
         [tmp, photoIa_noz_saltz_JLA, photoIa_wz_JLA],
         list_labels=[
             "DES SNe Ia HQ (z mixed)",
-            "DES SNe Ia HQ (z from SALT2)",
+            "DES SNe Ia HQ (fitted z)",
             "M22",
         ],
         path_plots=path_plots,
@@ -1082,7 +1082,7 @@ if __name__ == "__main__":
     pu.plot_mosaic_histograms_listdf(
         [photoIa_noz_saltz_JLA, photoIa_wz_JLA, spec_ia],
         list_labels=[
-            "DES SNe Ia HQ (z from SALT2)",
+            "DES SNe Ia HQ (fitted z)",
             "DES SNe Ia M22",
             "DES SNe Ia spectroscopic",
         ],
@@ -1108,7 +1108,7 @@ if __name__ == "__main__":
         axs[i] = pu.plot_errorbar_binned(
             list_df,
             [
-                "DES SNe Ia HQ (z from SALT2)",
+                "DES SNe Ia HQ (fitted z)",
                 "DES SNe Ia M22",
                 "DES SNe Ia spectroscopic",
             ],
@@ -1137,7 +1137,7 @@ if __name__ == "__main__":
     fig = pu.plot_errorbar_binned(
         list_df,
         [
-            "DES SNe Ia HQ (z from SALT2)",
+            "DES SNe Ia HQ (fitted z)",
             "DES SNe Ia M22",
             "DES SNe Ia spectroscopic",
         ],
