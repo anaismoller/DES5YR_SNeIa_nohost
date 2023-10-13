@@ -1146,6 +1146,7 @@ if __name__ == "__main__":
         vary="HOSTGAL_MAG_r",
         data_color_override=True,
         color_list=pu.ALL_COLORS,
+        marker_size=15,
     )
     plt.ylabel("host r magnitude", fontsize=20)
     plt.legend(fontsize=16)

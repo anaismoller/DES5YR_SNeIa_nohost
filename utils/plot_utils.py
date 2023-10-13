@@ -499,6 +499,7 @@ def plot_errorbar_binned(
     ignore_y_label=False,
     color_offset=0,
     color_list=[],
+    marker_size=10,
 ):
     color_list = ALL_COLORS_nodata if len(color_list) < 2 else color_list
     if axs == None:
@@ -558,7 +559,9 @@ def plot_errorbar_binned(
             or "DES" in list_labels[i]
             else color_list[i + color_offset],
             zorder=50 if "data" in list_labels[i] else i,  # hack to put data on top
+            ms=marker_size,
         )
+
     if not ignore_y_label:
         axs.set_ylabel(vary, fontsize=20)
     if ignore_y_label:
