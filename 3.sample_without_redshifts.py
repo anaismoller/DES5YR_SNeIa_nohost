@@ -370,11 +370,14 @@ if __name__ == "__main__":
             df_stats=df_stats_fup,
             verbose=True if rnn_score == 0.5 else False,
         )
+        lu.print_green(f"photoIa_noz with {rnn_score}: {len(tmp)}")
+        cuts.spec_subsamples(tmp, logger)
+        df_stats = mu.cuts_deep_shallow(
+            tmp, photoIa_wz_JLA, df_stats=df_stats, cut=f"RNN>{rnn_score}"
+        )
         if rnn_score == 0.5:
-            lu.print_green("RNN>0.5")
             photoIa_noz = tmp
         if rnn_score == 0.001:
-            lu.print_green("RNN>0.001")
             photoIa_noz_001 = tmp
             cols_to_print = [
                 k for k in df_stats_fup.keys() if "OzDES" not in k and "Y" not in k
@@ -391,11 +394,6 @@ if __name__ == "__main__":
                 ]
             )
 
-    lu.print_green(f"photoIa_noz with selcuts set 0: {len(photoIa_noz)}")
-    cuts.spec_subsamples(photoIa_noz, logger)
-    df_stats = mu.cuts_deep_shallow(
-        photoIa_noz, photoIa_wz_JLA, df_stats=df_stats, cut="RNN>0.5"
-    )
     # paper stats
     rnn05 = df_stats_fup[df_stats_fup["sample"] == "RNN > 0.5"]
     print(
@@ -458,6 +456,18 @@ if __name__ == "__main__":
         path_plots=path_plots,
         suffix="lost_photoIa_wz_JLA",
     )
+    # lost M22
+    lost_M22 = photoIa_wz_JLA[(~photoIa_wz_JLA.SNID.isin(photoIa_noz.SNID.values))]
+    pu.plot_mosaic_histograms_listdf(
+        [lost_M22],
+        list_labels=["lost M22"],
+        path_plots=path_plots,
+        suffix="lost_M22",
+        data_color_override=True,
+    )
+    # check if the lost are due to peak
+    lost_M22.to_csv(f"{path_samples}/lost_M22.csv")
+    # lc plotting in extra_plots.ipynb
 
     # Who are the ones that got noz selected but were not in wz
     photoIa_noz_wz_notsel_photoIawz = photoIa_noz[
@@ -623,8 +633,8 @@ if __name__ == "__main__":
     ]
     list_labels = [
         "Photometric SNe Ia (fitted z)",
-        "Photometric SNe Ia (fitted z) not in Baseline DES-SNIa sample",
-        "Baseline DES-SNIa sample",
+        "Photometric SNe Ia (fitted z) not in M22",
+        "M22",
     ]
     pu.plot_mosaic_histograms_listdf(
         list_df,
@@ -1091,6 +1101,7 @@ if __name__ == "__main__":
         list_vars_to_plot=["zHD", "c", "x1", "m0obs_i", "HOSTGAL_MAG_r"],
         data_color_override=True,
         chi_bins=False,
+        use_samples_color_palette=True,
     )
 
     # All samples properties
@@ -1104,7 +1115,6 @@ if __name__ == "__main__":
             sel = df[df["HOSTGAL_MAG_r"] < 30] if var == "HOSTGAL_MAG_r" else df
             sel[f"zHD_bin"] = pd.cut(sel.loc[:, ("zHD")], pu.bins_dic["zHD"])
             list_df.append(sel)
-
         axs[i] = pu.plot_errorbar_binned(
             list_df,
             [
@@ -1117,7 +1127,14 @@ if __name__ == "__main__":
             varx="zHD",
             vary=var,
             data_color_override=True,
-            color_list=pu.ALL_COLORS,
+            color_list=[
+                pu.SAMPLES_COLORS[k]
+                for k in [
+                    "DES SNe Ia HQ (fitted z)",
+                    "DES SNe Ia M22",
+                    "DES SNe Ia spectroscopic",
+                ]
+            ],
         )
 
         ylabel = "host r magnitude" if var == "HOSTGAL_MAG_r" else var
@@ -1145,10 +1162,14 @@ if __name__ == "__main__":
         varx="zHD",
         vary="HOSTGAL_MAG_r",
         data_color_override=True,
-        color_list=pu.ALL_COLORS,
+        color_list=[
+            pu.SAMPLES_COLORS["noz"],
+            pu.SAMPLES_COLORS["M22"],
+            pu.SAMPLES_COLORS["specIa"],
+        ],
         marker_size=15,
     )
-    plt.ylabel("host r magnitude", fontsize=20)
-    plt.legend(fontsize=16)
-    plt.xlabel("z", fontsize=20)
+    plt.ylabel("host r magnitude", fontsize=25)
+    plt.legend(fontsize=20)
+    plt.xlabel("z", fontsize=25)
     plt.savefig(f"{path_plots}/2ddist_all_sample_HOSTGAL_MAG_r_zHD.png")

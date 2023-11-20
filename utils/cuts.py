@@ -48,8 +48,7 @@ def make_reduction(df, cut, logger):
 
 
 def do_arr_stats(arr):
-    """Mean +- std of an array into dictionary
-    """
+    """Mean +- std of an array into dictionary"""
     arr_mean = np.array(arr).mean(axis=0).astype(int)
     arr_min = np.array(arr).min(axis=0).astype(int)
     arr_max = np.array(arr).max(axis=0).astype(int)
@@ -137,7 +136,7 @@ def photo_sel_target(df, target_goal=0, df_out=False, target_key="predicted_targ
 
 def spec_subsamples(df_metadata, logger):
     """Log spec subsamples
-    
+
     Args:
         df (pd.DataFrame): DataFrame to perform cuts
         logger (obj): logger
@@ -299,7 +298,7 @@ def transient_status(message, df_metadata, logger):
 def salt_basic(message, df_metadata, df_salt, logger):
     """SALT sampling + convergence
     SALT2 fits require a minimal sampling
-    see: https://github.com/Samreay/Pippin/blob/master/data_files/surveys/des/lcfit_nml/des_5yr.nml 
+    see: https://github.com/Samreay/Pippin/blob/master/data_files/surveys/des/lcfit_nml/des_5yr.nml
     cuts on sampling and redshift range
 
     Args:
@@ -426,7 +425,12 @@ def photo_norm(df_metadata, path_class, path_dump, logger, z="zspe", path_plots=
 
         # merge all predictions
         df_dic[norm] = reduce(
-            lambda df1, df2: pd.merge(df1, df2, on=["SNID", "target"],), list_df_preds
+            lambda df1, df2: pd.merge(
+                df1,
+                df2,
+                on=["SNID", "target"],
+            ),
+            list_df_preds,
         )
         # ensemble methods + metadata
         df_dic, list_sets = du.add_ensemble_methods(df_dic, norm)
@@ -561,7 +565,7 @@ def photo_norm(df_metadata, path_class, path_dump, logger, z="zspe", path_plots=
 
 
 def apply_salt_cuts(df, SNID_to_keep, logger, verbose=False):
-    """ Only salt cuts
+    """Only salt cuts
     Args:
         df (pd.DataFrame): data to apply cuts
         SNID_to_keep (list): SNIDs that have high-quality z
@@ -607,7 +611,7 @@ def apply_salt_cuts(df, SNID_to_keep, logger, verbose=False):
 
 
 def towards_cosmo(dic_df_photoIa_wsalt, df_photoIa_stats, logger):
-    """ SALT2 cuts + redshift extra quality cuts
+    """SALT2 cuts + redshift extra quality cuts
 
     Args:
         dic_df_photoIa_wsalt (pd.DataFrame): photometrically classified sample w salt fits
@@ -665,7 +669,12 @@ def towards_cosmo(dic_df_photoIa_wsalt, df_photoIa_stats, logger):
             else:
                 for modelset in cu.list_sets:
                     df = dic_photoIa_sel[norm][f"{method}_set_{modelset}"]
-                    arr.append(photo_sel_prob(df, do_prob_thres=False,))
+                    arr.append(
+                        photo_sel_prob(
+                            df,
+                            do_prob_thres=False,
+                        )
+                    )
             photoIa, specIa, specCC, specother = do_arr_stats(arr)
             dic_tmp = {
                 "norm": norm,
@@ -680,7 +689,8 @@ def towards_cosmo(dic_df_photoIa_wsalt, df_photoIa_stats, logger):
             )
         # set 0 average probability sample
         photoIa_avg_prob_set_0 = photo_sel_prob(
-            dic_photoIa_sel[norm]["average_probability_set_0"], do_prob_thres=False,
+            dic_photoIa_sel[norm]["average_probability_set_0"],
+            do_prob_thres=False,
         )
         dic_tmp = {
             "norm": norm,
@@ -752,19 +762,19 @@ def cut_visual_inspection_stats(
     path_plots="./",
     description_sample="test",
 ):
-    """ Visual inspection cross-match
+    """Visual inspection cross-match
 
-        Args:
-            df_sel (dic of pd.DataFrame): selected metadata
-            df_visual_inspection (pd.DataFrame): information from visual inspection
-            df_metadata (pd.DataFrame): complete metadata for 5-year
-            path_plots (Path): path to save plots
-            description_sample (str): sample description
+    Args:
+        df_sel (dic of pd.DataFrame): selected metadata
+        df_visual_inspection (pd.DataFrame): information from visual inspection
+        df_metadata (pd.DataFrame): complete metadata for 5-year
+        path_plots (Path): path to save plots
+        description_sample (str): sample description
 
-        Returns:
+    Returns:
 
 
-        """
+    """
 
     # Formatting and tag selection
     df_visual_inspection["SNID"] = df_visual_inspection["SNID"].astype(np.int32)
@@ -778,7 +788,10 @@ def cut_visual_inspection_stats(
     ) = apply_visual_cuts(df_visual_inspection, SNID=True)
 
     pu.plot_labels(
-        df_metadata, dic_SNIDs_vi, path_plots=path_plots, suffix="summary_inspection",
+        df_metadata,
+        dic_SNIDs_vi,
+        path_plots=path_plots,
+        suffix="summary_inspection",
     )
 
     df = pd.merge(df_sel, df_visual_inspection, on="SNID", how="left")
@@ -804,7 +817,7 @@ def stats_possible_contaminants(
     method_list=["S", "average_target_set", "average_probability_set"],
     verbose=True,
 ):
-    """ Check possible other contaminants
+    """Check possible other contaminants
 
     Samples may contain:
     - close-by AGNs (which would deem them not cosmology suited)
@@ -951,7 +964,8 @@ def stats_possible_contaminants(
             for k in dic_tag_SNIDs[0].keys():
                 if (len(dic_tag_SNIDs[0][k]) < 10) & (len(dic_tag_SNIDs[0][k]) > 0):
                     print(
-                        k, [dic_tag_SNIDs[0][k].values.tolist()],
+                        k,
+                        [dic_tag_SNIDs[0][k].values.tolist()],
                     )
 
     return dic_tag_SNIDs

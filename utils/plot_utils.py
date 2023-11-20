@@ -1,8 +1,8 @@
-import ipdb
 import numpy as np
 import pandas as pd
 from venn import venn
 from numpy import inf
+import matplotlib as mpl
 from matplotlib import gridspec
 import matplotlib.pylab as plt
 from utils import conf_utils as cu
@@ -18,8 +18,6 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 CMAP = plt.cm.YlOrBr
 pd.options.mode.chained_assignment = None
 np.seterr(divide="ignore", invalid="ignore")
-
-import matplotlib as mpl
 
 mpl.rcParams["font.size"] = 16
 mpl.rcParams["legend.fontsize"] = "medium"
@@ -67,6 +65,22 @@ LINE_STYLE = ["-", "-", "-", "-", ":", ":", ":", ":", "-.", "-.", "-.", "-."]
 FILTER_COLORS = {"z": "maroon", "i": "darkorange", "r": "royalblue", "g": "indigo"}
 PATTERNS = ["", "", "", "", "", ".", ".", ".", "."]
 
+cmap = plt.get_cmap("viridis", 6)  # matplotlib color palette name, n colors
+colors_for_sample = [cmap(i) for i in range(cmap.N)]
+
+SAMPLES_COLORS = {
+    "M22": "darkorange",
+    "noz": colors_for_sample[-2],
+    "specIa": colors_for_sample[-5],
+    "SNN>0.001": colors_for_sample[-4],
+    "SNN>0.5": colors_for_sample[-3],
+    "SNN>0.5 + HQ": colors_for_sample[-2],
+    "DES SNe Ia HQ (fitted z)": colors_for_sample[-2],
+    "DES SNe Ia M22": "darkorange",
+    "DES SNe Ia spectroscopic": colors_for_sample[-5],
+}
+
+
 list_linestyle = 5 * ["-", "--", ":", "-."]
 fmt_list = ["o", "^", "v", "s", "p", "*", "+", "x"]
 
@@ -90,6 +104,9 @@ bins_dic = {
     "m0obs_i_zspe": np.linspace(21, 25, 12),
     "average_probability_set_0": np.linspace(0.0, 1.0, 12),
     "HOSTGAL_MAG_r": np.linspace(17, 29, 12),
+    "sfr": np.linspace(-10, 5, 12),
+    "mass": np.linspace(5, 12, 10),
+    "PHOTOZ": np.linspace(0.1, 1.1, 12),
 }
 chi_bins_dic = {
     "zHD": np.linspace(0.1, 1.1, 12),
@@ -105,6 +122,9 @@ chi_bins_dic = {
     "HOST_LOGMASS_zspe": np.linspace(7, 13, 12),
     "m0obs_i_zspe": np.linspace(21, 25, 12),
     "HOSTGAL_MAG_r": np.linspace(17, 29, 12),
+    "sfr": np.linspace(-10, 5, 12),
+    "mass": np.linspace(5, 12, 10),
+    "PHOTOZ": np.linspace(0.1, 1.1, 12),
 }
 
 
@@ -958,6 +978,7 @@ def plot_mosaic_histograms_listdf(
     data_color_override=False,
     chi_bins=True,
     log_scale=False,
+    use_samples_color_palette=False,
 ):
 
     bins_to_plot = chi_bins_dic if chi_bins == True else bins_dic
@@ -982,7 +1003,9 @@ def plot_mosaic_histograms_listdf(
                     bins=bins_to_plot[k],
                     weights=norm * np.ones(len(df)),
                     linewidth=5,
-                    color=ALL_COLORS_nodata[df_idx],
+                    color=SAMPLES_COLORS[list_labels[df_idx]]
+                    if use_samples_color_palette
+                    else ALL_COLORS_nodata[df_idx],
                     linestyle=list_linestyle[df_idx],
                 )
                 sim_vals_list.append(sim_vals)
@@ -1003,7 +1026,9 @@ def plot_mosaic_histograms_listdf(
                         data_hist_vals,
                         yerr=err,
                         fmt="none",
-                        ecolor=ALL_COLORS[df_idx],
+                        ecolor=SAMPLES_COLORS[list_labels[df_idx]]
+                        if use_samples_color_palette
+                        else ALL_COLORS_nodata[df_idx],
                     )
                     axs[i].hist(
                         df[k],
@@ -1012,7 +1037,9 @@ def plot_mosaic_histograms_listdf(
                         density=False,
                         bins=bins_to_plot[k],
                         linewidth=5,
-                        color=ALL_COLORS[df_idx],
+                        color=SAMPLES_COLORS[list_labels[df_idx]]
+                        if use_samples_color_palette
+                        else ALL_COLORS_nodata[df_idx],
                         linestyle=list_linestyle[df_idx],
                     )
                 else:
@@ -1024,11 +1051,19 @@ def plot_mosaic_histograms_listdf(
                         fmt="o",
                         color=color_dic["data"]
                         if data_color_override == False
-                        else ALL_COLORS[df_idx],
+                        else (
+                            SAMPLES_COLORS[list_labels[df_idx]]
+                            if use_samples_color_palette
+                            else ALL_COLORS[df_idx]
+                        ),
                         markersize=8,
                         mfc=color_dic["data"]
                         if data_color_override == False
-                        else ALL_COLORS[df_idx],
+                        else (
+                            SAMPLES_COLORS[list_labels[df_idx]]
+                            if use_samples_color_palette
+                            else ALL_COLORS[df_idx]
+                        ),
                     )
 
         counter = 0
@@ -1088,32 +1123,32 @@ def overplot_salt_distributions_lists(
         data_color_override=data_color_override,
     )
 
-    # c,x1 vs z, host_logmass
+    # # c,x1 vs z, host_logmass
     for xbin in ["zHD", "HOST_LOGMASS", "m0obs_i"]:
         bins = bins_dic[xbin]
 
         for df_idx, df in enumerate(list_df):
             df[f"{xbin}_bin"] = pd.cut(df.loc[:, (xbin)], bins)
 
-        to_plot = ["c", "x1", "HOST_LOGMASS"] if xbin == "zHD" else ["c", "x1", "zHD"]
-        for k in to_plot:
-            fig = plot_errorbar_binned(
-                list_df,
-                list_labels,
-                binname=f"{xbin}_bin",
-                varx=xbin,
-                vary=k,
-                sim_scale_factor=sim_scale_factor,
-            )
-            plt.legend()
-            plt.xlabel(xbin)
-            if suffix != "":
-                plt.savefig(
-                    f"{path_plots}/2ddist_sample_sim_Ia_{k}_{xbin}_{suffix}.png"
-                )
-            else:
-                plt.savefig(f"{path_plots}/2ddist_sample_sim_Ia_{k}_{xbin}.png")
-            del fig
+        # to_plot = ["c", "x1", "HOST_LOGMASS"] if xbin == "zHD" else ["c", "x1", "zHD"]
+        # for k in to_plot:
+        #     fig = plot_errorbar_binned(
+        #         list_df,
+        #         list_labels,
+        #         binname=f"{xbin}_bin",
+        #         varx=xbin,
+        #         vary=k,
+        #         sim_scale_factor=sim_scale_factor,
+        #     )
+        #     plt.legend()
+        #     plt.xlabel(xbin)
+        #     if suffix != "":
+        #         plt.savefig(
+        #             f"{path_plots}/2ddist_sample_sim_Ia_{k}_{xbin}_{suffix}.png"
+        #         )
+        #     else:
+        #         plt.savefig(f"{path_plots}/2ddist_sample_sim_Ia_{k}_{xbin}.png")
+        #     del fig
 
     # zHD binned c,x1 together (same as above only formatting)
     xbin = "zHD"
@@ -1409,6 +1444,7 @@ def plot_mosaic_histograms_listdf_deep_shallow(
     data_color_override=False,
     chi_bins=True,
     log_scale=False,
+    color_list=None,
 ):
 
     bins_to_plot = chi_bins_dic if chi_bins == True else bins_dic
@@ -1425,7 +1461,10 @@ def plot_mosaic_histograms_listdf_deep_shallow(
         sim_label_list_shallow = []
         counter_sim = 0
         for df_idx, df in enumerate(list_df):
-            if "sim" in list_labels[df_idx]:
+            if (
+                "sim" in list_labels[df_idx]
+                or "simulations (fixed true z)" in list_labels[df_idx]
+            ):
                 # deep
                 deep = df[df.deep == True]
                 norm = norm
@@ -1454,7 +1493,7 @@ def plot_mosaic_histograms_listdf_deep_shallow(
                     bins=bins_to_plot[k],
                     weights=norm * np.ones(len(shallow)),
                     linewidth=5,
-                    color="lightgrey" if counter_sim == 0 else "darkorange",
+                    color="lightgrey" if counter_sim == 0 else "red",
                     linestyle=list_linestyle[df_idx],
                 )
                 sim_vals_list_shallow.append(sim_vals_shallow)
@@ -1642,6 +1681,7 @@ def overplot_salt_distributions_lists_deep_shallow(
         norm=1 / sim_scale_factor,
         list_vars_to_plot=["zHD", "c", "x1", "m0obs_i"],
         data_color_override=data_color_override,
+        color_list=["red", "maroon"],
     )
 
     # zHD binned c,x1 together (same as above only formatting)
@@ -1664,6 +1704,7 @@ def overplot_salt_distributions_lists_deep_shallow(
             axs=axs[i][0],
             sim_scale_factor=sim_scale_factor,
             data_color_override=data_color_override,
+            color_list=["darkgrey", "red", "black"],
         )
         # deep
         plot_errorbar_binned(
@@ -1676,7 +1717,7 @@ def overplot_salt_distributions_lists_deep_shallow(
             sim_scale_factor=sim_scale_factor,
             data_color_override=data_color_override,
             ignore_y_label=True,
-            color_offset=2,
+            color_list=["darkgrey", "maroon", "black"],
         )
     axs[0][0].legend(
         loc="best",
@@ -2028,11 +2069,12 @@ def hist_fup_targets(df_stats_fup, path_plots="./"):
         "SNN>0.5",
     ]
     fig = plt.figure(figsize=(12, 8))
+    labels = ["without host", "with host", "host<24 mag", "photo Ia M22"]
     for n, k in enumerate(["total", "with host", "<24 mag", "photoIa M22"]):
         plt.bar(
             df_sel["sample_simplified"],
             df_sel[k],
-            label=k,
+            label=labels[n],
             zorder=n,
             color=ALL_COLORS[n],
         )
@@ -2046,10 +2088,12 @@ def hist_fup_targets(df_stats_fup, path_plots="./"):
             df_sel[k],
             zorder=n,
             color=ALL_COLORS[n],
-            hatch="/",
+            hatch="*",
             edgecolor="white",
         )
-    plt.axhline(y=7000, linewidth=1, color="k", linestyle="--", label="OzDES lim mag")
+    plt.axhline(
+        y=7000, linewidth=1, color="k", linestyle="--", label="OzDES follow-up targets"
+    )
     plt.legend()
     # plt.yscale("log")
     # plt.xticks(rotation=20)
@@ -2108,35 +2152,32 @@ def hist_fup_targets_early(
 
 
 def hist_HOSTGAL_MAG_r_vs_REDSHIFT(list_df, list_labels, path_plots="./"):
+
     list_n = []
     fig, ax = plt.subplots(figsize=(12, 8))
     for i, df in enumerate(list_df):
         whost = df[df["HOSTGAL_MAG_r"] < 40]
+        color_to_plot = SAMPLES_COLORS[list_labels[i]]
+        print(color_to_plot)
         n, bins, tmp = plt.hist(
             whost["HOSTGAL_MAG_r"],
             histtype="step",
             label=list_labels[i],
             bins=50,
             lw=2,
-            color=ALL_COLORS_nodata[i],
+            color=color_to_plot,
         )
+    for i, df in enumerate(list_df):
         ax.hist(
             whost[whost["REDSHIFT_FINAL"] < 0]["HOSTGAL_MAG_r"],
             histtype="step",
-            # label=f"{list_labels[i]} no host z",
+            label=f"{list_labels[i]} without host z",
             bins=bins,
             lw=2,
-            color=ALL_COLORS_nodata[i],
+            color=color_to_plot,
             linestyle="dotted",
         )
         list_n.append(max(n))
-    # ax.plot(
-    #     [24, 24],
-    #     [0, max(list_n)],
-    #     linestyle="-.",
-    #     color="black",
-    #     label="follow-up limit",
-    # )
     ax.axvline(x=24, linestyle="-.", label="follow-up limit", color="black")
     plt.ylabel("# events", fontsize=20)
     plt.xlabel("host r magnitude", fontsize=20)

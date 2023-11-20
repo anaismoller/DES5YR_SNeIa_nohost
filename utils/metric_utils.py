@@ -163,8 +163,12 @@ def cuts_deep_shallow(df_sel, photoIa_wz_JLA, df_stats=pd.DataFrame(), cut=""):
     # determine shallow or deep
     deep_fields = ["X3", "C3"]
     shallow_fields = ["X1", "X2", "C1", "C2", "E1", "E2", "S1", "S2"]
-    df_shallow = df_sel[df_sel.IAUC.str.contains("|".join(shallow_fields))]
-    df_deep = df_sel[df_sel.IAUC.str.contains("|".join(deep_fields))]
+    # shallow does not work
+    # df_shallow = df_sel[df_sel.IAUC.str.contains("|".join(shallow_fields))]
+    # df_deep = df_sel[df_sel.IAUC.str.contains("|".join(deep_fields))]
+    df_sel["FIELD"] = df_sel["IAUC"].str.extract("(?<=DES\d{2})(\w\d)\w+", expand=False)
+    df_shallow = df_sel[df_sel["FIELD"].isin(shallow_fields)]
+    df_deep = df_sel[df_sel["FIELD"].isin(deep_fields)]
 
     dict_t = {}
     dict_t["cut"] = cut
@@ -180,7 +184,6 @@ def cuts_deep_shallow(df_sel, photoIa_wz_JLA, df_stats=pd.DataFrame(), cut=""):
         df_sel[df_sel.SNID.isin(photoIa_wz_JLA.SNID.values)]
     )
     df_stats = df_stats.append(dict_t, ignore_index=True)
-
     return df_stats
 
 
