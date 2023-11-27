@@ -546,7 +546,7 @@ if __name__ == "__main__":
     photoIa_noz_saltz_JLA = su.apply_JLA_cut(photoIa_noz_saltz)
 
     lu.print_green(
-        f"photoIa_noz set 0 with JLA cuts (fitted z): {len(photoIa_noz_saltz_JLA)}"
+        f"photoIa_noz set 0 with JLA cuts (SNphoto z): {len(photoIa_noz_saltz_JLA)}"
     )
     cuts.spec_subsamples(photoIa_noz_saltz_JLA, logger)
     overlap_photoIa(photoIa_noz_saltz_JLA, photoIa_wz, photoIa_wz_JLA, mssg="")
@@ -632,8 +632,8 @@ if __name__ == "__main__":
         photoIa_wz_JLA,
     ]
     list_labels = [
-        "Photometric SNe Ia (fitted z)",
-        "Photometric SNe Ia (fitted z) not in M22",
+        "Photometric SNe Ia (SNphoto z)",
+        "Photometric SNe Ia (SNphoto z) not in M22",
         "M22",
     ]
     pu.plot_mosaic_histograms_listdf(
@@ -660,7 +660,7 @@ if __name__ == "__main__":
         overlap[f"delta_{k}"] = abs(overlap[k] - overlap[f"{k}_zspe"])
         n_good_overlap = len(overlap[overlap[f"delta_{k}"] < 0.1])
         print(
-            f"   Good {k}: (fitted - zspe<0.1) {n_good_overlap} {round(n_good_overlap*100/len(overlap),2)}% ",
+            f"   Good {k}: (SNphoto - zspe<0.1) {n_good_overlap} {round(n_good_overlap*100/len(overlap),2)}% ",
         )
     # overlap simultaneous salt fit effect
     # terrible way of coding this
@@ -678,7 +678,7 @@ if __name__ == "__main__":
         "zHD",
         "zPHOT_retro",
         f"{path_plots}/scatter_z_overlapJLA_retro_vs_ori.png",
-        ylabel="spectroscopic - fitted redshift",
+        ylabel="spectroscopic - SNphoto redshift",
         xlabel="spectroscopic redshift",
     )
     # all w zspe
@@ -691,7 +691,7 @@ if __name__ == "__main__":
         "zHD",
         "zPHOT_retro",
         f"{path_plots}/scatter_deltaz_HQ.png",
-        ylabel="spectroscopic - fitted redshift",
+        ylabel="spectroscopic - SNphoto redshift",
         xlabel="spectroscopic redshift",
         labels=["SNN>0.5 + HQ", "SNN>0.5 + HQ in M22"],
     )
@@ -772,7 +772,7 @@ if __name__ == "__main__":
         df_tmp[f"delta_{k}"] = abs(df_tmp[f"{k}_retro"] - df_tmp[f"{k}"])
         n_good_tmp = len(df_tmp[df_tmp[f"delta_{k}"] < 0.1])
         print(
-            f"   Good {k}: (fitted - zspe<0.1) {n_good_tmp} {round(n_good_tmp*100/len(df_tmp),2)}%",
+            f"   Good {k}: (SNphoto - zspe<0.1) {n_good_tmp} {round(n_good_tmp*100/len(df_tmp),2)}%",
         )
 
     # New events
@@ -1001,8 +1001,8 @@ if __name__ == "__main__":
         ],
         path_plots=path_plots,
         list_labels=[
-            "sim Ia HQ (fitted z)",
-            "SNe Ia noz HQ (fitted z)",
+            "sim Ia HQ (SNphoto z)",
+            "SNe Ia HQ (SNphoto z)",
         ],
         suffix="noz",
         sim_scale_factor=30,
@@ -1012,9 +1012,9 @@ if __name__ == "__main__":
         [sim_Ia_fits_JLA, sim_saltz_Ia_JLA, photoIa_noz_saltz_JLA],
         path_plots=path_plots,
         list_labels=[
-            "sim Ia HQ (fixed true z)",
-            "sim Ia HQ (fitted z)",
-            "SNe Ia HQ (fitted z)",
+            "sim Ia HQ (true z)",
+            "sim Ia HQ (SNphoto z)",
+            "SNe Ia HQ (SNphoto z)",
         ],
         suffix="noz_simz",
         sim_scale_factor=30,
@@ -1028,9 +1028,9 @@ if __name__ == "__main__":
             photoIa_noz_saltz_JLA,
         ],
         list_labels=[
-            "sim Ia HQ (fixed true z)",
-            "sim Ia HQ (fitted z)",
-            "SNe Ia HQ (fitted z)",
+            "sim Ia HQ (true z)",
+            "sim Ia HQ (SNphoto z)",
+            "SNe Ia HQ (SNphoto z)",
         ],
         path_plots=path_plots,
         suffix="noz_wm0obsi",
@@ -1046,9 +1046,9 @@ if __name__ == "__main__":
     pu.overplot_salt_distributions_lists_deep_shallow(
         [sim_Ia_fits_JLA, sim_saltz_Ia_JLA, photoIa_noz_saltz_JLA],
         list_labels=[
-            "simulations (fixed true z)",
-            "simulations (fitted z)",
-            "DES SNe Ia HQ (fitted z)",
+            "simulations (true z)",
+            "simulations (SNphoto z)",
+            "DES SNe Ia HQ (SNphoto z)",
         ],
         path_plots=path_plots,
         suffix="deep_and_shallow_fields",
@@ -1074,7 +1074,7 @@ if __name__ == "__main__":
         [tmp, photoIa_noz_saltz_JLA, photoIa_wz_JLA],
         list_labels=[
             "DES SNe Ia HQ (z mixed)",
-            "DES SNe Ia HQ (fitted z)",
+            "DES SNe Ia HQ (SNphoto z)",
             "M22",
         ],
         path_plots=path_plots,
@@ -1092,7 +1092,7 @@ if __name__ == "__main__":
     pu.plot_mosaic_histograms_listdf(
         [photoIa_noz_saltz_JLA, photoIa_wz_JLA, spec_ia],
         list_labels=[
-            "DES SNe Ia HQ (fitted z)",
+            "DES SNe Ia HQ (SNphoto z)",
             "DES SNe Ia M22",
             "DES SNe Ia spectroscopic",
         ],
@@ -1118,7 +1118,7 @@ if __name__ == "__main__":
         axs[i] = pu.plot_errorbar_binned(
             list_df,
             [
-                "DES SNe Ia HQ (fitted z)",
+                "DES SNe Ia HQ (SNphoto z)",
                 "DES SNe Ia M22",
                 "DES SNe Ia spectroscopic",
             ],
@@ -1130,7 +1130,7 @@ if __name__ == "__main__":
             color_list=[
                 pu.SAMPLES_COLORS[k]
                 for k in [
-                    "DES SNe Ia HQ (fitted z)",
+                    "DES SNe Ia HQ (SNphoto z)",
                     "DES SNe Ia M22",
                     "DES SNe Ia spectroscopic",
                 ]
@@ -1154,7 +1154,7 @@ if __name__ == "__main__":
     fig = pu.plot_errorbar_binned(
         list_df,
         [
-            "DES SNe Ia HQ (fitted z)",
+            "DES SNe Ia HQ (SNphoto z)",
             "DES SNe Ia M22",
             "DES SNe Ia spectroscopic",
         ],

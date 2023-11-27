@@ -61,7 +61,13 @@ def plot_scatter_mosaic_retro(
 ):
     # scatter
     fig = plt.figure(constrained_layout=True, figsize=(17, 5))
-    gs = fig.add_gridspec(1, 3, hspace=0.05, wspace=0.05)
+    gs = fig.add_gridspec(
+        1,
+        4,
+        hspace=0.05,
+        wspace=0.05,
+        width_ratios=[1, 1, 1, 0.1],
+    )
     axs = gs.subplots(sharex=False, sharey=False)
 
     for i, var in enumerate(["z", "c", "x1"]):
@@ -69,11 +75,12 @@ def plot_scatter_mosaic_retro(
         vary = f"{var}PHOT_retro" if var == "z" else f"{var}_retro"
         lims = (0.1, 1.2) if var == "z" else ((-0.4, 0.4) if var == "c" else (-4, 4))
         for idx_df, df in enumerate(list_df):
-            h2d, xedges, yedges, _ = axs[i].hist2d(
+            h2d, xedges, yedges, im = axs[i].hist2d(
                 df[varx],
                 df[vary],
                 bins=20,
                 cmap="magma_r",  # cmap="YlOrRd"  # , cmin=0.25
+                density=True,
             )
             # chech distribution for a given x bin
             tmp_bins = xedges
@@ -115,13 +122,14 @@ def plot_scatter_mosaic_retro(
             linestyle="--",
             zorder=10,
         )
-        xlabel = "true redshift" if var == "z" else f"{var} with true redshift"
-        ylabel = "fitted redshift" if var == "z" else f"{var} with fitted redshift"
+        xlabel = "true z" if var == "z" else f"${var}_{{true \ z}}$"
+        ylabel = "SNphoto z" if var == "z" else f"${var}_{{SNphoto \ z}}$"
         axs[i].set_xlabel(xlabel)
         axs[i].set_ylabel(ylabel)
         axs[i].set_xlim(lims[0], lims[1])
         axs[i].set_ylim(lims[0], lims[1])
-
+    # colorbar
+    cb = fig.colorbar(im, cax=axs[i + 1])
     # axs[i].legend(loc="best", prop={"size": 10})
     plt.savefig(path_out)
 
@@ -224,7 +232,7 @@ def plot_freez_correlations(list_df, list_labels=["tmp"], path_plots="./"):
                 head_width=0.02 if "sim Ia" in list_labels[idx_df] else 0.02,
                 width=0.002,
             )
-    axs[0].set_ylabel(r"$\beta c$ with true redshift to fitted", fontsize=20)
+    axs[0].set_ylabel(r"$\Delta (\beta c))_{true,SNphoto \ z}$", fontsize=20)
     axs[0].axis("equal")
     for idx_df, df in enumerate(list_df):
         df["zHD_bin"] = pd.cut(df.loc[:, ("zHD")], pu.bins_dic["zHD"])
@@ -241,8 +249,8 @@ def plot_freez_correlations(list_df, list_labels=["tmp"], path_plots="./"):
             )
     axs[1].axis("equal")
     axs[1].set_ylim(-0.04, 0.04)
-    axs[1].set_xlabel(f"true to fitted redshift", fontsize=20)
-    axs[1].set_ylabel(r"$\alpha x_1$ with true redshift to fitted", fontsize=20)
+    axs[1].set_xlabel(r"$\Delta z_{true,SNphoto \ z}$", fontsize=20)
+    axs[1].set_ylabel(r"$\Delta (\alpha x_1)_{true,SNphoto \ z}$", fontsize=20)
     plt.savefig(f"{path_plots}/migration_cx1_zHD.png")
 
 
@@ -343,9 +351,9 @@ if __name__ == "__main__":
         (sim_preds, sim_saltz_JLA),
     ]
     list_labels = [
-        "fixed true z",
-        "fitted z",
-        "fitted z + HQ",
+        "true z",
+        "SNphoto z",
+        "SNphoto z + HQ",
     ]
     pu.plot_contamination_list(
         list_tuple, path_plots=path_plots, list_labels=list_labels, suffix="noz"
@@ -357,7 +365,7 @@ if __name__ == "__main__":
     pu.plot_metrics_list(
         [sim_fits_wpreds, sim_saltz_wpreds, sim_saltz_wpreds_JLA],
         path_plots=path_plots,
-        list_labels=["fixed true z", "fitted z", "fitted z + HQ"],
+        list_labels=list_labels,
         metric="efficiency",
     )
 

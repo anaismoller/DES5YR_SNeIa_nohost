@@ -78,6 +78,7 @@ SAMPLES_COLORS = {
     "DES SNe Ia HQ (fitted z)": colors_for_sample[-2],
     "DES SNe Ia M22": "darkorange",
     "DES SNe Ia spectroscopic": colors_for_sample[-5],
+    "DES SNe Ia HQ (SNphoto z)": colors_for_sample[-2],
 }
 
 
@@ -560,24 +561,22 @@ def plot_errorbar_binned(
                 alpha=0.8,
                 zorder=-20,
             )
+        print(list_labels[i], color_list[i + color_offset])
         axs.errorbar(
             df.groupby(binname).mean()[varx].values,
             df.groupby(binname).mean()[vary].values,
             yerr=df.groupby(binname).std()[vary].values
             / np.sqrt(df.groupby(binname)[vary].count()).values,
             label=list_labels[i],
-            fmt="o"
-            if "data" in list_labels[i]
-            or "photo" in list_labels[i]
-            or "DES" in list_labels[i]
-            else "",
+            fmt="o" if "data" in list_labels[i]
+            # or "photo" in list_labels[i]
+            or "DES" in list_labels[i] else "",
             color=color_list[i + color_offset]
             if data_color_override
             else color_dic["data"]
             if "data" in list_labels[i]
-            or "photo" in list_labels[i]
-            or "DES" in list_labels[i]
-            else color_list[i + color_offset],
+            # or "photo" in list_labels[i]
+            or "DES" in list_labels[i] else color_list[i + color_offset],
             zorder=50 if "data" in list_labels[i] else i,  # hack to put data on top
             ms=marker_size,
         )
@@ -1463,7 +1462,7 @@ def plot_mosaic_histograms_listdf_deep_shallow(
         for df_idx, df in enumerate(list_df):
             if (
                 "sim" in list_labels[df_idx]
-                or "simulations (fixed true z)" in list_labels[df_idx]
+                or "simulations (true z)" in list_labels[df_idx]
             ):
                 # deep
                 deep = df[df.deep == True]
@@ -1480,7 +1479,7 @@ def plot_mosaic_histograms_listdf_deep_shallow(
                     linestyle=list_linestyle[df_idx],
                 )
                 sim_vals_list_deep.append(sim_vals_deep)
-                tmp = "f" if "fixed" in list_labels[df_idx] else "S"
+                tmp = "f" if "true" in list_labels[df_idx] else "S"
                 sim_label_list_deep.append(tmp)
                 # shallow
                 shallow = df[df.shallow == True]
@@ -1497,7 +1496,7 @@ def plot_mosaic_histograms_listdf_deep_shallow(
                     linestyle=list_linestyle[df_idx],
                 )
                 sim_vals_list_shallow.append(sim_vals_shallow)
-                tmp = "f" if "fixed" in list_labels[df_idx] else "S"
+                tmp = "f" if "true" in list_labels[df_idx] else "S"
                 sim_label_list_shallow.append(tmp)
                 counter_sim += 1
             else:
@@ -1812,7 +1811,7 @@ def plot_scatter_mosaic_retro(
             zorder=10,
         )
         xlabel = "zspe" if var == "z" else f"{var} with zspe"
-        ylabel = "fitted z" if var == "z" else f"{var} with fitted z"
+        ylabel = "SNphoto z" if var == "z" else f"{var} with SNphoto z"
         axs[i].set_xlabel(xlabel)
         axs[i].set_ylabel(ylabel)
         axs[i].set_xlim(lims[0], lims[1])
