@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn import metrics
 from . import logging_utils as lu
-from utils import conf_utils as cu
+from myutils import conf_utils as cu
 
 
 def performance_metrics(

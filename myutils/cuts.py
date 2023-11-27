@@ -11,7 +11,7 @@ from . import conf_utils as cu
 from . import plot_utils as pu
 from astropy.table import Table
 from . import logging_utils as lu
-from utils import science_utils as su
+from myutils import science_utils as su
 
 
 """All selection cuts are defined here

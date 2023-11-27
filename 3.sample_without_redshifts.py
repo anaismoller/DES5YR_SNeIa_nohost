@@ -7,14 +7,14 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from supervenn import supervenn
 
-from utils import cuts as cuts
-from utils import plot_utils as pu
-from utils import data_utils as du
-from utils import conf_utils as cu
-from utils import metric_utils as mu
-from utils import logging_utils as lu
-from utils import science_utils as su
-from utils import utils_emcee_poisson as mc
+from myutils import cuts as cuts
+from myutils import plot_utils as pu
+from myutils import data_utils as du
+from myutils import conf_utils as cu
+from myutils import metric_utils as mu
+from myutils import logging_utils as lu
+from myutils import science_utils as su
+from myutils import utils_emcee_poisson as mc
 
 mpl.rcParams["font.size"] = 16
 mpl.rcParams["legend.fontsize"] = "medium"

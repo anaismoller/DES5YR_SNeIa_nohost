@@ -5,11 +5,11 @@ import pandas as pd
 from pathlib import Path
 from functools import reduce
 from astropy.table import Table
-from utils import plot_utils as pu
-from utils import logging_utils as lu
-from utils import metric_utils as mu
-from utils import conf_utils as cu
-from utils import cuts as cuts
+from myutils import plot_utils as pu
+from myutils import logging_utils as lu
+from myutils import metric_utils as mu
+from myutils import conf_utils as cu
+from myutils import cuts as cuts
 
 
 def print_stats(list_tmp, context="", nround=4):

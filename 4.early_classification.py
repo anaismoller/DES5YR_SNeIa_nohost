@@ -4,11 +4,11 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from utils import conf_utils as cu
-from utils import plot_utils as pu
-from utils import data_utils as du
-from utils import metric_utils as mu
-from utils import logging_utils as lu
+from myutils import conf_utils as cu
+from myutils import plot_utils as pu
+from myutils import data_utils as du
+from myutils import metric_utils as mu
+from myutils import logging_utils as lu
 
 import warnings
 

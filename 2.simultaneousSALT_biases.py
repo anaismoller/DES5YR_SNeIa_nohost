@@ -1,16 +1,20 @@
-import os, sys
+import os
+import sys
 import logging
 import argparse
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from utils import cuts as cuts
-from utils import plot_utils as pu
-from utils import data_utils as du
-from utils import conf_utils as cu
-from utils import logging_utils as lu
-from utils import science_utils as su
+DES5yr = os.getenv("DES5yr")
+DES = os.getenv("DES")
+
+sys.path.insert(-1, f"{DES5yr}/DES5YR_SNeIa_nohost")
+from myutils import plot_utils as pu
+from myutils import data_utils as du
+from myutils import conf_utils as cu
+from myutils import logging_utils as lu
+from myutils import science_utils as su
 
 plt.switch_backend("agg")
 
@@ -244,9 +248,6 @@ def plot_freez_correlations(list_df, list_labels=["tmp"], path_plots="./"):
 
 if __name__ == "__main__":
 
-    DES5yr = os.getenv("DES5yr")
-    DES = os.getenv("DES")
-
     parser = argparse.ArgumentParser(description="Code to reproduce results paper")
 
     parser.add_argument(
@@ -387,9 +388,7 @@ if __name__ == "__main__":
         ]
         sel_photo = sim_photoIa[sim_photoIa.SNID.isin(sim_saltz_JLA.SNID.values)]
         total_contamination_JLA_saltz.append(100 * len(sel_cont) / len(sim_photoIa))
-    print(
-        f"Total contamination no cuts {round(np.array(total_contamination).mean(),2)} +- {round(np.array(total_contamination).std(),2)}"
-    )
+    print()
     print(
         f"Total contamination JLA {round(np.array(total_contamination_JLA).mean(),2)} +- {round(np.array(total_contamination_JLA).std(),2)}"
     )

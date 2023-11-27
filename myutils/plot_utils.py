@@ -5,10 +5,10 @@ from numpy import inf
 import matplotlib as mpl
 from matplotlib import gridspec
 import matplotlib.pylab as plt
-from utils import conf_utils as cu
-from utils import science_utils as su
-from utils import metric_utils as mu
-from utils import data_utils as du
+from myutils import conf_utils as cu
+from myutils import science_utils as su
+from myutils import metric_utils as mu
+from myutils import data_utils as du
 
 
 import warnings

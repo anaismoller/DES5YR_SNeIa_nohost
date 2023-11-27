@@ -1,11 +1,11 @@
 import os
 import argparse
 import pandas as pd
-from utils import plot_utils as pu
-from utils import conf_utils as cu
-from utils import data_utils as du
-from utils import metric_utils as mu
-from utils import logging_utils as lu
+from myutils import plot_utils as pu
+from myutils import conf_utils as cu
+from myutils import data_utils as du
+from myutils import metric_utils as mu
+from myutils import logging_utils as lu
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
@@ -225,4 +225,3 @@ if __name__ == "__main__":
         nameout=f"{path_plots}/prob_set_seed_all_peak_set0.png",
         prefix2="PEAKMJD",
     )
-

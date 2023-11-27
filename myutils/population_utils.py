@@ -3,11 +3,11 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
-from utils import plot_utils as pu
-from utils import data_utils as du
-from utils import conf_utils as cu
-from utils import science_utils as su
-from utils import logging_utils as lu
+from myutils import plot_utils as pu
+from myutils import data_utils as du
+from myutils import conf_utils as cu
+from myutils import science_utils as su
+from myutils import logging_utils as lu
 from scipy.optimize import curve_fit, least_squares
 
 

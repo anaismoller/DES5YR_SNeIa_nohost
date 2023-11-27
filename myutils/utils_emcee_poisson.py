@@ -7,7 +7,7 @@ from scipy.special import factorial
 from scipy.optimize import curve_fit
 
 # from chainconsumer import ChainConsumer
-from utils import logging_utils as lu
+from myutils import logging_utils as lu
 
 """
 2020 A. Moller
