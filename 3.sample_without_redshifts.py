@@ -668,10 +668,11 @@ if __name__ == "__main__":
     tmp_retro = salt_fits_noz.add_suffix("_retro")
     tmp_retro = tmp_retro.rename(columns={"SNID_retro": "SNID"})
     df_tmp = pd.merge(overlap, tmp_retro, on="SNID")
-    pu.plot_scatter_mosaic_retro(
+    pu.plot_scatter_mosaic_retro_biases(
         [df_tmp],
         ["overlap"],
         path_out=f"{path_plots}/scatter_overlapJLA_retro_vs_ori.png",
+        afterHQ=True,
     )
     pu.plot_delta_vs_var(
         df_tmp,
@@ -750,10 +751,11 @@ if __name__ == "__main__":
     tmp_retro = salt_fits_noz.add_suffix("_retro")
     tmp_retro = tmp_retro.rename(columns={"SNID_retro": "SNID"})
     df_tmp = pd.merge(lost_photoIa_wz_JLA, tmp_retro, on="SNID")
-    pu.plot_scatter_mosaic_retro(
+    pu.plot_scatter_mosaic_retro_biases(
         [df_tmp],
         ["lost_photoIa_wz_JLA"],
         path_out=f"{path_plots}/scatter_lostJLA_retro_vs_ori.png",
+        afterHQ=True,
     )
     pu.plot_delta_vs_var(
         df_tmp,

@@ -744,7 +744,7 @@ def plot_contamination_list(list_tuple, path_plots="./", suffix="", list_labels=
                 color=override_color[idx_tuple],
             )
             if i in [0, 2]:
-                axp.set_ylabel("contamination", fontsize=20)
+                axp.set_ylabel("contamination %", fontsize=20)
             axp.set_xticks(plot_bins)
             tmp = [k if bool(n % 2) else "" for n, k in enumerate(plot_bins.round(1))]
             axp.set_xticklabels(tmp, fontsize=15)
@@ -846,7 +846,7 @@ def plot_metrics_list(
                 color=override_color[idx_sim],
             )
             if i in [0, 2]:
-                axp.set_ylabel(metric, fontsize=20)
+                axp.set_ylabel(f"{metric} %", fontsize=20)
             axp.set_xticks(mean_bins)
             tmp = [k if bool(n % 2) else "" for n, k in enumerate(mean_bins.round(1))]
             axp.set_xticklabels(tmp, fontsize=16)
@@ -1747,7 +1747,7 @@ def overplot_salt_distributions_lists_deep_shallow(
 
 
 def plot_scatter_mosaic_retro_biases(
-    list_df, list_labels, path_out="tmp.png", print_biases=False
+    list_df, list_labels, path_out="tmp.png", print_biases=False, afterHQ=False
 ):
     # scatter
     fig = plt.figure(constrained_layout=True, figsize=(17, 5))
@@ -1763,7 +1763,15 @@ def plot_scatter_mosaic_retro_biases(
     for i, var in enumerate(["z", "c", "x1"]):
         varx = "zHD" if var == "z" else var
         vary = f"{var}PHOT_retro" if var == "z" else f"{var}_retro"
-        lims = (0.1, 1.2) if var == "z" else ((-0.4, 0.4) if var == "c" else (-4, 4))
+
+        if afterHQ:
+            lims = (
+                (0.1, 1.2) if var == "z" else ((-0.3, 0.3) if var == "c" else (-3, 3))
+            )
+        else:
+            lims = (
+                (0.1, 1.2) if var == "z" else ((-0.4, 0.4) if var == "c" else (-4, 4))
+            )
         for df in list_df:
             h2d, xedges, yedges, im = axs[i * 2].hist2d(
                 df[varx],
@@ -1805,20 +1813,25 @@ def plot_scatter_mosaic_retro_biases(
                 print(
                     f"% median {np.median(perc)}; max {np.max(perc)}; min {np.min(perc)}"
                 )
-        axs[i].plot(
-            [df[varx].min(), df[varx].max()],
-            [df[vary].min(), df[vary].max()],
+        axs[i * 2].plot(
+            [lims[0], lims[1]],
+            [lims[0], lims[1]],
             color="black",
             linewidth=1,
             linestyle="--",
-            zorder=10,
+            zorder=100,
         )
         xlabel = "true z" if var == "z" else f"${var}_{{true \ z}}$"
         ylabel = "SNphoto z" if var == "z" else f"${var}_{{SNphoto \ z}}$"
         axs[i * 2].set_xlabel(xlabel)
         axs[i * 2].set_ylabel(ylabel)
-        axs[i * 2].set_xlim(lims[0], lims[1])
-        axs[i * 2].set_ylim(lims[0], lims[1])
+        if afterHQ:
+            axs[i * 2].set_xlim(xedges[0], xedges[-1])
+            axs[i * 2].set_ylim(yedges[0], yedges[-1])
+        else:
+            axs[i * 2].set_xlim(lims[0], lims[1])
+            axs[i * 2].set_ylim(lims[0], lims[1])
+
     # colorbar
     plt.savefig(path_out)
 
