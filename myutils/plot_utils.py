@@ -1746,6 +1746,83 @@ def overplot_salt_distributions_lists_deep_shallow(
     del fig
 
 
+def plot_scatter_mosaic_retro_biases(
+    list_df, list_labels, path_out="tmp.png", print_biases=False
+):
+    # scatter
+    fig = plt.figure(constrained_layout=True, figsize=(17, 5))
+    gs = fig.add_gridspec(
+        1,
+        6,
+        hspace=0.05,
+        wspace=0.05,
+        width_ratios=[1, 0.1, 1, 0.1, 1, 0.1],
+    )
+    axs = gs.subplots(sharex=False, sharey=False)
+
+    for i, var in enumerate(["z", "c", "x1"]):
+        varx = "zHD" if var == "z" else var
+        vary = f"{var}PHOT_retro" if var == "z" else f"{var}_retro"
+        lims = (0.1, 1.2) if var == "z" else ((-0.4, 0.4) if var == "c" else (-4, 4))
+        for df in list_df:
+            h2d, xedges, yedges, im = axs[i * 2].hist2d(
+                df[varx],
+                df[vary],
+                bins=20,
+                cmap="magma_r",  # cmap="YlOrRd"  # , cmin=0.25
+                density=True,
+            )
+            cb = fig.colorbar(im, cax=axs[i * 2 + 1])
+            # chech distribution for a given x bin
+            tmp_bins = xedges
+            mean_bins = tmp_bins[:-1] + (tmp_bins[1] - tmp_bins[0]) / 2
+            df[f"{varx}_bin"] = pd.cut(df.loc[:, (varx)], tmp_bins, labels=mean_bins)
+            result_median = (
+                df[[f"{varx}_bin", varx]].groupby(f"{varx}_bin").median()[varx].values
+            )
+            # axs[i].scatter(mean_bins, result_median, marker="x")
+            if print_biases:
+                print(f"Biases for {varx}")
+                print(
+                    "bins",
+                    [round(mean_bins[i], 3) for i in range(len(mean_bins))],
+                )
+                print(
+                    "bias",
+                    [
+                        round(mean_bins[i] - result_median[i], 3)
+                        for i in range(len(mean_bins))
+                    ],
+                )
+                perc = [
+                    round(100 * (mean_bins[i] - result_median[i]) / mean_bins[i], 3)
+                    for i in range(len(mean_bins))
+                ]
+                print(
+                    "%",
+                    perc,
+                )
+                print(
+                    f"% median {np.median(perc)}; max {np.max(perc)}; min {np.min(perc)}"
+                )
+        axs[i].plot(
+            [df[varx].min(), df[varx].max()],
+            [df[vary].min(), df[vary].max()],
+            color="black",
+            linewidth=1,
+            linestyle="--",
+            zorder=10,
+        )
+        xlabel = "true z" if var == "z" else f"${var}_{{true \ z}}$"
+        ylabel = "SNphoto z" if var == "z" else f"${var}_{{SNphoto \ z}}$"
+        axs[i * 2].set_xlabel(xlabel)
+        axs[i * 2].set_ylabel(ylabel)
+        axs[i * 2].set_xlim(lims[0], lims[1])
+        axs[i * 2].set_ylim(lims[0], lims[1])
+    # colorbar
+    plt.savefig(path_out)
+
+
 def plot_scatter_mosaic_retro(
     list_df,
     list_labels,
@@ -1756,7 +1833,7 @@ def plot_scatter_mosaic_retro(
 ):
     # scatter
     fig = plt.figure(constrained_layout=True, figsize=(17, 5))
-    gs = fig.add_gridspec(1, 3, hspace=0.05, wspace=0.05)
+    gs = fig.add_gridspec(1, 4, hspace=0.05, wspace=0.05, width_ratios=[1, 1, 1, 0.1])
     axs = gs.subplots(sharex=False, sharey=False)
 
     for i, var in enumerate(["z", "c", "x1"]):
@@ -1764,11 +1841,12 @@ def plot_scatter_mosaic_retro(
         vary = f"{var}PHOT_retro" if var == "z" else f"{var}_retro"
         lims = (0.1, 1.2) if var == "z" else ((-0.4, 0.4) if var == "c" else (-4, 4))
         for idx_df, df in enumerate(list_df):
-            h2d, xedges, yedges, _ = axs[i].hist2d(
+            h2d, xedges, yedges, im = axs[i].hist2d(
                 df[varx],
                 df[vary],
                 bins=20,
                 cmap="magma_r",  # cmap="YlOrRd"  # , cmin=0.25
+                density=True,
             )
             # chech distribution for a given x bin
             tmp_bins = xedges
@@ -1810,13 +1888,15 @@ def plot_scatter_mosaic_retro(
             linestyle="--",
             zorder=10,
         )
+
         xlabel = "zspe" if var == "z" else f"{var} with zspe"
         ylabel = "SNphoto z" if var == "z" else f"{var} with SNphoto z"
         axs[i].set_xlabel(xlabel)
         axs[i].set_ylabel(ylabel)
         axs[i].set_xlim(lims[0], lims[1])
         axs[i].set_ylim(lims[0], lims[1])
-
+    # colorbar
+    cb = fig.colorbar(im, cax=axs[i + 1])
     # axs[i].legend(loc="best", prop={"size": 10})
     plt.savefig(path_out)
 

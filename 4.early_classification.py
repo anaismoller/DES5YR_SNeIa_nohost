@@ -39,7 +39,7 @@ def powers_of_two(x):
 
 
 def sampling_criteria(df, n_filters, n_unique_nights, snr):
-    """_summary_
+    """Apply sampling criteria to light-curves
 
     Args:
         df (pd.DataFrame): data
@@ -47,7 +47,7 @@ def sampling_criteria(df, n_filters, n_unique_nights, snr):
         n_unique_nights (int): number of measurements in each light-curve required
 
     Returns:
-        _type_: _description_
+        ids: SNIDs passing sampling
     """
     # unique flt occurences
     tmp = df.groupby("SNID")["FLT"].apply(lambda x: len(list(np.unique(x))))
@@ -91,7 +91,15 @@ def reformat_preds(pred_probs, ids=None):
 
 
 def get_lc_stats(df, dfmetadata):
-    # get some statistics of the photometry
+    """get some statistics for the light-curves
+
+    Args:
+        df (pd.DataFrame): selected photometry
+        dfmetadata (_type_): selected metadata
+
+    Returns:
+        pd.DataFrame: stats
+    """
     df["MJDint"] = df["MJD"].astype(int)
     tmp = df.groupby("SNID")["MJDint"].apply(lambda x: len(list(np.unique(x))))
     df_unights = pd.DataFrame()
@@ -116,38 +124,31 @@ def get_lc_stats(df, dfmetadata):
     return pd.merge(dfmetadata, df_out)
 
 
-def early_class(df_photo_sel, df_metadata, photoIa_wz_JLA, df_stats, path_model):
-    """_summary_
+def early_class(
+    df_photo_sel, df_metadata_sel, photoIa_wz_JLA, df_stats, path_model, cut_str
+):
+    """Get classification with photometry
 
     Args:
-        df_photo_sel (_type_): _description_
-        df_metadata (_type_): _description_
-        photoIa_wz_JLA (_type_): _description_
-        df_stats (_type_): _description_
-        path_model (_type_): _description_
+        df_photo_sel (pd.DataFrame): selected photometry
+        df_metadata_sel (pd.DataFrame): selected metadata
+        photoIa_wz_JLA (pd.DataFrame): M22
+        df_stats (pd.DataFrame): statistics dataframe
+        path_model (_type_): SNN model used for classification
+        cut_str (string): description of selection cut
 
     Returns:
-        _type_: _description_
+        pd.DataFrame: statistics dataframe
     """
-    nflt = 1
-    n_nights = 2
-    snr = 5
 
-    SNID_measurements_criteria = sampling_criteria(df_photo_sel, nflt, n_nights, snr)
-    df_metadata_sampling_trigger = df_metadata[
-        df_metadata.SNID.isin(SNID_measurements_criteria)
-    ]
-
-    df_metadata_sampling_trigger_u = get_lc_stats(
-        df_photo_sel, df_metadata_sampling_trigger
-    )
+    df_metadata_sampling_trigger_u = get_lc_stats(df_photo_sel, df_metadata_sel)
 
     df_stats = mu.cuts_deep_shallow_eventmag(
         df_metadata_sampling_trigger_u,
         photoIa_wz_JLA,
         df_photo_sel,
         df_stats=df_stats,
-        cut=f"-7<t<20 nflt:{nflt} nights:{n_nights} snr:{snr}",
+        cut=cut_str,
     )
 
     # PREDICTIONS
@@ -165,7 +166,7 @@ def early_class(df_photo_sel, df_metadata, photoIa_wz_JLA, df_stats, path_model)
     df_snn_tmp = df_snn_tmp.replace([np.inf, -np.inf], np.nan, inplace=False)
     df_snn = df_snn_tmp.dropna()
 
-    print("Obtain predictions")
+    print("Obtain predictions (~run_on_the_fly)")
 
     num_elem = len(df_snn.SNID.unique())
     num_chunks = num_elem // 10 + 1
@@ -246,12 +247,6 @@ if __name__ == "__main__":
         default=f"{DES5}/snndump_26XBOOSTEDDES/models/vanilla_S_100_CLF_2_R_none_photometry_DF_1.0_N_cosmo_lstm_64x4_0.05_1024_True_mean/vanilla_S_100_CLF_2_R_none_photometry_DF_1.0_N_cosmo_lstm_64x4_0.05_1024_True_mean.pt",
         help="Path to model for predictions",
     )
-    # parser.add_argument(
-    #     "--path_model_with_z",
-    #     type=str,
-    #     default=f"{DES5}/snndump_26XBOOSTEDDES/models/vanilla_S_100_CLF_2_R_zspe_photometry_DF_1.0_N_cosmo_lstm_64x4_0.05_1024_True_mean/vanilla_S_100_CLF_2_R_zspe_photometry_DF_1.0_N_cosmo_lstm_64x4_0.05_1024_True_mean.pt",
-    #     help="Path to data predictions",
-    # )
 
     # Init
     args = parser.parse_args()
@@ -288,6 +283,7 @@ if __name__ == "__main__":
     )
 
     df_metadata_u = get_lc_stats(df_photometry, df_metadata)
+
     # STATS all metadata
     df_stats = mu.cuts_deep_shallow_eventmag(
         df_metadata_u,
@@ -305,15 +301,14 @@ if __name__ == "__main__":
         photoIa_wz_JLA,
         df_photometry,
         df_stats=df_stats,
-        cut="+ transient status",
+        cut="+ transient status>0",
     )
 
-    print("PEAKMJD")
+    print("-30<PEAKMJD<1")
     # Using M22 peak
     salt_peak = du.load_salt_fits(
         f"{args.path_data}/DESALL_forcePhoto_real_snana_fits.SNANA.TEXT"
     )
-    # Photometry
     df_peakpho = pd.merge(
         df_photometry[
             [
@@ -340,155 +335,38 @@ if __name__ == "__main__":
     df_peakpho_sel = df_peakpho[
         (df_peakpho["window_time_cut"]) & (df_peakpho.SNID.isin(idxs_presel))
     ]
-    lu.print_blue("Selected before peak (-30<p<0)")
-
+    # apply sampling
+    nflt = 1
+    n_nights = 2
+    snr = 5
+    SNID_measurements_criteria = sampling_criteria(df_peakpho_sel, nflt, n_nights, snr)
+    df_metadata_sel = df_metadata[df_metadata.SNID.isin(SNID_measurements_criteria)]
     df_stats_peak = early_class(
-        df_peakpho_sel, df_metadata, photoIa_wz_JLA, df_stats, path_model
+        df_peakpho_sel,
+        df_metadata_sel,
+        photoIa_wz_JLA,
+        df_stats,
+        path_model,
+        "-30<peak<1",
     )
-    cols_to_print = [
-        "cut",
-        "total maglim<22.7",
-        "specIa maglim<22.7",
-        "M22 maglim<22.7",
-        "nonIa maglim<22.7",
-        "multiseason maglim<22.7",
-    ]
-    print(df_stats_peak[cols_to_print].to_latex(index=False))
 
-    cols_to_print = ["detections", "detections_std", "unights", "unights_std"]
-    print(df_stats_peak[cols_to_print].to_latex(index=False))
-
-    print("TRIGGER")
+    print("LSST-like TRIGGER")
     # Using PHOTFLAG 4096 (bit mask)
-    trigger_tmp = df_photometry[df_photometry["photo_detection"]]
-    trigger_tmp = trigger_tmp.sort_values(by=["SNID", "MJD"])
-    trigger_tmp = trigger_tmp[["SNID", "MJD"]]
-    trigger_group = trigger_tmp.groupby("SNID").min()
-    estimate_trig = pd.DataFrame()
-    estimate_trig["SNID"] = trigger_group.index
-    estimate_trig["trigger_MJD"] = trigger_group.MJD.values
+    detections_tmp = df_photometry[df_photometry["photo_detection"]]
+    detections_tmp = detections_tmp.sort_values(by=["SNID", "MJD"])
+    detections_tmp = detections_tmp[["SNID", "MJD"]]
+    LSSTtrigger_group = detections_tmp.groupby("SNID").min()
+    LSSTestimate_trig = pd.DataFrame()
+    LSSTestimate_trig["SNID"] = LSSTtrigger_group.index
+    LSSTestimate_trig["LSSTtrigger_MJD"] = LSSTtrigger_group.MJD.values
 
-    peak_merged = salt_peak[["SNID", "PKMJDINI", "SNTYPE"]].merge(estimate_trig)
-    peak_merged["observed peak - trigger"] = (
-        peak_merged["PKMJDINI"] - peak_merged["trigger_MJD"]
+    peak_merged = salt_peak[["SNID", "PKMJDINI", "SNTYPE"]].merge(LSSTestimate_trig)
+    peak_merged["observed peak - LSST trigger"] = (
+        peak_merged["PKMJDINI"] - peak_merged["LSSTtrigger_MJD"]
     )
     toplot_peak_merged = peak_merged[
         (peak_merged.PKMJDINI > 1)
     ]  # to eliminate non estimates
-    list_spec_sntypes = [
-        cu.spec_tags["Ia"],
-        # cu.spec_tags["Ia"] + cu.spec_tags["CC"] + cu.spec_tags["SLSN"],
-        cu.spec_tags["nonSN"],
-    ]
-    list_df_spec = [
-        toplot_peak_merged[toplot_peak_merged["SNTYPE"].isin(k)]
-        for k in list_spec_sntypes
-    ]
-
-    # stats
-    lu.print_blue("observed peak - trigger STATS")
-    for deltat in [30, 50]:
-        # M22
-        tmp = toplot_peak_merged[
-            (np.abs(toplot_peak_merged["observed peak - trigger"]) < deltat)
-            & (toplot_peak_merged.SNID.isin(photoIa_wz_JLA.SNID.values))
-        ]
-        perc = (
-            len(tmp)
-            * 100
-            / len(
-                toplot_peak_merged[
-                    toplot_peak_merged.SNID.isin(photoIa_wz_JLA.SNID.values)
-                ]
-            )
-        )
-        print(f"M22 within {deltat} {round(perc,1)} %")
-        # spec
-        tmp = toplot_peak_merged[
-            (np.abs(toplot_peak_merged["observed peak - trigger"]) < deltat)
-            & (toplot_peak_merged.SNTYPE.isin(cu.spec_tags["Ia"]))
-        ]
-        perc = (
-            len(tmp)
-            * 100
-            / len(
-                toplot_peak_merged[toplot_peak_merged.SNTYPE.isin(cu.spec_tags["Ia"])]
-            )
-        )
-        print(f"spec Ia within {deltat} {round(perc,1)} %")
-
-    pu.plot_histograms_listdf(
-        [toplot_peak_merged[toplot_peak_merged.SNID.isin(photoIa_wz_JLA.SNID.values)]]
-        + list_df_spec,
-        ["M22", "SN (spectroscopic)", "non SN (spectroscopic)"],
-        density=False,
-        varx="observed peak - trigger",
-        outname=f"{path_plots}/peak-trigger_M22spec.png",
-        log_scale=True,
-        nbins=30,
-    )
-
-    pu.plot_histograms_listdf(
-        [toplot_peak_merged] + list_df_spec,
-        ["DES-SN"] + ["spec SN", "spec non SN"],
-        density=False,
-        varx="observed peak - trigger",
-        outname=f"{path_plots}/peak-trigger.png",
-        log_scale=True,
-        nbins=30,
-    )
-    pu.plot_histograms_listdf(
-        list_df_spec,
-        ["spec SN", "spec non SN"],
-        density=False,
-        varx="observed peak - trigger",
-        outname=f"{path_plots}/peak-trigger_speconly.png",
-        log_scale=True,
-        nbins=30,
-    )
-
-    pu.plot_scatter_mosaic(
-        [toplot_peak_merged] + list_df_spec,
-        ["DES-SN"] + ["spec SN", "spec non SN"],
-        "PKMJDINI",
-        "trigger_MJD",
-        path_out=f"{path_plots}/scatter_peak_trigger.png",
-    )
-
-    fig = plt.figure()
-    plt.scatter(
-        toplot_peak_merged["PKMJDINI"],
-        toplot_peak_merged["trigger_MJD"],
-    )
-    plt.savefig(
-        f"{path_plots}/scatter_peak_trigger_onebyone.png",
-    )
-
-    # how about SNe Ia with t0 estimation?
-    salt_JLA = du.load_salt_fits(f"{args.path_data}/FITOPT000.FITRES")
-    JLA_merged = salt_JLA[["SNID", "PKMJD", "SNTYPE"]].merge(estimate_trig)
-    JLA_merged["t0-trigger"] = JLA_merged["PKMJD"] - JLA_merged["trigger_MJD"]
-    list_spec_sntypes = []
-
-    pu.plot_histograms_listdf(
-        [JLA_merged[JLA_merged["SNTYPE"].isin(cu.spec_tags["Ia"])]],
-        ["spec Ia"],
-        density=False,
-        varx="t0-trigger",
-        outname=f"{path_plots}/t0-trigger.png",
-        log_scale=True,
-        nbins=30,
-    )
-
-    # sadly trigger is not a great indicator
-    # where SNe are...
-    # other methods can be used once SN has reached maximum
-    # but early, this is all we have for the time being
-    #
-    # EARLY CLASSIFICATION
-    #
-
-    # Photometry
     df_trigpho = pd.merge(
         df_photometry[
             [
@@ -501,49 +379,41 @@ if __name__ == "__main__":
                 "photo_detection",
             ]
         ],
-        estimate_trig[["SNID", "trigger_MJD"]],
+        LSSTestimate_trig[["SNID", "LSSTtrigger_MJD"]],
         on="SNID",
         how="left",
     )
     df_trigpho["SNR"] = df_trigpho["FLUXCAL"] / df_trigpho["FLUXCALERR"]
     df_trigpho["window_time_cut"] = True
     mask = df_trigpho["MJD"] != -777.00
-    df_trigpho["window_delta_time"] = df_trigpho["MJD"] - df_trigpho["trigger_MJD"]
+    df_trigpho["window_delta_time"] = df_trigpho["MJD"] - df_trigpho["LSSTtrigger_MJD"]
 
-    # Early classification
-    # apply window of "SN-like event"
-    # -7 (in case there is forced phot before trigger)
+    lu.print_blue("Selected -7<LSST-trigger<20")
     df_trigpho.loc[mask, "window_time_cut"] = df_trigpho["window_delta_time"].apply(
         lambda x: True if x < 20 and x > -7 else False
     )
-    df_trigpho_sel = df_trigpho[
-        (df_trigpho["window_time_cut"])
-        & (df_trigpho.SNID.isin(idxs_presel))
-        # & (df_trigpho.SNID.isin(idxs_near_trigger))
+    df_trigphoLSST_sel = df_trigpho[
+        (df_trigpho["window_time_cut"]) & (df_trigpho.SNID.isin(idxs_presel))
     ]
-    lu.print_blue(f"Selected -7<trigger<{20}")
-
-    df_stats_trigger = early_class(
-        df_trigpho_sel, df_metadata, photoIa_wz_JLA, df_stats, path_model
+    # apply sampling
+    nflt = 1
+    n_nights = 2
+    snr = 5
+    SNID_measurements_criteria = sampling_criteria(
+        df_trigphoLSST_sel, nflt, n_nights, snr
+    )
+    df_metadata_sel = df_metadata[df_metadata.SNID.isin(SNID_measurements_criteria)]
+    df_stats_triggerLSST = early_class(
+        df_trigphoLSST_sel,
+        df_metadata_sel,
+        photoIa_wz_JLA,
+        df_stats,
+        path_model,
+        "-7<LSST-trigger<20",
     )
 
-    cols_to_print = [
-        "cut",
-        "total maglim<22.7",
-        "specIa maglim<22.7",
-        "M22 maglim<22.7",
-        "nonIa maglim<22.7",
-        "multiseason maglim<22.7",
-        "detections",
-        "detections_std",
-        "unights",
-        "unights_std",
-    ]
-    lu.print_blue("trigger")
-    print(df_stats_trigger[cols_to_print].to_latex(index=False))
-
     pu.hist_fup_targets_early(
-        df_stats_trigger,
+        df_stats_triggerLSST,
         path_plots=path_plots,
         subsamples_to_plot=[
             "total maglim<22.7",
@@ -555,7 +425,7 @@ if __name__ == "__main__":
         colors=["maroon", "darkorange", "royalblue", "indigo", "grey"],
     )
     pu.hist_fup_targets_early(
-        df_stats_trigger,
+        df_stats_triggerLSST,
         path_plots=path_plots,
         subsamples_to_plot=[
             "total maglim<22.7",
@@ -571,8 +441,256 @@ if __name__ == "__main__":
 
     #
     # With host galaxy photometric redshifts
-    #
-    # args.path_model_with_z
+
+    print("DES-like TRIGGER")
+    print("2 detections within 30 days")
+    # compute delta time between detections
+    detections_tmp.reset_index(inplace=True, drop=True)
+    detections_tmp["delta_time"] = detections_tmp["MJD"].diff()
+    # Fill the first row with 0 to replace NaN
+    detections_tmp.delta_time = detections_tmp.delta_time.fillna(0)
+    # identify  indivdual lcs to reset delta_time to zero
+    IDs = detections_tmp.SNID.values
+    idxs = np.where(IDs[:-1] != IDs[1:])[0] + 1
+    arr_delta_time = detections_tmp.delta_time.values
+    arr_delta_time[idxs] = 0
+    detections_tmp["delta_time"] = arr_delta_time
+
+    #  check which SNID have two detections within a month
+    # select detections within 30 days
+    # and in different nights
+    detections_within_30days = detections_tmp[
+        (detections_tmp.delta_time < 30) & (detections_tmp.delta_time > 1)
+    ]
+    # 2 detections within 30 days
+    detections_within_30days_grouped = detections_within_30days.groupby("SNID").count()
+    SNID_detections_2_within_30days = detections_within_30days_grouped[
+        detections_within_30days_grouped.MJD > 2
+    ].index
+    detections_within_30days = detections_within_30days[
+        detections_within_30days.SNID.isin(SNID_detections_2_within_30days)
+    ]
+    # get second detection date as trigger
+    DES_like_trigger = pd.DataFrame()
+    DES_like_trigger["SNID"] = (
+        detections_within_30days.groupby(["SNID"])["MJD"].nth(1).index
+    )
+    DES_like_trigger["MJD_1stdet"] = (
+        detections_within_30days.groupby(["SNID"])["MJD"].nth(0).values
+    )
+    DES_like_trigger["MJD_2nddet"] = (
+        detections_within_30days.groupby(["SNID"])["MJD"].nth(1).values
+    )
+
+    df_DEStrigpho = pd.merge(
+        df_photometry[
+            [
+                "SNID",
+                "MJD",
+                "FLT",
+                "FLUXCAL",
+                "FLUXCALERR",
+                "PHOTFLAG",
+                "photo_detection",
+            ]
+        ],
+        DES_like_trigger,
+        on="SNID",
+        how="left",
+    )
+    lu.print_blue("Selected -7<DES-like trigger<20")
+    df_DEStrigpho["SNR"] = df_DEStrigpho["FLUXCAL"] / df_DEStrigpho["FLUXCALERR"]
+    df_DEStrigpho["window_time_cut"] = True
+    mask = df_DEStrigpho["MJD"] != -777.00
+    df_DEStrigpho["window_delta_time"] = (
+        df_DEStrigpho["MJD"] - df_DEStrigpho["MJD_1stdet"]
+    )
+    df_DEStrigpho.loc[mask, "window_time_cut"] = df_DEStrigpho[
+        "window_delta_time"
+    ].apply(lambda x: True if x < 20 and x > -7 else False)
+    df_trigphoDES_sel = df_DEStrigpho[
+        (df_DEStrigpho["window_time_cut"]) & (df_DEStrigpho.SNID.isin(idxs_presel))
+    ]
+    nflt = 1
+    n_nights = 2
+    snr = 5
+    SNID_measurements_criteria = sampling_criteria(
+        df_trigphoDES_sel, nflt, n_nights, snr
+    )
+    df_metadata_sel = df_metadata[df_metadata.SNID.isin(SNID_measurements_criteria)]
+
+    df_stats_triggerDES = early_class(
+        df_trigphoDES_sel,
+        df_metadata_sel,
+        photoIa_wz_JLA,
+        df_stats,
+        path_model,
+        "-7<DES-like trigger<20",
+    )
+
+    pu.hist_fup_targets_early(
+        df_stats_triggerDES,
+        path_plots=path_plots,
+        subsamples_to_plot=[
+            "total maglim<22.7",
+            "M22 maglim<22.7",
+            "specIa maglim<22.7",
+            "multiseason maglim<22.7",
+            "nonIa maglim<22.7",
+        ],
+        colors=["maroon", "darkorange", "royalblue", "indigo", "grey"],
+    )
+    pu.hist_fup_targets_early(
+        df_stats_triggerDES,
+        path_plots=path_plots,
+        subsamples_to_plot=[
+            "total maglim<22.7",
+            "M22 maglim<22.7",
+            "specIa maglim<22.7",
+            "multiseason maglim<22.7",
+            "nonIa maglim<22.7",
+        ],
+        colors=["maroon", "darkorange", "royalblue", "indigo", "grey"],
+        suffix="log",
+        log_scale=True,
+    )
+
+    lu.print_blue("Stats early")
+    lu.print_blue("OzDES like")
+    cols_to_print = [
+        "cut",
+        "total maglim<22.7",
+        "specIa maglim<22.7",
+        "M22 maglim<22.7",
+        "nonIa maglim<22.7",
+        "multiseason maglim<22.7",
+    ]
+    lu.print_blue("Peak")
+    print(df_stats_peak[cols_to_print].to_latex(index=False))
+    lu.print_blue("DES-like trigger")
+    print(df_stats_triggerDES[cols_to_print].to_latex(index=False))
+    lu.print_blue("LSST-like trigger")
+    print(df_stats_triggerLSST[cols_to_print].to_latex(index=False))
+
+    cols_to_print = [
+        "cut",
+        "detections",
+        "detections_std",
+        "unights",
+        "unights_std",
+    ]
+    lu.print_blue("Peak")
+    print(df_stats_peak[cols_to_print].to_latex(index=False))
+    lu.print_blue("DES-like trigger")
+    print(df_stats_triggerDES[cols_to_print].to_latex(index=False))
+    lu.print_blue("LSST-like trigger")
+    print(df_stats_triggerLSST[cols_to_print].to_latex(index=False))
+
+    # Trigger comparisson
+    lu.print_blue("Observed peak - LSST-like trigger")
+    for deltat in [30, 50]:
+        # M22
+        tmp = toplot_peak_merged[
+            (np.abs(toplot_peak_merged["observed peak - LSST trigger"]) < deltat)
+            & (toplot_peak_merged.SNID.isin(photoIa_wz_JLA.SNID.values))
+        ]
+        perc = (
+            len(tmp)
+            * 100
+            / len(
+                toplot_peak_merged[
+                    toplot_peak_merged.SNID.isin(photoIa_wz_JLA.SNID.values)
+                ]
+            )
+        )
+        print(f"M22 within {deltat} {round(perc,1)} %")
+        # spec
+        tmp = toplot_peak_merged[
+            (np.abs(toplot_peak_merged["observed peak - LSST trigger"]) < deltat)
+            & (toplot_peak_merged.SNTYPE.isin(cu.spec_tags["Ia"]))
+        ]
+        perc = (
+            len(tmp)
+            * 100
+            / len(
+                toplot_peak_merged[toplot_peak_merged.SNTYPE.isin(cu.spec_tags["Ia"])]
+            )
+        )
+        print(f"spec Ia within {deltat} {round(perc,1)} %")
+
+    list_spec_sntypes = [
+        cu.spec_tags["Ia"],
+        cu.spec_tags["nonSN"],
+    ]
+    list_df_spec = [
+        toplot_peak_merged[toplot_peak_merged["SNTYPE"].isin(k)]
+        for k in list_spec_sntypes
+    ]
+    pu.plot_histograms_listdf(
+        [toplot_peak_merged[toplot_peak_merged.SNID.isin(photoIa_wz_JLA.SNID.values)]]
+        + list_df_spec,
+        ["M22", "SN (spectroscopic)", "non SN (spectroscopic)"],
+        density=False,
+        varx="observed peak - LSST trigger",
+        outname=f"{path_plots}/peak-trigger_M22spec.png",
+        log_scale=True,
+        nbins=30,
+    )
+
+    pu.plot_histograms_listdf(
+        [toplot_peak_merged] + list_df_spec,
+        ["DES-SN"] + ["spec SN", "spec non SN"],
+        density=False,
+        varx="observed peak - LSST trigger",
+        outname=f"{path_plots}/peak-trigger.png",
+        log_scale=True,
+        nbins=30,
+    )
+    pu.plot_histograms_listdf(
+        list_df_spec,
+        ["spec SN", "spec non SN"],
+        density=False,
+        varx="observed peak - LSST trigger",
+        outname=f"{path_plots}/peak-trigger_speconly.png",
+        log_scale=True,
+        nbins=30,
+    )
+
+    pu.plot_scatter_mosaic(
+        [toplot_peak_merged] + list_df_spec,
+        ["DES-SN"] + ["spec SN", "spec non SN"],
+        "PKMJDINI",
+        "LSSTtrigger_MJD",
+        path_out=f"{path_plots}/scatter_peak_trigger.png",
+    )
+
+    fig = plt.figure()
+    plt.scatter(
+        toplot_peak_merged["PKMJDINI"],
+        toplot_peak_merged["LSSTtrigger_MJD"],
+    )
+    plt.savefig(
+        f"{path_plots}/scatter_peak_trigger_onebyone.png",
+    )
+
+    print("SNe Ia with SALT2")
+    # how about SNe Ia with t0 estimation?
+    salt_JLA = du.load_salt_fits(f"{args.path_data}/FITOPT000.FITRES")
+    JLA_merged = salt_JLA[["SNID", "PKMJD", "SNTYPE"]].merge(LSSTestimate_trig)
+    JLA_merged["t0-trigger"] = JLA_merged["PKMJD"] - JLA_merged["LSSTtrigger_MJD"]
+    list_spec_sntypes = []
+
+    pu.plot_histograms_listdf(
+        [JLA_merged[JLA_merged["SNTYPE"].isin(cu.spec_tags["Ia"])]],
+        ["spec Ia"],
+        density=False,
+        varx="t0-trigger",
+        outname=f"{path_plots}/t0-trigger.png",
+        log_scale=True,
+        nbins=30,
+    )
+
+    # sadly LSST-like trigger is not a great indicator for SN-like variation
 
     # Rubin + 4MOST TiDES
     lu.print_blue("Rubin + 4MOST TiDES")
@@ -584,4 +702,4 @@ if __name__ == "__main__":
         "nonIa maglim<23.5",
         "multiseason maglim<23.5",
     ]
-    print(df_stats_trigger[cols_to_print].to_latex(index=False))
+    print(df_stats_triggerLSST[cols_to_print].to_latex(index=False))
