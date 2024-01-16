@@ -702,4 +702,7 @@ if __name__ == "__main__":
         "nonIa maglim<23.5",
         "multiseason maglim<23.5",
     ]
+    print("LSST-like trigger")
     print(df_stats_triggerLSST[cols_to_print].to_latex(index=False))
+    print("DES-like trigger")
+    print(df_stats_triggerDES[cols_to_print].to_latex(index=False))

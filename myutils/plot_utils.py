@@ -106,7 +106,7 @@ bins_dic = {
     "average_probability_set_0": np.linspace(0.0, 1.0, 12),
     "HOSTGAL_MAG_r": np.linspace(17, 29, 12),
     "sfr": np.linspace(-10, 5, 12),
-    "mass": np.linspace(5, 12, 10),
+    "mass": np.linspace(7, 12, 10),
     "PHOTOZ": np.linspace(0.1, 1.1, 12),
 }
 chi_bins_dic = {
@@ -124,9 +124,55 @@ chi_bins_dic = {
     "m0obs_i_zspe": np.linspace(21, 25, 12),
     "HOSTGAL_MAG_r": np.linspace(17, 29, 12),
     "sfr": np.linspace(-10, 5, 12),
-    "mass": np.linspace(5, 12, 10),
+    "mass": np.linspace(7, 12, 10),
     "PHOTOZ": np.linspace(0.1, 1.1, 12),
 }
+
+
+def plot_errorbar_simple(
+    axs,
+    x,
+    y,
+    yerr,
+    color="grey",
+    zorder=-1000,
+    elinewidth=1,
+    fmt="o",
+    markersize=1,
+    alpha=1,
+    linestyle="solid",
+    label=None,
+):
+    """_summary_
+
+    Args:
+        axs (_type_): Axis used
+        x (np.array): variable x
+        y (np.array): variable y
+        yerr (np.array): erro variable y
+        color (str, optional): Colour. Defaults to "grey".
+        zorder (int, optional): order. Defaults to -1000.
+        elinewidth (int, optional): Error line width. Defaults to 1.
+        fmt (str, optional): Marke. Defaults to "o".
+        markersize (int, optional): Marker size. Defaults to 1.
+        alpha (float, optional): transparency. Defaults to 1.
+
+    Returns:
+        errorbar: error bar plot
+    """
+    return axs.errorbar(
+        x,
+        y,
+        yerr=yerr,
+        zorder=zorder,
+        color=color,
+        elinewidth=elinewidth,
+        fmt=fmt,
+        markersize=markersize,
+        alpha=alpha,
+        linestyle=linestyle,
+        label=label,
+    )
 
 
 def my_chisquare(obs_list, obs_error_list, sim_list):
@@ -521,6 +567,8 @@ def plot_errorbar_binned(
     color_offset=0,
     color_list=[],
     marker_size=10,
+    plot_lines=False,
+    bins=[],
 ):
     color_list = ALL_COLORS_nodata if len(color_list) < 2 else color_list
     if axs == None:
@@ -562,8 +610,9 @@ def plot_errorbar_binned(
                 zorder=-20,
             )
         print(list_labels[i], color_list[i + color_offset])
+        x_toplot = bins if len(bins) > 1 else df.groupby(binname).mean()[varx].values
         axs.errorbar(
-            df.groupby(binname).mean()[varx].values,
+            x_toplot,
             df.groupby(binname).mean()[vary].values,
             yerr=df.groupby(binname).std()[vary].values
             / np.sqrt(df.groupby(binname)[vary].count()).values,
@@ -580,6 +629,24 @@ def plot_errorbar_binned(
             zorder=50 if "data" in list_labels[i] else i,  # hack to put data on top
             ms=marker_size,
         )
+        if plot_lines:
+            axs.errorbar(
+                x_toplot,
+                df.groupby(binname).mean()[vary].values,
+                yerr=df.groupby(binname).std()[vary].values
+                / np.sqrt(df.groupby(binname)[vary].count()).values,
+                fmt="o" if "data" in list_labels[i]
+                # or "photo" in list_labels[i]
+                or "DES" in list_labels[i] else "",
+                color=color_list[i + color_offset]
+                if data_color_override
+                else color_dic["data"]
+                if "data" in list_labels[i]
+                # or "photo" in list_labels[i]
+                or "DES" in list_labels[i] else color_list[i + color_offset],
+                zorder=50 if "data" in list_labels[i] else i,  # hack to put data on top
+                linestyle="solid",
+            )
 
     if not ignore_y_label:
         axs.set_ylabel(vary, fontsize=20)
