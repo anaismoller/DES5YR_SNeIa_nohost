@@ -182,6 +182,15 @@ if __name__ == "__main__":
     photoIa_nz_JLA["mass to plot"] = photoIa_nz_JLA["mass_SNphotoz"]
     photoIa_wz_JLA["mass to plot"] = photoIa_wz_JLA["mass"]
     spec_Ia["mass to plot"] = spec_Ia["mass"]
+
+    photoIa_nz_JLA["mass lowerr to plot"] = photoIa_nz_JLA["mass_lowerr_SNphotoz"]
+    photoIa_wz_JLA["mass lowerr to plot"] = photoIa_wz_JLA["mass_lowerr"]
+    spec_Ia["mass lowerr to plot"] = spec_Ia["mass_lowerr"]
+
+    photoIa_nz_JLA["mass upperr to plot"] = photoIa_nz_JLA["mass_upperr_SNphotoz"]
+    photoIa_wz_JLA["mass upperr to plot"] = photoIa_wz_JLA["mass_upperr"]
+    spec_Ia["mass upperr to plot"] = spec_Ia["mass_upperr"]
+
     photoIa_nz_JLA["HOST_DDLR to plot"] = photoIa_nz_JLA["HOST_DDLR_fittedz"]
     photoIa_wz_JLA["HOST_DDLR to plot"] = photoIa_wz_JLA["HOST_DDLR_zspe"]
     spec_Ia["HOST_DDLR to plot"] = spec_Ia["HOST_DDLR_zspe"]
@@ -302,12 +311,20 @@ if __name__ == "__main__":
         cuts(photoIa_nz_JLA, "mass to plot")["mass to plot"],
         cuts(photoIa_nz_JLA, "mass to plot")["x1 to plot"],
         yerr=cuts(photoIa_nz_JLA, "mass to plot")["x1 to plot err"],
+        xerr=np.array(
+            list(
+                zip(
+                    cuts(photoIa_nz_JLA, "mass to plot")["mass_lowerr_SNphotoz"],
+                    cuts(photoIa_nz_JLA, "mass to plot")["mass_upperr_SNphotoz"],
+                )
+            )
+        ).T,
         zorder=-1000,
         color="grey",
         elinewidth=1,
         fmt="o",
         markersize=1,
-        alpha=0.5,
+        alpha=0.3,
     )
     # mass step
     tmp_ms = cuts(photoIa_nz_JLA, "mass to plot")
@@ -386,16 +403,22 @@ if __name__ == "__main__":
         cuts(photoIa_nz_JLA, "mass to plot")["mass to plot"],
         cuts(photoIa_nz_JLA, "mass to plot")["x1 to plot"],
         yerr=cuts(photoIa_nz_JLA, "mass to plot")["x1 to plot err"],
+        xerr=np.array(
+            list(
+                zip(
+                    cuts(photoIa_nz_JLA, "mass to plot")["mass_lowerr_SNphotoz"],
+                    cuts(photoIa_nz_JLA, "mass to plot")["mass_upperr_SNphotoz"],
+                )
+            )
+        ).T,
         zorder=-1000,
         color="grey",
         elinewidth=1,
         fmt="o",
         markersize=1,
-        alpha=0.5,
+        alpha=0.3,
     )
-    axs[0].legend(
-        fontsize=25, title_fontsize=25, loc=1, title="DES SNe Ia HQ (SNphoto z)"
-    )
+    axs[0].legend(fontsize=25, title_fontsize=25, loc=1)
     axs[0].set_ylim(-2.5, 2.5)
     # mass step
     tmp_ms = cuts(photoIa_nz_JLA, "mass to plot")
@@ -464,16 +487,22 @@ if __name__ == "__main__":
         cuts(tmp, "mass to plot")["mass to plot"],
         cuts(tmp, "mass to plot")["x1 to plot"],
         yerr=cuts(tmp, "mass to plot")["x1 to plot err"],
+        xerr=np.array(
+            list(
+                zip(
+                    cuts(tmp, "mass to plot")["mass_lowerr"],
+                    cuts(tmp, "mass to plot")["mass_upperr"],
+                )
+            )
+        ).T,
         zorder=-1000,
         color="grey",
         elinewidth=1,
         fmt="o",
         markersize=1,
-        alpha=0.5,
+        alpha=0.3,
     )
-    axs[1].legend(
-        fontsize=25, title_fontsize=25, loc=1, title="DES SNe Ia HQ (w. host z)"
-    )
+    axs[1].legend(fontsize=25, title_fontsize=25, loc=1)
     axs[1].set_ylim(-2.5, 2.5)
     # mass step
     tmp_ms = cuts(tmp, "mass to plot")
@@ -550,14 +579,22 @@ if __name__ == "__main__":
         mixed_sample[mixed_sample.mass > 7]["mass"],
         mixed_sample[mixed_sample.mass > 7]["x1 to plot"],
         yerr=mixed_sample[mixed_sample.mass > 7]["x1 to plot err"],
+        xerr=np.array(
+            list(
+                zip(
+                    mixed_sample[mixed_sample.mass > 7]["mass lowerr to plot"],
+                    mixed_sample[mixed_sample.mass > 7]["mass upperr to plot"],
+                )
+            )
+        ).T,
         zorder=-1000,
         color="grey",
         elinewidth=1,
         fmt="o",
         markersize=1,
-        alpha=0.5,
+        alpha=0.3,
     )
-    axs[2].legend(fontsize=25, title_fontsize=25, loc=1, title="Mixed sample")
+    axs[2].legend(fontsize=25, title_fontsize=25, loc=1)
     axs[2].set_ylim(-2.5, 2.5)
     # mass step
     tmp_ms = cuts(mixed_sample, "mass to plot")
@@ -684,7 +721,7 @@ if __name__ == "__main__":
         elinewidth=1,
         fmt="o",
         markersize=1,
-        alpha=0.5,
+        alpha=0.3,
     )
     axs[0].legend(fontsize=15, loc=1, title="DES SNe Ia HQ (SNphoto z)")
 
@@ -730,7 +767,7 @@ if __name__ == "__main__":
         elinewidth=1,
         fmt="o",
         markersize=1,
-        alpha=0.5,
+        alpha=0.3,
     )
     axs[1].legend(fontsize=15, loc=1, title="DES SNe Ia HQ (with host zspe)")
     # a mix of the samples using best z
@@ -768,7 +805,7 @@ if __name__ == "__main__":
         elinewidth=1,
         fmt="o",
         markersize=1,
-        alpha=0.5,
+        alpha=0.3,
     )
 
     ylabel = var.replace("to plot", "")
