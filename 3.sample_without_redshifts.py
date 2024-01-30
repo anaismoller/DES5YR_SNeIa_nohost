@@ -402,6 +402,7 @@ if __name__ == "__main__":
     print(
         f"% without host-galaxy {100-np.round(rnn05['with host'].values*100/rnn05['total'].values)}% = {(rnn05['with host'].values)}"
     )
+    print(f"no zfinal {rnn05['without redshift'].values}")
 
     print(f"mag<24 {rnn05['<24 mag'].values}")
     print(f"mag<24 and no zfinal {rnn05['<24 mag and no zspe'].values}")
