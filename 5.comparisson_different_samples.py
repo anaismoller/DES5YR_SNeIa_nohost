@@ -459,12 +459,13 @@ if __name__ == "__main__":
     tmp["x1 to plot"] = tmp["x1_zspe"]
     tmp["mass_bin_zspe"] = pd.cut(tmp.loc[:, ("mass to plot")], pu.bins_dic["mass"])
     list_df = preprocess(spec_Ia, photoIa_wz_JLA, tmp, "mass", "mass")
+    list_df = list_df[:-1]
     axs[1] = pu.plot_errorbar_binned(
         list_df,
         [
             "DES SNe Ia spectroscopic",
             "DES SNe Ia M22",
-            "DES SNe Ia HQ (host zspe)",
+            # "DES SNe Ia HQ (host zspe)",
         ],
         binname="mass_bin",
         varx="mass to plot",
@@ -476,12 +477,27 @@ if __name__ == "__main__":
             for k in [
                 "DES SNe Ia spectroscopic",
                 "DES SNe Ia M22",
-                "DES SNe Ia HQ (SNphoto z)",
+                # "DES SNe Ia HQ (SNphoto z)",
             ]
         ],
         plot_lines=True,
         bins=mean_bins,
     )
+    # mixedasides
+    df = tmp.copy()
+    x_toplot = df.groupby("mass_bin").mean()["mass to plot"].values
+    axs[1].errorbar(
+        x_toplot,
+        df.groupby("mass_bin").mean()[var].values,
+        yerr=df.groupby("mass_bin").std()[var].values
+        / np.sqrt(df.groupby("mass_bin")[var].count()).values,
+        fmt="o",
+        color=pu.SAMPLES_COLORS["DES SNe Ia HQ (SNphoto z)"],
+        linestyle="dotted",
+        zorder=100,
+        label="DES SNe Ia HQ (host zspe)",
+    )
+
     # scatter bellow
     axs[1].errorbar(
         cuts(tmp, "mass to plot")["mass to plot"],
@@ -551,12 +567,12 @@ if __name__ == "__main__":
     )
 
     list_df = preprocess(spec_Ia, photoIa_wz_JLA, mixed_sample, "mass", "mass")
+    list_df = list_df[:-1]
     axs[2] = pu.plot_errorbar_binned(
         list_df,
         [
             "DES SNe Ia spectroscopic",
             "DES SNe Ia M22",
-            "DES SNe Ia HQ (host zspe or SNphoto z)",
         ],
         binname="mass_bin",
         varx="mass to plot",
@@ -568,12 +584,26 @@ if __name__ == "__main__":
             for k in [
                 "DES SNe Ia spectroscopic",
                 "DES SNe Ia M22",
-                "DES SNe Ia HQ (SNphoto z)",
             ]
         ],
         plot_lines=True,
         bins=mean_bins,
     )
+    # mixedasides
+    df = mixed_sample.copy()
+    x_toplot = df.groupby("mass_bin").mean()["mass to plot"].values
+    axs[2].errorbar(
+        x_toplot,
+        df.groupby("mass_bin").mean()[var].values,
+        yerr=df.groupby("mass_bin").std()[var].values
+        / np.sqrt(df.groupby("mass_bin")[var].count()).values,
+        fmt="o",
+        color=pu.SAMPLES_COLORS["DES SNe Ia HQ (SNphoto z)"],
+        linestyle="dashed",
+        zorder=100,
+        label="DES SNe Ia HQ (host zspe or SNphoto z)",
+    )
+
     # # scatter bellow
     axs[2].errorbar(
         mixed_sample[mixed_sample.mass > 7]["mass"],
