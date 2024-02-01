@@ -408,6 +408,11 @@ if __name__ == "__main__":
     print(f"mag<24 and no zfinal {rnn05['<24 mag and no zspe'].values}")
     print(f"OzDES QOP 2 {rnn05['OzDES QOP 2'].values}")
 
+    # for fup studies where I estimate potential low-z, see
+    potential_fup_nohostmag = photoIa_noz[
+        (photoIa_noz.REDSHIFT_FINAL < 0) & (photoIa_noz.HOSTGAL_MAG_r < 30)
+    ]
+
     # save photoIa that pass SNN>0.5
     photoIa_noz.to_csv(f"{path_samples}/photoIanoz.csv")
     # load salt fits wzspe
@@ -518,6 +523,16 @@ if __name__ == "__main__":
     salt_fits_noz = du.load_salt_fits(args.path_data_fits_redshiftsaltfitted)
     # merge preds + salt
     photoIa_noz_saltz = pd.merge(photoIa_noz, salt_fits_noz, on=["SNID", "SNTYPE"])
+
+    # parenthesis, checking potential host fup redshifts
+    potential_fup_nohostmag_saltz = pd.merge(
+        potential_fup_nohostmag, salt_fits_noz, on=["SNID", "SNTYPE"]
+    )
+    # import ipdb
+
+    # ipdb.set_trace()
+
+    #
     print(
         f"# of events with simultaneous SALT fit {len(salt_fits_noz)} from which {len(photoIa_noz_saltz)} are photoIa"
     )
@@ -589,6 +604,13 @@ if __name__ == "__main__":
         photoIa_wz_JLA,
         df_stats=df_stats,
         cut="HQ (wo AGNs)",
+    )
+
+    print("To compare with expected numbers from simulations")
+    print("z<1.2")
+    photoIanoz_saltz_JLA_zlt12 = photoIanoz_saltz_JLA[photoIanoz_saltz_JLA.zHD < 1.2]
+    df_stats = mu.cuts_deep_shallow(
+        photoIanoz_saltz_JLA_zlt12, photoIa_wz_JLA, df_stats=df_stats, cut="z<1.2"
     )
 
     lu.print_blue("Stats")
