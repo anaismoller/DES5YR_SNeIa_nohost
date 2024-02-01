@@ -14,7 +14,7 @@ DES = os.getenv("DES")
 path_data = f"{DES}/data/DESALL_forcePhoto_real_snana_fits"
 path_samples = "./samples"
 path_M22 = f"{path_samples}/BaselineDESsample_JLAlikecuts.csv"
-path_M23 = f"{path_samples}/photoIanoz_saltz_JLA.csv"  # JLA quality
+path_M24 = f"{path_samples}/photoIanoz_saltz_HQ.csv"  # JLA quality
 path_hostproperties = f"{DES}/data/hostproperties/DES_All_SNe_specz_photoz_ugrizJHK_mangled_sedfit_pegase_kroupa_20220919.csv"  # Wiseman
 path_hostproperties_SNphotoz = f"{DES}/data/hostproperties/mass_SNphotoz/results_deep_SN_hosts_all_fields_ugrizJHK_SALT2REDSHIFT_forsedfit.cat_pegase_chab_mangle.sav.txt"  # Wiseman, Sullivan
 path_salt_wzspe = f"{DES}/data/DESALL_forcePhoto_real_snana_fits/D_JLA_DATA5YR_DENSE_SNR/output/DESALL_forcePhoto_real_snana_fits/FITOPT000.FITRES.gz"
@@ -65,7 +65,7 @@ if __name__ == "__main__":
     spec_Ia = DES_all[DES_all.SNTYPE.isin([1, 101])]
     # M22, this work
     photoIa_wz_JLA = pd.read_csv(path_M22)
-    photoIa_nz_JLA = pd.read_csv(path_M23)
+    photoIa_nz_JLA = pd.read_csv(path_M24)
 
     # Load fits
     # SALT fit using spectroscopic redshift
