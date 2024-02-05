@@ -409,7 +409,7 @@ if __name__ == "__main__":
     print(f"OzDES QOP 2 {rnn05['OzDES QOP 2'].values}")
 
     # for fup studies where I estimate potential low-z, see
-    potential_fup_nohostmag = photoIa_noz[
+    potential_fup_nohostz = photoIa_noz[
         (photoIa_noz.REDSHIFT_FINAL < 0) & (photoIa_noz.HOSTGAL_MAG_r < 30)
     ]
 
@@ -525,12 +525,27 @@ if __name__ == "__main__":
     photoIa_noz_saltz = pd.merge(photoIa_noz, salt_fits_noz, on=["SNID", "SNTYPE"])
 
     # parenthesis, checking potential host fup redshifts
-    potential_fup_nohostmag_saltz = pd.merge(
-        potential_fup_nohostmag, salt_fits_noz, on=["SNID", "SNTYPE"]
+    potential_fup_nohostz_saltz = pd.merge(
+        potential_fup_nohostz, salt_fits_noz, on=["SNID", "SNTYPE"]
     )
-    # import ipdb
-
-    # ipdb.set_trace()
+    print(f"POTENTIAL FUP HOSTS {len(potential_fup_nohostz_saltz)}")
+    plt.clf()
+    plt.hist(potential_fup_nohostz_saltz["zHD"])
+    plt.xlabel("SNphoto z")
+    plt.savefig(f"{path_dump}/plots_fup/SNPhotoz.png")
+    print(
+        f'SNphotoz<0.5 {len(potential_fup_nohostz_saltz[potential_fup_nohostz_saltz["zHD"]<0.5])}'
+    )
+    print(
+        f'SNphotoz<0.3 {len(potential_fup_nohostz_saltz[potential_fup_nohostz_saltz["zHD"]<0.3])}'
+    )
+    plt.clf()
+    plt.hist(potential_fup_nohostz_saltz["HOSTGAL_MAG_r"])
+    plt.xlabel("HOSTGAL MAG r")
+    plt.savefig(f"{path_dump}/plots_fup/HOSTGAL_MAG_r.png")
+    print(
+        f"HOSTGAL MAG r<22 {len(potential_fup_nohostz_saltz[potential_fup_nohostz_saltz['HOSTGAL_MAG_r']<22])}"
+    )
 
     #
     print(
@@ -592,7 +607,6 @@ if __name__ == "__main__":
     photoIanoz_saltz_JLA = photoIanoz_saltz_JLA[
         ~photoIanoz_saltz_JLA.SNID.isin(SNIDs_to_eliminate)
     ]
-
     photoIanoz_saltz_HQ = photoIanoz_saltz_JLA[
         (photoIanoz_saltz_JLA.zHD > 0.05) & (photoIanoz_saltz_JLA.zHD < 1.2)
     ]
@@ -603,15 +617,23 @@ if __name__ == "__main__":
 
     # save sample
     photoIanoz_saltz_HQ.to_csv(f"{path_samples}/photoIanoz_saltz_HQ.csv")
-    print(
-        f"Saved {len(photoIanoz_saltz_HQ)} average_probability_set_0>0.5 after ALL quality cuts"
-    )
+    print(f"Saved {len(photoIanoz_saltz_HQ)} photoIanoz saltz HQ")
 
     df_stats = mu.cuts_deep_shallow(
         photoIanoz_saltz_HQ,
         photoIa_wz_JLA,
         df_stats=df_stats,
         cut="HQ (wo AGNs) + zrange",
+    )
+
+    # redshift greater than 1.2
+    photoIanoz_saltz_JLA_z_gt_12 = photoIanoz_saltz_JLA[photoIanoz_saltz_JLA.zHD > 1.2]
+    photoIanoz_saltz_JLA_z_gt_12_wzspe = photoIanoz_saltz_JLA_z_gt_12[
+        photoIanoz_saltz_JLA_z_gt_12.REDSHIFT_FINAL > 0
+    ]
+    print(f"PhotoIanoz JLA SNphotoz>1.2  {len(photoIanoz_saltz_JLA_z_gt_12)}")
+    print(
+        f"{len(photoIanoz_saltz_JLA_z_gt_12_wzspe)} with zspe median:{round(photoIanoz_saltz_JLA_z_gt_12_wzspe['REDSHIFT_FINAL'].median(),2)} max:{round(photoIanoz_saltz_JLA_z_gt_12_wzspe['REDSHIFT_FINAL'].max(),2)}"
     )
 
     lu.print_blue("Stats")
