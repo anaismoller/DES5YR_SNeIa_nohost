@@ -905,3 +905,62 @@ if __name__ == "__main__":
     plt.ylabel("x1")
     plt.xlabel(r"host stellar mass (log($M_{*}$/$M_{\odot}$))")
     plt.savefig(f"{path_plots}/mass_step_comparisson.png")
+
+    # extra
+    # Mat Smith
+    # x1 (M22) v x1 (z_spec) and x1 (z_spec) v x1 (photoz)?
+    fig = plt.figure()
+    plt.errorbar(
+        M24_w_zspe["x1_fittedz"],
+        M24_w_zspe["x1_zspe"],
+        yerr=M24_w_zspe["x1ERR_fittedz"],
+        fmt="o",
+        alpha=0.3,
+    )
+    plt.xlabel(r"x1_\{SNphoto z}")
+    plt.ylabel(r"x1_\{zspe}")
+    plt.plot(
+        [-3, 3],
+        [-3, 3],
+        color="black",
+        linewidth=1,
+        linestyle="--",
+        zorder=100,
+    )
+    plt.savefig(f"{path_plots}/M24_wzspe_x1.png")
+    # mass
+
+    fig = plt.figure()
+    plt.errorbar(
+        M24_w_zspe["mass_SNphotoz"],
+        M24_w_zspe["mass"],
+        xerr=np.array(
+            list(
+                zip(
+                    M24_w_zspe["mass_lowerr_SNphotoz"],
+                    M24_w_zspe["mass_upperr_SNphotoz"],
+                )
+            )
+        ).T,
+        yerr=np.array(
+            list(
+                zip(
+                    M24_w_zspe["mass_lowerr"],
+                    M24_w_zspe["mass_upperr"],
+                )
+            )
+        ).T,
+        fmt="o",
+        alpha=0.3,
+    )
+    plt.xlabel(r"x1_\{SNphoto z}")
+    plt.ylabel(r"x1_\{zspe}")
+    plt.plot(
+        [7.5, 12.5],
+        [7.5, 12.5],
+        color="black",
+        linewidth=1,
+        linestyle="--",
+        zorder=100,
+    )
+    plt.savefig(f"{path_plots}/M24_wzspe_mass.png")
