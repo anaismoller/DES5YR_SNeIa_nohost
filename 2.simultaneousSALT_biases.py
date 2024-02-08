@@ -171,8 +171,8 @@ def plot_freez_correlations(list_df, list_labels=["tmp"], path_plots="./"):
             )
     axs[1].axis("equal")
     axs[1].set_ylim(-0.04, 0.04)
-    axs[1].set_xlabel(r"$\Delta z_{true,SNphoto \ z}$", fontsize=20)
-    axs[1].set_ylabel(r"$\Delta (\alpha x_1)_{true,SNphoto \ z}$", fontsize=20)
+    axs[1].set_xlabel(r"$z_{true}$", fontsize=20)
+    axs[1].set_ylabel(r"$\Delta (\alpha x1)_{true,SNphoto \ z}$", fontsize=20)
     plt.savefig(f"{path_plots}/migration_cx1_zHD.png")
 
 
