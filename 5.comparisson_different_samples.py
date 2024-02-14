@@ -243,23 +243,24 @@ if __name__ == "__main__":
             bins=mean_bins,
         )
         # subsample with zspe (using those fits)
-        if var != "HOSTGAL_MAG_r to plot":
-            tmp = photoIa_nz_JLA.copy()
-            tmp["mass to plot"] = tmp["mass"]
-            tmp["c to plot"] = tmp["c_zspe"]
-            tmp["x1 to plot"] = tmp["x1_zspe"]
-            tmp = cuts(tmp, var)
-            tmp["zHD_bin_zspe"] = pd.cut(tmp.loc[:, ("zHD")], pu.bins_dic["zHD"])
-            axs[i].errorbar(
-                mean_bins,
-                tmp.groupby("zHD_bin_zspe").mean()[var].values,
-                yerr=tmp.groupby("zHD_bin_zspe").std()[var].values
-                / np.sqrt(tmp.groupby("zHD_bin_zspe")[var].count()).values,
-                color=pu.SAMPLES_COLORS["DES SNe Ia HQ (SNphoto z)"],
-                zorder=-100,
-                linestyle="dotted",
-                label="DES SNe Ia HQ (spectroscopic z)",
-            )
+        tmp = photoIa_nz_JLA.copy()
+        tmp["mass to plot"] = tmp["mass"]
+        tmp["c to plot"] = tmp["c_zspe"]
+        tmp["x1 to plot"] = tmp["x1_zspe"]
+        tmp["HOSTGAL_MAG_r to plot"] = tmp[~tmp.c_zspe.isna()]["HOSTGAL_MAG_r to plot"]
+        tmp = cuts(tmp, var)
+        tmp["zHD_bin_zspe"] = pd.cut(tmp.loc[:, ("zHD")], pu.bins_dic["zHD"])
+        axs[i].errorbar(
+            mean_bins,
+            tmp.groupby("zHD_bin_zspe").mean()[var].values,
+            yerr=tmp.groupby("zHD_bin_zspe").std()[var].values
+            / np.sqrt(tmp.groupby("zHD_bin_zspe")[var].count()).values,
+            color=pu.SAMPLES_COLORS["DES SNe Ia HQ (SNphoto z)"],
+            zorder=-100,
+            linestyle="dotted",
+            label="DES SNe Ia HQ (host zspe)",
+            linewidth=5,
+        )
         ylabel = (
             "host r magnitude"
             if var == "HOSTGAL_MAG_r to plot"
@@ -267,12 +268,12 @@ if __name__ == "__main__":
             if var == "mass to plot"
             else var.replace("to plot", "")
         )
-        axs[i].set_ylabel(ylabel, fontsize=30)
+        axs[i].set_ylabel(ylabel, fontsize=35)
         # We change the fontsize of minor ticks label
-        axs[i].tick_params(axis="both", which="major", labelsize=20)
-        axs[i].tick_params(axis="both", which="minor", labelsize=20)
+        axs[i].tick_params(axis="both", which="major", labelsize=30)
+        axs[i].tick_params(axis="both", which="minor", labelsize=30)
     axs[i].legend(fontsize=30)
-    axs[i].set_xlabel("z", fontsize=30)
+    axs[i].set_xlabel("z", fontsize=35)
     plt.savefig(f"{path_plots}/2ddist_all_sample_zHD.png")
 
     #
@@ -426,22 +427,6 @@ if __name__ == "__main__":
     tmp_ms_high_x1_zfree = tmp_ms[tmp_ms.mass > 10]["x1 to plot"].median()
     tmp_ms_low_mass_zfree = tmp_ms[tmp_ms.mass < 10]["mass to plot"].median()
     tmp_ms_high_mass_zfree = tmp_ms[tmp_ms.mass > 10]["mass to plot"].median()
-    # axs[0].scatter(
-    #     tmp_ms_low_mass_zfree,
-    #     tmp_ms_low_x1_zfree,
-    #     s=500,
-    #     marker="X",
-    #     c="green",
-    #     zorder=10000,
-    # )
-    # axs[0].scatter(
-    #     tmp_ms_high_mass_zfree,
-    #     tmp_ms_high_x1_zfree,
-    #     s=500,
-    #     marker="X",
-    #     c="green",
-    #     zorder=10000,
-    # )
     axs[0].plot(
         [10, 10],
         [-3, 3],
@@ -496,6 +481,7 @@ if __name__ == "__main__":
         linestyle="dotted",
         zorder=100,
         label="DES SNe Ia HQ (host zspe)",
+        linewidth=5,
     )
 
     # scatter bellow
@@ -526,30 +512,6 @@ if __name__ == "__main__":
     tmp_ms_high_x1_zfree_zspe = tmp_ms[tmp_ms.mass > 10]["x1 to plot"].median()
     tmp_ms_low_mass_zfree_zspe = tmp_ms[tmp_ms.mass < 10]["mass to plot"].median()
     tmp_ms_high_mass_zfree_zspe = tmp_ms[tmp_ms.mass > 10]["mass to plot"].median()
-    # axs[1].scatter(
-    #     tmp_ms_low_mass_zfree_zspe,
-    #     tmp_ms_low_x1_zfree_zspe,
-    #     s=500,
-    #     marker="X",
-    #     c="green",
-    #     zorder=10000,
-    # )
-    # axs[1].scatter(
-    #     tmp_ms_high_mass_zfree_zspe,
-    #     tmp_ms_high_x1_zfree_zspe,
-    #     s=500,
-    #     marker="X",
-    #     c="green",
-    #     zorder=10000,
-    # )
-    # axs[1].plot(
-    #     [10, 10],
-    #     [-3, 3],
-    #     color="black",
-    #     linewidth=1,
-    #     linestyle="--",
-    #     zorder=100,
-    # )
 
     # a mix of the samples using best z
     M24_w_zspe = cuts(tmp[~tmp.SNID.isin(spec_Ia.SNID.values)], "mass to plot")
@@ -602,6 +564,7 @@ if __name__ == "__main__":
         linestyle="dashed",
         zorder=100,
         label="DES SNe Ia HQ (host zspe or SNphoto z)",
+        linewidth=5,
     )
 
     # # scatter bellow
@@ -624,48 +587,28 @@ if __name__ == "__main__":
         markersize=1,
         alpha=0.3,
     )
-    axs[2].legend(fontsize=25, title_fontsize=25, loc=1)
-    axs[2].set_ylim(-2.5, 2.5)
     # mass step
     tmp_ms = cuts(mixed_sample, "mass to plot")
     tmp_ms_low_x1_mixed = tmp_ms[tmp_ms.mass < 10]["x1 to plot"].median()
     tmp_ms_high_x1_mixed = tmp_ms[tmp_ms.mass > 10]["x1 to plot"].median()
     tmp_ms_low_mass_mixed = tmp_ms[tmp_ms.mass < 10]["mass to plot"].median()
     tmp_ms_high_mass_mixed = tmp_ms[tmp_ms.mass > 10]["mass to plot"].median()
-    # axs[2].scatter(
-    #     tmp_ms_low_mass_mixed,
-    #     tmp_ms_low_x1_mixed,
-    #     s=500,
-    #     marker="X",
-    #     c="green",
-    #     zorder=10000,
-    # )
-    # axs[2].scatter(
-    #     tmp_ms_high_mass_mixed,
-    #     tmp_ms_high_x1_mixed,
-    #     s=500,
-    #     marker="X",
-    #     c="green",
-    #     zorder=10000,
-    # )
-    # axs[2].plot(
-    #     [10, 10],
-    #     [-3, 3],
-    #     color="black",
-    #     linewidth=1,
-    #     linestyle="--",
-    #     zorder=100,
-    # )
-
+    axs[2].legend(fontsize=25, title_fontsize=25, loc=1)
+    axs[2].set_ylim(-2.5, 2.5)
     ylabel = var.replace("to plot", "")
-    axs[0].set_ylabel(ylabel, fontsize=25)
-    axs[1].set_ylabel(ylabel, fontsize=25)
-    axs[2].set_ylabel(ylabel, fontsize=25)
-    plt.xlim(7, 12)
-    plt.xlabel(r"host stellar mass (log($M_{*}$/$M_{\odot}$))", fontsize=25)
+    axs[0].set_ylabel(ylabel, fontsize=30)
+    axs[1].set_ylabel(ylabel, fontsize=30)
+    axs[2].set_ylabel(ylabel, fontsize=30)
     # We change the fontsize of minor ticks label
-    plt.tick_params(axis="both", which="major", labelsize=25)
-    plt.tick_params(axis="both", which="minor", labelsize=25)
+    axs[0].tick_params(axis="both", which="major", labelsize=30)
+    axs[0].tick_params(axis="both", which="minor", labelsize=30)
+    axs[1].tick_params(axis="both", which="major", labelsize=30)
+    axs[1].tick_params(axis="both", which="minor", labelsize=30)
+    axs[2].tick_params(axis="both", which="major", labelsize=30)
+    axs[2].tick_params(axis="both", which="minor", labelsize=30)
+    plt.xlim(7, 12)
+    plt.xlabel(r"host stellar mass (log($M_{*}$/$M_{\odot}$))", fontsize=30)
+
     plt.savefig(f"{path_plots}/2ddist_all_sample_mass_mixedsample.png")
 
     #
@@ -907,29 +850,120 @@ if __name__ == "__main__":
     plt.savefig(f"{path_plots}/mass_step_comparisson.png")
 
     # extra
-    # Mat Smith
-    # x1 (M22) v x1 (z_spec) and x1 (z_spec) v x1 (photoz)?
-    fig = plt.figure()
-    plt.errorbar(
-        M24_w_zspe["x1_fittedz"],
-        M24_w_zspe["x1_zspe"],
-        yerr=M24_w_zspe["x1ERR_fittedz"],
-        fmt="o",
-        alpha=0.3,
-    )
-    plt.xlabel(r"x1_\{SNphoto z}")
-    plt.ylabel(r"x1_\{zspe}")
-    plt.plot(
-        [-3, 3],
-        [-3, 3],
-        color="black",
-        linewidth=1,
-        linestyle="--",
-        zorder=100,
-    )
-    plt.savefig(f"{path_plots}/M24_wzspe_x1.png")
-    # mass
 
+    def plot_mosaic_scatter_SNphoto_zspe(df, outname, path_plots, plot_ranges):
+        lines_ranges = {"zCMB": [0.2, 1.2], "c": [-0.3, 0.3], "x1": [-3, 3]}
+
+        fig = plt.figure(figsize=(14, 6))
+        gs = fig.add_gridspec(2, 3, wspace=0.4, hspace=0.1, height_ratios=[1, 0.4])
+        axs = gs.subplots(sharex="col", sharey=False)
+
+        for i, var in enumerate(["zCMB", "c", "x1"]):
+            # first row: scatter
+            axs[0][i].errorbar(
+                df[f"{var}_zspe"],
+                df[f"{var}_fittedz"],
+                xerr=df[f"{var}ERR_zspe"],
+                yerr=df[f"{var}ERR_fittedz"],
+                fmt="o",
+                alpha=0.1,
+                color="indigo",
+            )
+            axs[0][i].plot(
+                lines_ranges[var],
+                lines_ranges[var],
+                color="black",
+                linewidth=1,
+                linestyle="--",
+                zorder=100,
+            )
+            ylabel = (
+                r"${%s}_{\mathrm{SNphoto ~ z}}$" % var if var != "zCMB" else "SNphoto z"
+            )
+            axs[0][i].set_ylabel(ylabel)
+            axs[0][i].set_xlim(plot_ranges[var])
+            axs[0][i].set_ylim(plot_ranges[var])
+            if plot_ranges["zCMB"][-1] > 1.2:
+                axs[0][i].plot(
+                    lines_ranges[var],
+                    [lines_ranges[var][0], lines_ranges[var][0]],
+                    color="grey",
+                    linewidth=1,
+                    linestyle="--",
+                    zorder=100,
+                )
+                axs[0][i].plot(
+                    lines_ranges[var],
+                    [lines_ranges[var][1], lines_ranges[var][1]],
+                    color="grey",
+                    linewidth=1,
+                    linestyle="--",
+                    zorder=100,
+                )
+                axs[0][i].plot(
+                    [lines_ranges[var][0], lines_ranges[var][0]],
+                    lines_ranges[var],
+                    color="grey",
+                    linewidth=1,
+                    linestyle="--",
+                    zorder=100,
+                )
+                axs[0][i].plot(
+                    [lines_ranges[var][1], lines_ranges[var][1]],
+                    lines_ranges[var],
+                    color="grey",
+                    linewidth=1,
+                    linestyle="--",
+                    zorder=100,
+                )
+            # 2nd row: delta
+            df["delta {var}"] = df[f"{var}_zspe"] - df[f"{var}_fittedz"]
+            axs[1][i].errorbar(
+                df[f"{var}_zspe"],
+                df[f"{var}_zspe"] - df[f"{var}_fittedz"],
+                fmt="o",
+                alpha=0.1,
+                color="indigo",
+            )
+            axs[1][i].plot(
+                [lines_ranges[var][0], lines_ranges[var][1]],
+                [0, 0],
+                color="black",
+                linewidth=1,
+                linestyle="--",
+                zorder=100,
+            )
+            # axs[1][i].set_ylim([-0.5, 0.5] if var != "x1" else [-2.5, 2.5])
+
+            axs[1][i].set_xlabel(
+                r"${%s}_{\mathrm{zspe}}$" % var if var != "zCMB" else "host zspe"
+            )
+            ylabel = r"$\Delta {%s}$" % var if var != "zCMB" else r"$\Delta z$"
+            axs[1][i].set_ylabel(ylabel)
+        plt.savefig(f"{path_plots}/{outname}.png")
+
+    # M22 in M24
+    M22_in_M24 = photoIa_wz_JLA[
+        (photoIa_wz_JLA["SNID"].isin(photoIa_nz_JLA.SNID.values))
+    ]
+    # M22 not in M24
+    M22_notin_M24 = photoIa_wz_JLA[
+        (~photoIa_wz_JLA["SNID"].isin(photoIa_nz_JLA.SNID.values))
+    ]
+    M22_notinM24_wSNphotoz = M22_notin_M24[~M22_notin_M24["zCMB_fittedz"].isna()]
+    print(
+        f"M22 not in M24 {len(M22_notin_M24)} with a SNphoto z {len(M22_notinM24_wSNphotoz)}"
+    )
+    plot_ranges = {"zCMB": [0.1, 1.4], "c": [-0.4, 0.4], "x1": [-4, 4]}
+    plot_mosaic_scatter_SNphoto_zspe(
+        M22_notinM24_wSNphotoz, "M22_notinM24_wSNphotoz", path_plots, plot_ranges
+    )
+    plot_ranges_JLA = {"zCMB": [0.2, 1.2], "c": [-0.3, 0.3], "x1": [-3, 3]}
+    plot_mosaic_scatter_SNphoto_zspe(
+        M22_in_M24, "M22_in_M24", path_plots, plot_ranges_JLA
+    )
+
+    # mass
     fig = plt.figure()
     plt.errorbar(
         M24_w_zspe["mass_SNphotoz"],

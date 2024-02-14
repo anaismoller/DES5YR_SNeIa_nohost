@@ -79,7 +79,29 @@ def load_headers(path_files):
     df["IAUC"] = df["IAUC"].str.decode("utf-8")
 
     print(f"Loaded {len(df)} light-curves metadata in {path_files}")
-    return df
+
+    # add field
+    df["FIELD"] = df["IAUC"].str.extract("(?<=DES\d{2})(\w\d)\w+", expand=False)
+    # for those with missing fields
+    # had to query the obs db (Mat)
+    extra_fields_data = f"{path_files}/list_of_fields.csv"
+    if Path(extra_fields_data).exists():
+        df_fields = pd.read_csv(extra_fields_data)
+        df_fields["FIELD"] = df_fields.FIELDS.str.split(",")
+        df_fields = df_fields.explode("FIELD")
+        merged_df = pd.merge(
+            df,
+            df_fields[["SNID", "FIELD"]],
+            how="outer",
+            on="SNID",
+            suffixes=("", "_extra"),
+        )
+        merged_df["FIELD"] = merged_df["FIELD"].fillna(merged_df["FIELD_extra"])
+        merged_df.drop(columns=["FIELD_extra"], inplace=True)
+    else:
+        merged_df = df
+
+    return merged_df
 
 
 def read_fits(fname, drop_separators=False):

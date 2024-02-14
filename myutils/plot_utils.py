@@ -647,6 +647,7 @@ def plot_errorbar_binned(
                 or "DES" in list_labels[i] else color_list[i + color_offset],
                 zorder=50 if "data" in list_labels[i] else i,  # hack to put data on top
                 linestyle="solid",
+                linewidth=5,
             )
 
     if not ignore_y_label:

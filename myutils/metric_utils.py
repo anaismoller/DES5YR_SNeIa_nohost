@@ -4,6 +4,9 @@ from sklearn import metrics
 from . import logging_utils as lu
 from myutils import conf_utils as cu
 
+deep_fields = ["X3", "C3"]
+shallow_fields = ["X1", "X2", "C1", "C2", "E1", "E2", "S1", "S2"]
+
 
 def performance_metrics(
     df,
@@ -161,29 +164,28 @@ def cuts_deep_shallow(df_sel, photoIa_wz_JLA, df_stats=pd.DataFrame(), cut=""):
         )
 
     # determine shallow or deep
-    deep_fields = ["X3", "C3"]
-    shallow_fields = ["X1", "X2", "C1", "C2", "E1", "E2", "S1", "S2"]
-    # shallow does not work
-    # df_shallow = df_sel[df_sel.IAUC.str.contains("|".join(shallow_fields))]
-    # df_deep = df_sel[df_sel.IAUC.str.contains("|".join(deep_fields))]
-    df_sel["FIELD"] = df_sel["IAUC"].str.extract("(?<=DES\d{2})(\w\d)\w+", expand=False)
     df_shallow = df_sel[df_sel["FIELD"].isin(shallow_fields)]
     df_deep = df_sel[df_sel["FIELD"].isin(deep_fields)]
 
     dict_t = {}
     dict_t["cut"] = cut
-    dict_t["shallow selected"] = len(df_shallow)
+    dict_t["shallow selected"] = len(df_shallow.SNID.unique())
     dict_t["shallow spec Ia"] = len(
-        df_shallow[df_shallow.SNTYPE.isin(cu.spec_tags["Ia"])]
+        df_shallow[df_shallow.SNTYPE.isin(cu.spec_tags["Ia"])].SNID.unique()
     )
-    dict_t["deep selected"] = len(df_deep)
-    dict_t["deep spec Ia"] = len(df_deep[df_deep.SNTYPE.isin(cu.spec_tags["Ia"])])
-    dict_t["total selected"] = len(df_sel)
-    dict_t["total spec Ia"] = len(df_sel[df_sel.SNTYPE.isin(cu.spec_tags["Ia"])])
+    dict_t["deep selected"] = len(df_deep.SNID.unique())
+    dict_t["deep spec Ia"] = len(
+        df_deep[df_deep.SNTYPE.isin(cu.spec_tags["Ia"])].SNID.unique()
+    )
+    dict_t["total selected"] = len(df_sel.SNID.unique())
+    dict_t["total spec Ia"] = len(
+        df_sel[df_sel.SNTYPE.isin(cu.spec_tags["Ia"])].SNID.unique()
+    )
     dict_t["total photo Ia M22"] = len(
-        df_sel[df_sel.SNID.isin(photoIa_wz_JLA.SNID.values)]
+        df_sel[df_sel.SNID.isin(photoIa_wz_JLA.SNID.values)].SNID.unique()
     )
     df_stats = df_stats.append(dict_t, ignore_index=True)
+
     return df_stats
 
 
@@ -299,8 +301,6 @@ def cuts_deep_shallow_eventmag(
         )
 
     # determine shallow or deep
-    deep_fields = ["X3", "C3"]
-    shallow_fields = ["X1", "X2", "C1", "C2", "E1", "E2", "S1", "S2"]
     df_shallow = df_sel[df_sel.IAUC.str.contains("|".join(shallow_fields))]
     df_deep = df_sel[df_sel.IAUC.str.contains("|".join(deep_fields))]
 

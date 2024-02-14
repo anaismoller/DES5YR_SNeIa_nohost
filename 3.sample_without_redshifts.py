@@ -521,8 +521,11 @@ if __name__ == "__main__":
         "WARNING: these simultaneous redshifts+x1+c+t0 are biased for cosmology"
     )
     salt_fits_noz = du.load_salt_fits(args.path_data_fits_redshiftsaltfitted)
+    cols_to_keep = [k for k in salt_fits_noz.keys() if k != "FIELD"]
     # merge preds + salt
-    photoIa_noz_saltz = pd.merge(photoIa_noz, salt_fits_noz, on=["SNID", "SNTYPE"])
+    photoIa_noz_saltz = pd.merge(
+        photoIa_noz, salt_fits_noz[cols_to_keep], on=["SNID", "SNTYPE"]
+    )
 
     # parenthesis, checking potential host fup redshifts
     potential_fup_nohostz_saltz = pd.merge(
