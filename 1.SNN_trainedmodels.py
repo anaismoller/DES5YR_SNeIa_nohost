@@ -24,13 +24,13 @@ if __name__ == "__main__":
         "--path_models26X",
         default="./../snndump_26XBOOSTEDDES",
         type=str,
-        help="Path to 26X output",
+        help="Path to SNN models trained with 26 realisations of DES 5-year",
     )
     parser.add_argument(
         "--path_models1X",
         type=str,
         default=f"./../snndump_1X_NOZ/models/",
-        help="Path to models not balanced testset",
+        help="Path to models with 1 realisation of DES 5-year (non balanced testset)",
     )
     parser.add_argument(
         "--path_dump",
@@ -122,12 +122,10 @@ if __name__ == "__main__":
                 },
             )
 
-    # print(df_txt_stats_noz_1X.to_string(index=False))
     mu.reformatting_tolatex(
         df_txt_stats_noz_1X, norm_list=["cosmo_quantile"], dataset="not balanced"
     )
 
-    lu.print_green("PEAKMJD and PEAKMJD-2")
     norm = "cosmo_quantile"
     df_txt_stats_noz_PEAK = pd.DataFrame(
         columns=["norm", "dataset", "method", "accuracy", "efficiency", "purity"]
@@ -207,10 +205,8 @@ if __name__ == "__main__":
     )
 
     # Why accuracy is lower in ensemble predictions for early classification?
-    # Is it just less robust, so more seeds may push it to <0.5?
-
     # is it correlated with properties such as SNR?
-    # # merge with salt
+
     pu.plot_probas_set_vs_seed(
         df_dic_noz[norm], nameout=f"{path_plots}/prob_set_seed_all_peak2_set0.png"
     )
