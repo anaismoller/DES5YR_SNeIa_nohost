@@ -1,21 +1,21 @@
+import os
 import glob
-import logging
 import argparse
 import numpy as np
+
 import pandas as pd
-import os, sys
 import matplotlib as mpl
+
 import matplotlib.pyplot as plt
-from supervenn import supervenn
 
 from myutils import cuts as cuts
 from myutils import plot_utils as pu
 from myutils import data_utils as du
+
 from myutils import conf_utils as cu
-from myutils import metric_utils as mu
 from myutils import logging_utils as lu
+
 from myutils import science_utils as su
-from myutils import utils_emcee_poisson as mc
 
 mpl.rcParams["font.size"] = 16
 mpl.rcParams["legend.fontsize"] = "medium"
@@ -31,7 +31,9 @@ if __name__ == "__main__":
     DES5yr = os.getenv("DES5yr")
     DES = os.getenv("DES")
 
-    parser = argparse.ArgumentParser(description="Code to reproduce results paper")
+    parser = argparse.ArgumentParser(
+        description="Expected DES 5-year SNe Ia from simulations"
+    )
 
     parser.add_argument(
         "--path_dump",
@@ -111,19 +113,19 @@ if __name__ == "__main__":
         nSNnonIa_wfitJLA_list.append(
             len(sel_sim_fits_JLA[~sel_sim_fits_JLA["SNTYPE"].isin(cu.spec_tags["Ia"])])
         )
-    print(f"# seeds {len(nSN_list)}")
+    print(f"# {len(nSN_list)} independent realisations of DES SN 5-year")
     print(
-        f"#SN expected {int(np.mean(np.array(nSN_list)))} +- {int(np.std(np.array(nSN_list)))}"
+        f"# SNe expected {int(np.mean(np.array(nSN_list)))} +- {int(np.std(np.array(nSN_list)))}"
     )
     print(
-        f"#SNIa expected {int(np.mean(np.array(nSNIa_list)))} +- {int(np.std(np.array(nSNIa_list)))}"
+        f"# SNIa expected {int(np.mean(np.array(nSNIa_list)))} +- {int(np.std(np.array(nSNIa_list)))}"
     )
     print(
-        f"#SNIa cosmology-quality expected {int(np.mean(np.array(nSNIa_wfitJLA_list)))} +- {int(np.std(np.array(nSNIa_wfitJLA_list)))}"
+        f"# SNIa cosmology-quality expected {int(np.mean(np.array(nSNIa_wfitJLA_list)))} +- {int(np.std(np.array(nSNIa_wfitJLA_list)))}"
     )
     print(
-        f"#SNe non Ia expected {int(np.mean(np.array(nSNnonIa_list)))} +- {int(np.std(np.array(nSNnonIa_list)))}"
+        f"# SNe non Ia expected {int(np.mean(np.array(nSNnonIa_list)))} +- {int(np.std(np.array(nSNnonIa_list)))}"
     )
     print(
-        f"#SNe non Ia passing cosmology-quality expected {int(np.mean(np.array(nSNnonIa_wfitJLA_list)))} +- {np.std(np.array(nSNnonIa_wfitJLA_list))}"
+        f"# SNe non Ia passing cosmology-quality expected {int(np.mean(np.array(nSNnonIa_wfitJLA_list)))} +- {int(np.std(np.array(nSNnonIa_wfitJLA_list)))}"
     )
