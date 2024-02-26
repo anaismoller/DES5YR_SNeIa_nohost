@@ -257,8 +257,8 @@ if __name__ == "__main__":
     os.makedirs(path_plots, exist_ok=True)
 
     # load previous samples for comparisson
-    path_sample = "./samples/BaselineDESsample_JLAlikecuts.csv"
-    photoIa_wz_JLA = pd.read_csv(path_sample)
+    path_sample = "./samples/previous_works/Moller2022_DES5yr_SNeIa_whostz_JLA.csv"
+    photoIa_wz_JLA = pd.read_csv(path_sample, comment="#")
     print(f"M22 sample {len(photoIa_wz_JLA)}")
 
     print("Load data")
