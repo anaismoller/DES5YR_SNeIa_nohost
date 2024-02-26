@@ -582,7 +582,41 @@ if __name__ == "__main__":
     )
 
     # save sample
-    photoIanoz_SNphotoz_HQ.to_csv(f"{path_samples}/photoIanoz_SNphotoz_HQ.csv")
+    cols_to_keep = [
+        "SNID",
+        "IAUC",
+        "SNTYPE",
+        "REDSHIFT_FINAL",
+        "REDSHIFT_FINAL_ERR",
+        "HOSTGAL_SPECZ",
+        "HOSTGAL_SPECZ_ERR",
+        "HOSTGAL_LOGMASS",
+        "HOSTGAL_LOGMASS_ERR",
+        "HOSTGAL_MAG_r",
+        "HOSTGAL_MAGERR_r",
+        "all_class0_S_0",
+        "zHD",
+        "zHDERR",
+        "x1",
+        "x1ERR",
+        "c",
+        "cERR",
+        "FITPROB",
+    ]
+    # Open the file for writing
+    with open(f"{path_samples}/photoIanoz_SNphotoz_HQ.csv", "w") as f:
+        # Write a comment in the header
+        f.write("# Moller et al. 2024 \n")
+        f.write("# SNe Ia selected with SuperNNova without host-galaxy redshifts \n")
+        f.write(
+            "# This is NOT the cosmology sample nor the SALT values used for cosmology \n"
+        )
+        f.write("# Contains HQ cuts using SNphoto z fit with SALT2 \n")
+        f.write("# zHD, c, x1 are derived simultanoeusly  \n")
+    # Write the DataFrame to CSV, appending to the existing file
+    photoIanoz_SNphotoz_HQ[cols_to_keep].to_csv(
+        f"{path_samples}/photoIanoz_SNphotoz_HQ.csv", mode="a", index=False
+    )
     print(f"Saved {len(photoIanoz_SNphotoz_HQ)} photoIanoz saltz HQ")
 
     df_stats = mu.cuts_deep_shallow(
