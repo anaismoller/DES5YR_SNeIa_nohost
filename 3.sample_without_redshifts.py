@@ -60,10 +60,11 @@ def setup_logging():
 
 if __name__ == "__main__":
 
-    DES5yr = os.getenv("DES5yr")
     DES = os.getenv("DES")
 
-    parser = argparse.ArgumentParser(description="Code to reproduce results paper")
+    parser = argparse.ArgumentParser(
+        description="Select SNe Ia without redshift information using SNN"
+    )
 
     parser.add_argument(
         "--path_dump",
@@ -85,7 +86,7 @@ if __name__ == "__main__":
         help="Path to data predictions",
     )
     parser.add_argument(
-        "--path_data_fits_redshiftsaltfitted",
+        "--path_data_fits_SNphotoz",
         type=str,
         default=f"{DES}/data/DESALL_forcePhoto_real_snana_fits/D_FITZ_DATA5YR_DENSE_SNR/output/DESALL_forcePhoto_real_snana_fits/FITOPT000.FITRES.gz",
         help="Path to data SALT2 fits",
@@ -128,31 +129,31 @@ if __name__ == "__main__":
 
     path_plots = f"{path_dump}/plots_sample/"
     os.makedirs(path_plots, exist_ok=True)
+    os.makedirs(f"{path_dump}/plots_fup", exist_ok=True)
 
     # logger
     logger = setup_logging()
 
-    # Load sample with redshifts (for comparisson only)
+    # Load Moller 2022 sample SNe Ia with host-redshifts High-quality (for comparisson only)
+    logger.info("")
+    lu.print_green("Loading previous samples")
     path_samples = "./samples"
-    path_sample = f"{path_samples}/BaselineDESsample_looseselcuts.csv"
-    photoIa_wz = pd.read_csv(path_sample)
-    print(
-        f"Photo Ia sample with redshifts (computed previously with ensemble method) {len(photoIa_wz)}"
+    path_sample = f"{path_samples}/previous_works/Moller2022_DES5yr_SNeIa_whostz.csv"
+    photoIa_wz = pd.read_csv(path_sample, comment="#")
+    path_sample = (
+        f"{path_samples}/previous_works/Moller2022_DES5yr_SNeIa_whostz_JLA.csv"
     )
-    # w JLA
-    path_sample = f"{path_samples}/BaselineDESsample_JLAlikecuts.csv"
-    photoIa_wz_JLA = pd.read_csv(path_sample)
+    photoIa_wz_JLA = pd.read_csv(path_sample, comment="#")
     print(
-        f"Photo Ia sample with redshifts w JLA cuts (computed previously with ensemble method) {len(photoIa_wz_JLA)}"
+        f"Photo Ia sample with host-redshifts w JLA/HQ cuts (Moller 20222 ensemble method) {len(photoIa_wz_JLA)}"
     )
 
     # Load Redshift catalogue
-    sngals = du.load_sngals(f"extra_lists/SNGALS_DLR_RANK1_INFO.csv")
+    # Alternative use GRC for tagging PRIMUS hosts info
+    sngals = pd.read_csv(f"{path_samples}/previous_works/sngals.csv", comment="#")
 
     # load PSNID info
-    logger.info("")
-    lu.print_green("Loading PSNID fits")
-    psnid = du.read_header_fits(f"{DES}/data/PSNID/des_snfit_zprior0.fits")
+    psnid = pd.read_csv(f"{path_samples}/previous_works/psnid.csv", comment="#")
 
     logger.info("_______________")
     logger.info("PHOTOMETRIC SNE IA")
@@ -175,7 +176,7 @@ if __name__ == "__main__":
     df_metadata_w_multiseason = cuts.transient_status(
         "MULTI-SEASON", df_metadata_w_dets, logger
     )
-    df_metadata_w_multiseason.to_csv(f"{path_samples}/presel_cuts.csv")
+    # df_metadata_w_multiseason.to_csv(f"{path_samples}/presel_cuts.csv")
     df_stats = mu.cuts_deep_shallow(
         df_metadata_w_multiseason,
         photoIa_wz_JLA,
@@ -238,7 +239,6 @@ if __name__ == "__main__":
         else (True if (x <= 0 and x > -30) else False)
     )
     df_pkpho = df_pkpho[df_pkpho["window_time_cut"] == True]
-    # print(f">> PHOTWINDOW reduced measurements to {len(df_pkpho)}")
 
     def group_photo_criteria(df, n_measurements):
         # unique flt occurences
@@ -257,23 +257,6 @@ if __name__ == "__main__":
     SNID_measurement_before_max = group_photo_criteria(
         df_pkpho[df_pkpho["window_delta_time"] < 0], 1
     )
-    # SNID_measurement_before_max = group_photo_criteria(
-    #     df_pkpho[df_pkpho["window_delta_time"] < 0], 2
-    # )
-    # print(f">> 1 point<max")
-    # overlap_photoIa(
-    #     df_metadata_w_multiseason[
-    #         df_metadata_w_multiseason.SNID.isin(SNID_measurement_before_max)
-    #     ],
-    #     photoIa_wz,
-    #     photoIa_wz_JLA,
-    #     mssg="",
-    # )
-
-    # > max+10
-    # SNID_measurement_after_maxplus10 = group_photo_criteria(
-    #     df_pkpho[df_pkpho["window_delta_time"] > 10], 2
-    # )
     SNID_measurement_after_maxplus10 = group_photo_criteria(
         df_pkpho[df_pkpho["window_delta_time"] > 10], 1
     )
@@ -283,26 +266,10 @@ if __name__ == "__main__":
         assume_unique=True,
     )
     print(f">> + 1 point >max+10")
-    # overlap_photoIa(
-    #     df_metadata_w_multiseason[
-    #         df_metadata_w_multiseason.SNID.isin(SNID_sampling_measurements_std)
-    #     ],
-    #     photoIa_wz,
-    #     photoIa_wz_JLA,
-    #     mssg="",
-    # )
 
     SNID_sampling_measurements = SNID_sampling_measurements_std
     # reselect photometry for SNIDs only
     df_pkpho = df_pkpho[df_pkpho.SNID.isin(SNID_sampling_measurements)]
-    # overlap_photoIa(
-    #     df_metadata_w_multiseason[
-    #         df_metadata_w_multiseason.SNID.isin(SNID_sampling_measurements)
-    #     ],
-    #     photoIa_wz,
-    #     photoIa_wz_JLA,
-    #     mssg="df_metadata_w_sampling",
-    # )
 
     # SNR>5
     df_pkpho["SNR"] = df_pkpho["FLUXCAL"] / df_pkpho["FLUXCALERR"]
@@ -312,12 +279,6 @@ if __name__ == "__main__":
     df_metadata_w_sampling = df_metadata_w_multiseason[
         df_metadata_w_multiseason.SNID.isin(SNID_w_2flt_SNR5)
     ]
-    # overlap_photoIa(
-    #     df_metadata_w_sampling,
-    #     photoIa_wz,
-    #     photoIa_wz_JLA,
-    #     mssg="df_metadata_w_sampling",
-    # )
     cuts.spec_subsamples(df_metadata_w_sampling, logger)
 
     df_stats = mu.cuts_deep_shallow(
@@ -432,7 +393,7 @@ if __name__ == "__main__":
 
     # new
     not_in_photoIa_wz = photoIa_noz[~photoIa_noz.SNID.isin(photoIa_wz.SNID.values)]
-    not_in_photoIa_wz.to_csv(f"{path_samples}/photoIanoz_notin_photoIa_wz.csv")
+    # not_in_photoIa_wz.to_csv(f"{path_samples}/photoIanoz_notin_photoIa_wz.csv")
     pu.plot_mosaic_histograms_listdf(
         [not_in_photoIa_wz],
         list_labels=["new"],
@@ -486,7 +447,7 @@ if __name__ == "__main__":
     print(
         f"photoIa_noz but NOT photoIa_wz and HAVE a redshift {len(photoIa_noz_wz_notsel_photoIawz)}"
     )
-    photoIa_noz_wz_notsel_photoIawz.to_csv(f"{path_samples}/not_Iawz_buthavez.csv")
+    # photoIa_noz_wz_notsel_photoIawz.to_csv(f"{path_samples}/not_Iawz_buthavez.csv")
     pu.plot_mosaic_histograms_listdf(
         [photoIa_noz_wz_notsel_photoIawz],
         list_labels=[""],
@@ -513,14 +474,12 @@ if __name__ == "__main__":
     )
 
     logger.info("")
-    logger.info("ESTIMATING z,x1,c,t0 WITH SALT2")
-    # Load retro fitted redshifts + salt parameters
+    logger.info("SNPHOTO Z and SALT2 parameters")
+    # Load Snphoto z redshifts + salt parameters
     # BEWARE: less precise, using host galaxy photo priors and fixed cosmology!
-    lu.print_blue("Loading SALT fitted redshifts + SALT params")
-    lu.print_yellow(
-        "WARNING: these simultaneous redshifts+x1+c+t0 are biased for cosmology"
-    )
-    salt_fits_noz = du.load_salt_fits(args.path_data_fits_redshiftsaltfitted)
+    lu.print_blue("Loading SALT SNphoto z + SALT params")
+    lu.print_yellow("WARNING: SNphoto z are approximations")
+    salt_fits_noz = du.load_salt_fits(args.path_data_fits_SNphotoz)
     cols_to_keep = [k for k in salt_fits_noz.keys() if k != "FIELD"]
     # merge preds + salt
     photoIa_noz_saltz = pd.merge(
@@ -552,7 +511,7 @@ if __name__ == "__main__":
 
     #
     print(
-        f"# of events with simultaneous SALT fit {len(salt_fits_noz)} from which {len(photoIa_noz_saltz)} are photoIa"
+        f"# of events with SNphoto z SALT fit {len(salt_fits_noz)} from which {len(photoIa_noz_saltz)} are photoIa"
     )
     df_stats = mu.cuts_deep_shallow(
         photoIa_noz_saltz,
@@ -595,9 +554,13 @@ if __name__ == "__main__":
     logger.info("SAMPLE CONTAMINATION")
     # hack to use the same contaminant inspection
     dic_photoIa_sel = {"average_probability_set_0": photoIanoz_saltz_JLA}
-    dic_tag_SNIDs = cuts.stats_possible_contaminants(
-        dic_photoIa_sel, method_list=["average_probability_set"]
-    )
+    try:
+        dic_tag_SNIDs = cuts.stats_possible_contaminants(
+            dic_photoIa_sel, method_list=["average_probability_set"]
+        )
+    except Exception:
+        lu.print_red("Lists are private. For reproducibility, contact author")
+        raise ValueError
     # eliminate the AGNs
     SNIDs_to_eliminate = [
         k
@@ -610,20 +573,20 @@ if __name__ == "__main__":
     photoIanoz_saltz_JLA = photoIanoz_saltz_JLA[
         ~photoIanoz_saltz_JLA.SNID.isin(SNIDs_to_eliminate)
     ]
-    photoIanoz_saltz_HQ = photoIanoz_saltz_JLA[
+    photoIanoz_SNphotoz_HQ = photoIanoz_saltz_JLA[
         (photoIanoz_saltz_JLA.zHD > 0.05) & (photoIanoz_saltz_JLA.zHD < 1.2)
     ]
 
     df_stats = mu.cuts_deep_shallow(
-        photoIanoz_saltz_HQ, photoIa_wz_JLA, df_stats=df_stats, cut="z<1.2"
+        photoIanoz_SNphotoz_HQ, photoIa_wz_JLA, df_stats=df_stats, cut="z<1.2"
     )
 
     # save sample
-    photoIanoz_saltz_HQ.to_csv(f"{path_samples}/photoIanoz_saltz_HQ.csv")
-    print(f"Saved {len(photoIanoz_saltz_HQ)} photoIanoz saltz HQ")
+    photoIanoz_SNphotoz_HQ.to_csv(f"{path_samples}/photoIanoz_SNphotoz_HQ.csv")
+    print(f"Saved {len(photoIanoz_SNphotoz_HQ)} photoIanoz saltz HQ")
 
     df_stats = mu.cuts_deep_shallow(
-        photoIanoz_saltz_HQ,
+        photoIanoz_SNphotoz_HQ,
         photoIa_wz_JLA,
         df_stats=df_stats,
         cut="HQ (wo AGNs) + zrange",
@@ -647,7 +610,7 @@ if __name__ == "__main__":
     print("")
 
     df_stats_fup = mu.fup_hostgals_stats(
-        photoIanoz_saltz_HQ,
+        photoIanoz_SNphotoz_HQ,
         sngals,
         photoIa_wz_JLA,
         df_stats=df_stats_fup,
@@ -670,7 +633,7 @@ if __name__ == "__main__":
 
     # HOST
     # hist hostgalmag
-    list_df = [photoIa_noz_001, photoIa_noz_saltz, photoIanoz_saltz_HQ]
+    list_df = [photoIa_noz_001, photoIa_noz_saltz, photoIanoz_SNphotoz_HQ]
     list_labels = ["SNN>0.001", "SNN>0.5", "SNN>0.5 + HQ"]
     pu.hist_HOSTGAL_MAG_r_vs_REDSHIFT(list_df, list_labels, path_plots=path_plots)
 
@@ -699,8 +662,8 @@ if __name__ == "__main__":
 
     # common
     print("COMMON EVENTS")
-    overlap = photoIanoz_saltz_HQ[
-        photoIanoz_saltz_HQ.SNID.isin(photoIa_wz_JLA.SNID.values)
+    overlap = photoIanoz_SNphotoz_HQ[
+        photoIanoz_SNphotoz_HQ.SNID.isin(photoIa_wz_JLA.SNID.values)
     ]
     print(
         f"Overlap photoIa no z and with z {len(overlap)} ~{round(100*len(overlap)/len(photoIa_wz_JLA),2)}%"
@@ -711,57 +674,45 @@ if __name__ == "__main__":
         print(
             f"   Good {k}: (SNphoto - zspe<0.1) {n_good_overlap} {round(n_good_overlap*100/len(overlap),2)}% ",
         )
-    # overlap simultaneous salt fit effect
+    # overlap SNphotoz salt fit effect
     # terrible way of coding this
     # but it is done to mimic sims format
-    tmp_retro = salt_fits_noz.add_suffix("_retro")
-    tmp_retro = tmp_retro.rename(columns={"SNID_retro": "SNID"})
-    df_tmp = pd.merge(overlap, tmp_retro, on="SNID")
-    pu.plot_scatter_mosaic_retro_biases(
+    tmp_SNphotoz = salt_fits_noz.add_suffix("_SNphotoz")
+    tmp_SNphotoz = tmp_SNphotoz.rename(columns={"SNID_SNphotoz": "SNID"})
+    df_tmp = pd.merge(overlap, tmp_SNphotoz, on="SNID")
+    pu.plot_scatter_mosaic_SNphotoz_biases(
         [df_tmp],
         ["overlap"],
-        path_out=f"{path_plots}/scatter_overlapJLA_retro_vs_ori.png",
+        path_out=f"{path_plots}/scatter_overlapJLA_SNphotoz_vs_ori.png",
         afterHQ=True,
     )
     pu.plot_delta_vs_var(
         df_tmp,
         "zHD",
-        "zPHOT_retro",
-        f"{path_plots}/scatter_z_overlapJLA_retro_vs_ori.png",
+        "zPHOT_SNphotoz",
+        f"{path_plots}/scatter_z_overlapJLA_SNphotoz_vs_ori.png",
         ylabel="spectroscopic - SNphoto redshift",
         xlabel="spectroscopic redshift",
     )
     # all w zspe
-    df_IaHQ_tmp = pd.merge(photoIanoz_saltz_HQ, tmp_retro, on="SNID")
+    df_IaHQ_tmp = pd.merge(photoIanoz_SNphotoz_HQ, tmp_SNphotoz, on="SNID")
     df_IaHQ_tmp = df_IaHQ_tmp[df_IaHQ_tmp["zHD"] > 0]
-    df_IaHQ_tmp = df_IaHQ_tmp.rename(columns={"zPHOTERR_retro": "zPHOT_retroERR"})
-    df_tmp = df_tmp.rename(columns={"zPHOTERR_retro": "zPHOT_retroERR"})
+    df_IaHQ_tmp = df_IaHQ_tmp.rename(columns={"zPHOTERR_SNphotoz": "zPHOT_SNphotozERR"})
+    df_tmp = df_tmp.rename(columns={"zPHOTERR_SNphotoz": "zPHOT_SNphotozERR"})
     pu.plot_list_delta_vs_var(
         [df_IaHQ_tmp, df_tmp],
         "zHD",
-        "zPHOT_retro",
+        "zPHOT_SNphotoz",
         f"{path_plots}/scatter_deltaz_HQ.png",
         ylabel="spectroscopic - SNphoto redshift",
         xlabel="spectroscopic redshift",
         labels=["SNN>0.5 + HQ", "SNN>0.5 + HQ in M22"],
     )
 
-    # plt.clf()
-    # df_Ianoz_tmp = pd.merge(photoIa_noz, tmp_retro, on="SNID", how="right")
-    # df_Ianoz_tmp = df_Ianoz_tmp[df_Ianoz_tmp["HOSTGAL_SPECZ"] > 0]
-    # plt.hist(
-    #     df_Ianoz_tmp["HOSTGAL_SPECZ"] - df_Ianoz_tmp["zPHOT_retro"], histtype="step"
-    # )
-    # plt.hist(df_IaHQ_tmp["zHD"] - df_IaHQ_tmp["zPHOT_retro"], histtype="step")
-    # plt.hist(df_tmp["zHD"] - df_tmp["zPHOT_retro"], histtype="step")
-    # plt.yscale("log")
-    # plt.xlim(-0.002, 0)
-    # plt.savefig("tmp.png")
-
     dic_venn = {
         "M22": set(photoIa_wz_JLA.SNID.values),
         "this work SNN>0.5": set(photoIa_noz.SNID.values),
-        "this work SNN>0.5 + HQ": set(photoIanoz_saltz_HQ.SNID.values),
+        "this work SNN>0.5 + HQ": set(photoIanoz_SNphotoz_HQ.SNID.values),
     }
     pu.plot_venn(dic_venn, path_plots=path_plots, suffix="all")
 
@@ -776,7 +727,7 @@ if __name__ == "__main__":
     sets = [
         set(photoIa_wz_JLA.SNID.values),
         set(photoIa_noz.SNID.values),
-        set(photoIanoz_saltz_HQ.SNID.values),
+        set(photoIanoz_SNphotoz_HQ.SNID.values),
     ]
     labels = ["M22", "SNN>0.5", "SNN>0.5 + HQ"]
     supervenn(sets, labels, side_plots=False)
@@ -787,40 +738,40 @@ if __name__ == "__main__":
     # lost
     print("LOST M22")
     lost_photoIa_wz_JLA = photoIa_wz_JLA[
-        ~photoIa_wz_JLA.SNID.isin(photoIanoz_saltz_HQ.SNID.values)
+        ~photoIa_wz_JLA.SNID.isin(photoIanoz_SNphotoz_HQ.SNID.values)
     ]
     print("Lost M22 JLA", len(lost_photoIa_wz_JLA))
     sel = salt_fits_noz[salt_fits_noz.SNID.isin(lost_photoIa_wz_JLA.SNID.values)]
-    print("   have simultaneous fit", len(sel))
+    print("   have SNphoto z fit", len(sel))
     sel = su.apply_JLA_cut(sel)
     print("   pass JLA cuts", len(sel))
 
-    # lost simultaneous salt fit effect
+    # lost SNphoto z salt fit effect
     # again terrible way of doing this
-    tmp_retro = salt_fits_noz.add_suffix("_retro")
-    tmp_retro = tmp_retro.rename(columns={"SNID_retro": "SNID"})
-    df_tmp = pd.merge(lost_photoIa_wz_JLA, tmp_retro, on="SNID")
-    pu.plot_scatter_mosaic_retro_biases(
+    tmp_SNphotoz = salt_fits_noz.add_suffix("_SNphotoz")
+    tmp_SNphotoz = tmp_SNphotoz.rename(columns={"SNID_SNphotoz": "SNID"})
+    df_tmp = pd.merge(lost_photoIa_wz_JLA, tmp_SNphotoz, on="SNID")
+    pu.plot_scatter_mosaic_SNphotoz_biases(
         [df_tmp],
         ["lost_photoIa_wz_JLA"],
-        path_out=f"{path_plots}/scatter_lostJLA_retro_vs_ori.png",
+        path_out=f"{path_plots}/scatter_lostJLA_SNphotoz_vs_ori.png",
         afterHQ=True,
     )
     pu.plot_delta_vs_var(
         df_tmp,
         "zHD",
-        "zPHOT_retro",
-        f"{path_plots}/scatter_z_lostJLA_retro_vs_ori.png",
+        "zPHOT_SNphotoz",
+        f"{path_plots}/scatter_z_lostJLA_SNphotoz_vs_ori.png",
     )
     pu.plot_delta_vs_var(
         df_tmp,
         "c",
-        "c_retro",
-        f"{path_plots}/scatter_c_lostJLA_retro_vs_ori.png",
+        "c_SNphotoz",
+        f"{path_plots}/scatter_c_lostJLA_SNphotoz_vs_ori.png",
     )
 
     for k in ["zHD", "c", "x1"]:
-        df_tmp[f"delta_{k}"] = abs(df_tmp[f"{k}_retro"] - df_tmp[f"{k}"])
+        df_tmp[f"delta_{k}"] = abs(df_tmp[f"{k}_SNphotoz"] - df_tmp[f"{k}"])
         n_good_tmp = len(df_tmp[df_tmp[f"delta_{k}"] < 0.1])
         print(
             f"   Good {k}: (SNphoto - zspe<0.1) {n_good_tmp} {round(n_good_tmp*100/len(df_tmp),2)}%",
@@ -828,12 +779,12 @@ if __name__ == "__main__":
 
     # New events
     print("NEW")
-    photoIa_noz_wz_notsel_photoIawz = photoIanoz_saltz_HQ[
-        (photoIanoz_saltz_HQ["REDSHIFT_FINAL"] > 0)
-        & (~photoIanoz_saltz_HQ["SNID"].isin(photoIa_wz.SNID.values))
+    photoIa_noz_wz_notsel_photoIawz = photoIanoz_SNphotoz_HQ[
+        (photoIanoz_SNphotoz_HQ["REDSHIFT_FINAL"] > 0)
+        & (~photoIanoz_SNphotoz_HQ["SNID"].isin(photoIa_wz.SNID.values))
     ]
     print(f"new with zspe {len(photoIa_noz_wz_notsel_photoIawz)}")
-    photoIa_noz_wz_notsel_photoIawz.to_csv(f"{path_samples}/new_wzspe.csv")
+    # photoIa_noz_wz_notsel_photoIawz.to_csv(f"{path_samples}/new_wzspe.csv")
     pu.plot_mosaic_histograms_listdf(
         [photoIa_noz_wz_notsel_photoIawz],
         list_labels=["newJLA"],
@@ -895,7 +846,7 @@ if __name__ == "__main__":
     )
 
     logger.info("")
-    logger.info("SIMULATIONS: SIMULTANEOUS SALT2 FIT")
+    logger.info("SIMULATIONS: SNphoto z SALT2 FIT")
     # Load usual SALT2 fit (using available redshift)
     sim_fits = du.load_salt_fits(
         f"{args.path_sim_fits}/JLA_1XDES/output/PIP_AM_DES5YR_SIMS_TEST_NOZ_SMALL_1XDES/FITOPT000.FITRES.gz"
@@ -913,8 +864,8 @@ if __name__ == "__main__":
     sim_saltz_Ia = sim_saltz[sim_saltz.SNTYPE.isin(cu.spec_tags["Ia"])]
     sim_saltz_Ia_JLA = su.apply_JLA_cut(sim_saltz_Ia)
 
-    tmp_sim_saltz = sim_saltz.add_suffix("_retro")
-    tmp_sim_saltz = tmp_sim_saltz.rename(columns={"SNID_retro": "SNID"})
+    tmp_sim_saltz = sim_saltz.add_suffix("_SNphotoz")
+    tmp_sim_saltz = tmp_sim_saltz.rename(columns={"SNID_SNphotoz": "SNID"})
     sim_all_fits = pd.merge(sim_fits, tmp_sim_saltz)
 
     # define simulated photo sample
@@ -923,7 +874,7 @@ if __name__ == "__main__":
 
     logger.info("")
     logger.info("SIMULATIONS: CLASSIFICATION EFFICIENCY")
-    # the simultaneous saltz fit may introduce some large biases
+    # the SNphoto z saltz fit may introduce some large biases
 
     # 1. comparing simulations: photoIa vs true Ia
     # define simulated sample
@@ -936,43 +887,16 @@ if __name__ == "__main__":
     ]
     sim_allfits_Ia = sim_all_fits[sim_all_fits.SNID.isin(sim_saltz_Ia.SNID.values)]
 
-    # variable = "m0obs_i"
-    # min_var = sim_allfits_photoIa_noz[variable].quantile(0.01)
-    # df, minv, maxv = du.data_sim_ratio(
-    #     sim_allfits_photoIa_noz,
-    #     sim_allfits_Ia,
-    #     var=variable,
-    #     path_plots=path_plots,
-    #     min_var=min_var,
-    #     suffix="simfixedz_simphotoIa_noJLA",
-    # )
-    # df, minv, maxv = du.data_sim_ratio(
-    #     sim_saltz[sim_saltz.SNID.isin(sim_photoIa.SNID.values)],
-    #     sim_saltz_Ia,
-    #     var=variable,
-    #     path_plots=path_plots,
-    #     min_var=min_var,
-    #     suffix="simfittedz_simphotoIa_noJLA",
-    # )
-    # df, minv, maxv = du.data_sim_ratio(
-    #     su.apply_JLA_cut(sim_saltz[sim_saltz.SNID.isin(sim_photoIa.SNID.values)]),
-    #     sim_saltz_Ia_JLA,
-    #     var=variable,
-    #     path_plots=path_plots,
-    #     min_var=min_var,
-    #     suffix="simfittedz_simphotoIa_JLA",
-    # )
-
     # 2. compraing data with sims
     variable = "m0obs_i"
     quant = 0.01
-    min_var = photoIanoz_saltz_HQ[variable].quantile(quant)
+    min_var = photoIanoz_SNphotoz_HQ[variable].quantile(quant)
     lu.print_yellow(
         f"Not using photo Ias with {variable}<{min_var} (equivalent to quantile {quant}, possible if low-z)"
     )
     # fixed z for sim
     df, minv, maxv = du.data_sim_ratio(
-        photoIanoz_saltz_HQ,
+        photoIanoz_SNphotoz_HQ,
         sim_Ia_fits_JLA,
         var=variable,
         path_plots=path_plots,
@@ -990,12 +914,12 @@ if __name__ == "__main__":
 
     # saltz for sim
     df, minv, maxv = du.data_sim_ratio(
-        photoIanoz_saltz_HQ,
+        photoIanoz_SNphotoz_HQ,
         sim_saltz_Ia_JLA,
         var=variable,
         path_plots=path_plots,
         min_var=min_var,
-        suffix="simfittedz",
+        suffix="SNphotoz",
     )
     if args.nofit:
         lu.print_red("Not doing sel function emcee_fitting!!!!")
@@ -1009,22 +933,22 @@ if __name__ == "__main__":
     # sanity ratio z
     variable = "zHD"
     quant = 0.01
-    min_var = photoIanoz_saltz_HQ[variable].quantile(quant)
+    min_var = photoIanoz_SNphotoz_HQ[variable].quantile(quant)
     tmo, tmominv, mtmoaxv = du.data_sim_ratio(
-        photoIanoz_saltz_HQ,
+        photoIanoz_SNphotoz_HQ,
         sim_Ia_fits_JLA,
         var=variable,
         path_plots=path_plots,
         min_var=min_var,
-        suffix="simfixedz",
+        suffix="simz",
     )
     tmo, tmominv, mtmoaxv = du.data_sim_ratio(
-        photoIanoz_saltz_HQ,
+        photoIanoz_SNphotoz_HQ,
         sim_saltz_Ia_JLA,
         var=variable,
         path_plots=path_plots,
         min_var=min_var,
-        suffix="simfittedz",
+        suffix="SNphotoz",
     )
 
     lu.print_blue("Loading metadata sims")
@@ -1033,9 +957,9 @@ if __name__ == "__main__":
     # sanity ratio z
     variable = "HOSTGAL_MAG_r"
     quant = 0.01
-    min_var = photoIanoz_saltz_HQ[variable].quantile(quant)
+    min_var = photoIanoz_SNphotoz_HQ[variable].quantile(quant)
     tmo, tmominv, mtmoaxv = du.data_sim_ratio(
-        photoIanoz_saltz_HQ,
+        photoIanoz_SNphotoz_HQ,
         metadata_sim_Ia_fits_JLA,
         var=variable,
         path_plots=path_plots,
@@ -1047,7 +971,7 @@ if __name__ == "__main__":
     pu.overplot_salt_distributions_lists(
         [
             sim_saltz_Ia_JLA,
-            photoIanoz_saltz_HQ,
+            photoIanoz_SNphotoz_HQ,
         ],
         path_plots=path_plots,
         list_labels=[
@@ -1059,7 +983,7 @@ if __name__ == "__main__":
     )
 
     pu.overplot_salt_distributions_lists(
-        [sim_Ia_fits_JLA, sim_saltz_Ia_JLA, photoIanoz_saltz_HQ],
+        [sim_Ia_fits_JLA, sim_saltz_Ia_JLA, photoIanoz_SNphotoz_HQ],
         path_plots=path_plots,
         list_labels=[
             "sim Ia HQ (true z)",
@@ -1075,7 +999,7 @@ if __name__ == "__main__":
         [
             sim_Ia_fits_JLA,
             sim_saltz_Ia_JLA,
-            photoIanoz_saltz_HQ,
+            photoIanoz_SNphotoz_HQ,
         ],
         list_labels=[
             "sim Ia HQ (true z)",
@@ -1091,10 +1015,10 @@ if __name__ == "__main__":
     # deep and shallow
     sim_Ia_fits_JLA = du.tag_deep_shallow(sim_Ia_fits_JLA)
     sim_saltz_Ia_JLA = du.tag_deep_shallow(sim_saltz_Ia_JLA)
-    photoIanoz_saltz_HQ = du.tag_deep_shallow(photoIanoz_saltz_HQ)
+    photoIanoz_SNphotoz_HQ = du.tag_deep_shallow(photoIanoz_SNphotoz_HQ)
 
     pu.overplot_salt_distributions_lists_deep_shallow(
-        [sim_Ia_fits_JLA, sim_saltz_Ia_JLA, photoIanoz_saltz_HQ],
+        [sim_Ia_fits_JLA, sim_saltz_Ia_JLA, photoIanoz_SNphotoz_HQ],
         list_labels=[
             "simulations (true z)",
             "simulations (SNphoto z)",
@@ -1108,20 +1032,20 @@ if __name__ == "__main__":
     logger.info("")
     logger.info("Sample comparisons")
     # Want to compare:
-    # photoIa_noz with salt simultaneous
-    # photoIa_noz with salt zspe when available else simultaneous
+    # photoIa_noz with salt SNphoto z
+    # photoIa_noz with salt zspe when available else SNphoto z
     # photoIa_wz with salt zspe
 
     # For a mixed histogram
     cols_to_keep = ["SNID", "zHD", "c", "x1"]
-    tmp = photoIanoz_saltz_HQ[cols_to_keep]
+    tmp = photoIanoz_SNphotoz_HQ[cols_to_keep]
     tmp_salt_fits_wz = salt_fits_wz.rename(
         columns={"zHD_zspe": "zHD", "c_zspe": "c", "x1_zspe": "x1"}
     )
     tmp.update(tmp_salt_fits_wz[cols_to_keep])
 
     pu.plot_mosaic_histograms_listdf(
-        [tmp, photoIanoz_saltz_HQ, photoIa_wz_JLA],
+        [tmp, photoIanoz_SNphotoz_HQ, photoIa_wz_JLA],
         list_labels=[
             "DES SNe Ia HQ (z mixed)",
             "DES SNe Ia HQ (SNphoto z)",
@@ -1140,7 +1064,7 @@ if __name__ == "__main__":
     photoIa_wz_JLA = pd.merge(photoIa_wz_JLA, tmpsalt[["SNID", "m0obs_i"]], how="left")
 
     pu.plot_mosaic_histograms_listdf(
-        [photoIanoz_saltz_HQ, photoIa_wz_JLA, spec_ia],
+        [photoIanoz_SNphotoz_HQ, photoIa_wz_JLA, spec_ia],
         list_labels=[
             "DES SNe Ia HQ (SNphoto z)",
             "DES SNe Ia M22",
@@ -1161,7 +1085,7 @@ if __name__ == "__main__":
     for i, var in enumerate(["HOSTGAL_MAG_r", "x1", "c"]):
         # binning
         list_df = []
-        for df in [photoIanoz_saltz_HQ, photoIa_wz_JLA, spec_ia]:
+        for df in [photoIanoz_SNphotoz_HQ, photoIa_wz_JLA, spec_ia]:
             sel = df[df["HOSTGAL_MAG_r"] < 30] if var == "HOSTGAL_MAG_r" else df
             sel[f"zHD_bin"] = pd.cut(sel.loc[:, ("zHD")], pu.bins_dic["zHD"])
             list_df.append(sel)
@@ -1197,7 +1121,7 @@ if __name__ == "__main__":
     fig = plt.figure(figsize=(10, 10), constrained_layout=True)
     # binning
     list_df = []
-    for df in [photoIanoz_saltz_HQ, photoIa_wz_JLA, spec_ia]:
+    for df in [photoIanoz_SNphotoz_HQ, photoIa_wz_JLA, spec_ia]:
         sel = df[df["HOSTGAL_MAG_r"] < 30]
         sel[f"zHD_bin"] = pd.cut(sel.loc[:, ("zHD")], pu.bins_dic["zHD"])
         list_df.append(sel)

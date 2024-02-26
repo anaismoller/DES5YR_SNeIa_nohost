@@ -47,28 +47,6 @@ def read_header_fits(fname, drop_separators=False):
     return df_header
 
 
-def load_sngals(fname):
-    """Load SNGALS csv dump"""
-    sngals = pd.read_csv(fname)
-
-    sngals["TRANSIENT_NAME"] = (
-        sngals["TRANSIENT_NAME"]
-        .str.strip('"b')
-        .str.replace(" ", "")
-        .str.replace("'", "")
-    )
-    sngals["SPECZ_CATALOG"] = (
-        sngals["SPECZ_CATALOG"]
-        .str.strip('"b')
-        .str.replace(" ", "")
-        .str.replace("'", "")
-    )
-    sngals["SPECZ_FLAG"] = (
-        sngals["SPECZ_FLAG"].str.strip('"b').str.replace(" ", "").str.replace("'", "")
-    )
-    return sngals
-
-
 def load_headers(path_files):
     list_files = glob.glob(f"{path_files}/*HEAD.FITS*")
     df_list = []

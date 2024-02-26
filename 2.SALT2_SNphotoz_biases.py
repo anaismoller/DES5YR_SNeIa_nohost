@@ -58,10 +58,10 @@ def setup_logging():
 
 def plot_freez_correlations(list_df, list_labels=["tmp"], path_plots="./"):
     # scatter plot
-    pu.plot_scatter_mosaic_retro_biases(
+    pu.plot_scatter_mosaic_SNphotoz_biases(
         list_df,
         list_labels,
-        path_out=f"{path_plots}/scatter_retro_vs_ori.png",
+        path_out=f"{path_plots}/scatter_SNphotoz_vs_ori.png",
         print_biases=True,
     )
 
@@ -72,7 +72,7 @@ def plot_freez_correlations(list_df, list_labels=["tmp"], path_plots="./"):
 
     for i, var in enumerate(["z", "c", "x1"]):
         varx = "zHD" if var == "z" else var
-        vary = f"{var}PHOT_retro" if var == "z" else f"{var}_retro"
+        vary = f"{var}PHOT_SNphotoz" if var == "z" else f"{var}_SNphotoz"
         lims = (0.1, 1.4) if var == "z" else ((-0.5, 0.5) if var == "c" else (-5, 5))
         for idx_df, df in enumerate(list_df):
             delta = df[vary] - df[varx]
@@ -89,11 +89,11 @@ def plot_freez_correlations(list_df, list_labels=["tmp"], path_plots="./"):
                 color=colors[idx_df],
                 linestyle=pu.list_linestyle[idx_df],
             )
-        axs[i].set_xlabel(f"{var} fitted -{var} sim")
+        axs[i].set_xlabel(f"{var} SNphoto -{var} sim s")
         axs[i].set_xlim(lims[0], lims[1])
         axs[i].set_yscale("log")
     axs[i].legend(loc="best", prop={"size": 10})
-    plt.savefig(f"{path_plots}/hist_delta_fitted_vs_sim.png")
+    plt.savefig(f"{path_plots}/hist_delta_SNphoto_vs_sim.png")
 
     # scatter plot delta c - delta z
     fig = plt.figure(constrained_layout=True, figsize=(12, 6))
@@ -101,19 +101,17 @@ def plot_freez_correlations(list_df, list_labels=["tmp"], path_plots="./"):
         if len(df) > 1000:
             df = df.sample(n=1000)
         plt.errorbar(
-            df["zHD_retro"] - df["zHD"],
-            df["c_retro"] - df["c"],
-            # yerr=df["cERR_retro"] + df["cERR"],
-            # xerr=df["zHD_retro"] + df["zHDERR"],
+            df["zHD_SNphotoz"] - df["zHD"],
+            df["c_SNphotoz"] - df["c"],
             fmt="o",
             color=colors[idx_df],
             label=list_labels[idx_df],
         )
 
-    plt.xlabel(f"zHD fitted - zHD sim")
-    plt.ylabel(f"c fitted - c sim")
+    plt.xlabel(f"zHD SNphoto z - zHD sim z")
+    plt.ylabel(f"c SNphoto z - c sim z")
     plt.legend(loc="best", prop={"size": 10})
-    plt.savefig(f"{path_plots}/scatter_deltac_deltazfitted.png")
+    plt.savefig(f"{path_plots}/scatter_deltac_deltaz.png")
 
     # scatter plot delta c -  z simm
     fig = plt.figure(constrained_layout=True, figsize=(12, 6))
@@ -122,20 +120,18 @@ def plot_freez_correlations(list_df, list_labels=["tmp"], path_plots="./"):
             df = df.sample(n=1000)
         plt.errorbar(
             df["zHD"],
-            df["c_retro"] - df["c"],
-            # yerr=df["cERR_retro"] + df["cERR"],
-            # xerr=df["zHD_retro"] + df["zHDERR"],
+            df["c_SNphotoz"] - df["c"],
             fmt="o",
             color=colors[idx_df],
             label=list_labels[idx_df],
         )
 
     plt.xlabel(f"zHD sim")
-    plt.ylabel(f"c fitted - c sim")
+    plt.ylabel(f"c SNphoto - c sim")
     plt.legend(loc="best", prop={"size": 10})
     plt.savefig(f"{path_plots}/scatter_deltac_zHDsim.png")
 
-    # plot c sim -> c fitted vs delta z
+    # plot c sim -> c SNphoto vs delta z
     # need to bin to see clearly tendencies
     fig = plt.figure(constrained_layout=True, figsize=(10, 10))
     gs = fig.add_gridspec(2, 1, hspace=0.05, wspace=0.05)
@@ -148,8 +144,8 @@ def plot_freez_correlations(list_df, list_labels=["tmp"], path_plots="./"):
             axs[0].arrow(
                 row["zHD"],
                 beta * row["c"],
-                row["zHD_retro"] - row["zHD"],
-                beta * (row["c_retro"] - row["c"]),
+                row["zHD_SNphotoz"] - row["zHD"],
+                beta * (row["c_SNphotoz"] - row["c"]),
                 color="black",  # colors[idx_df],
                 head_width=0.02 if "sim Ia" in list_labels[idx_df] else 0.02,
                 width=0.002,
@@ -163,8 +159,8 @@ def plot_freez_correlations(list_df, list_labels=["tmp"], path_plots="./"):
             axs[1].arrow(
                 row["zHD"],
                 alpha * row["x1"],
-                row["zHD_retro"] - row["zHD"],
-                alpha * (row["x1_retro"] - row["x1"]),
+                row["zHD_SNphotoz"] - row["zHD"],
+                alpha * (row["x1_SNphotoz"] - row["x1"]),
                 color="black",  # colors[idx_df],
                 head_width=0.02 if "sim Ia" in list_labels[idx_df] else 0.02,
                 width=0.002,
@@ -210,14 +206,14 @@ if __name__ == "__main__":
     path_dump = args.path_dump
     path_sim_headers = args.path_sim_headers
 
-    path_plots = f"{path_dump}/plots_SALTbiases/"
+    path_plots = f"{path_dump}/plots_SNphotoz_biases/"
     os.makedirs(path_plots, exist_ok=True)
 
     # logger
     logger = setup_logging()
 
     logger.info("")
-    logger.info("SIMULATIONS: STATS + EVALUATE SIMULTANEOUS SALT2 FIT")
+    logger.info("SIMULATIONS: EVALUATE SNPHOTO Z SALT2")
     lu.print_blue("Loading sims")
     # load predictions of snn
     sim_preds = du.load_merge_all_preds(
@@ -225,7 +221,7 @@ if __name__ == "__main__":
         model_name="vanilla_S_*_none*_cosmo_quantile_lstm_64x4_0.05_1024_True_mean",
         norm="cosmo_quantile",
     )
-    lu.print_blue("Loading SALT2 fit NOT SIMULTANEOUS for comparison")
+    lu.print_blue("Loading SALT2 fit with sim redshift for comparison")
     # Load usual SALT2 fit (using available redshift)
     sim_fits = du.load_salt_fits(
         f"{args.path_sim_fits}/JLA_1XDES/output/PIP_AM_DES5YR_SIMS_TEST_NOZ_SMALL_1XDES/FITOPT000.FITRES.gz"
@@ -235,7 +231,7 @@ if __name__ == "__main__":
     sim_Ia_fits_JLA = su.apply_JLA_cut(sim_Ia_fits)
 
     # Load z,x1,c SALT2 fit
-    lu.print_blue("Loading SALT2 SIMULTANEOUS")
+    lu.print_blue("Loading SALT2 fit with SNphoto z")
     sim_saltz = du.load_salt_fits(
         f"{args.path_sim_fits}/D_FITZ_1XDES/output/PIP_AM_DES5YR_SIMS_TEST_NOZ_SMALL_1XDES/FITOPT000.FITRES.gz"
     )
@@ -243,8 +239,8 @@ if __name__ == "__main__":
     sim_saltz_Ia = sim_saltz[sim_saltz.SNTYPE.isin(cu.spec_tags["Ia"])]
     sim_saltz_Ia_JLA = su.apply_JLA_cut(sim_saltz_Ia)
 
-    tmp_sim_saltz = sim_saltz.add_suffix("_retro")
-    tmp_sim_saltz = tmp_sim_saltz.rename(columns={"SNID_retro": "SNID"})
+    tmp_sim_saltz = sim_saltz.add_suffix("_SNphotoz")
+    tmp_sim_saltz = tmp_sim_saltz.rename(columns={"SNID_SNphotoz": "SNID"})
     sim_all_fits = pd.merge(sim_fits, tmp_sim_saltz)
 
     # define simulated sample
@@ -259,14 +255,14 @@ if __name__ == "__main__":
 
     # Inspect z,x1,c simultaneous fit
     plot_freez_correlations(
-        [sim_allfits_Ia],  # , sim_allfits_photoIa_noz],
-        list_labels=["sim Ia"],  # , "sim photoIa noz"],  # , "sim core-collapse"],
+        [sim_allfits_Ia],
+        list_labels=["sim Ia"],
         path_plots=path_plots,
     )
 
     logger.info("")
     logger.info("SIMULATIONS: CONTAMINATION")
-    # contamination and efficiency vs. true z and fitted z
+    # contamination and efficiency vs. true z and SNphoto z
     list_tuple = [
         (sim_preds, sim_fits),
         (sim_preds, sim_saltz),
@@ -347,7 +343,7 @@ if __name__ == "__main__":
         var=variable,
         path_plots=path_plots,
         min_var=min_var,
-        suffix="simfittedz_simphotoIa_noJLA",
+        suffix="simSNphotoz_simphotoIa_noJLA",
     )
     df, minv, maxv = du.data_sim_ratio(
         su.apply_JLA_cut(sim_saltz[sim_saltz.SNID.isin(sim_photoIa.SNID.values)]),
@@ -355,5 +351,5 @@ if __name__ == "__main__":
         var=variable,
         path_plots=path_plots,
         min_var=min_var,
-        suffix="simfittedz_simphotoIa_JLA",
+        suffix="simSNphotoz_simphotoIa_JLA",
     )

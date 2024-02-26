@@ -610,7 +610,7 @@ def plot_errorbar_binned(
                 alpha=0.8,
                 zorder=-20,
             )
-        print(list_labels[i], color_list[i + color_offset])
+        # print(list_labels[i], color_list[i + color_offset])
         x_toplot = bins if len(bins) > 1 else df.groupby(binname).mean()[varx].values
         axs.errorbar(
             x_toplot,
@@ -1197,26 +1197,6 @@ def overplot_salt_distributions_lists(
 
         for df_idx, df in enumerate(list_df):
             df[f"{xbin}_bin"] = pd.cut(df.loc[:, (xbin)], bins)
-
-        # to_plot = ["c", "x1", "HOST_LOGMASS"] if xbin == "zHD" else ["c", "x1", "zHD"]
-        # for k in to_plot:
-        #     fig = plot_errorbar_binned(
-        #         list_df,
-        #         list_labels,
-        #         binname=f"{xbin}_bin",
-        #         varx=xbin,
-        #         vary=k,
-        #         sim_scale_factor=sim_scale_factor,
-        #     )
-        #     plt.legend()
-        #     plt.xlabel(xbin)
-        #     if suffix != "":
-        #         plt.savefig(
-        #             f"{path_plots}/2ddist_sample_sim_Ia_{k}_{xbin}_{suffix}.png"
-        #         )
-        #     else:
-        #         plt.savefig(f"{path_plots}/2ddist_sample_sim_Ia_{k}_{xbin}.png")
-        #     del fig
 
     # zHD binned c,x1 together (same as above only formatting)
     xbin = "zHD"
@@ -1951,7 +1931,7 @@ def overplot_salt_distributions_lists_deep_shallow(
     del fig
 
 
-def plot_scatter_mosaic_retro_biases(
+def plot_scatter_mosaic_SNphotoz_biases(
     list_df, list_labels, path_out="tmp.png", print_biases=False, afterHQ=False
 ):
     # scatter
@@ -1967,7 +1947,7 @@ def plot_scatter_mosaic_retro_biases(
 
     for i, var in enumerate(["z", "c", "x1"]):
         varx = "zHD" if var == "z" else var
-        vary = f"{var}PHOT_retro" if var == "z" else f"{var}_retro"
+        vary = f"{var}PHOT_SNphotoz" if var == "z" else f"{var}_SNphotoz"
 
         if afterHQ:
             lims = (
@@ -2041,12 +2021,12 @@ def plot_scatter_mosaic_retro_biases(
     plt.savefig(path_out)
 
 
-def plot_scatter_mosaic_retro(
+def plot_scatter_mosaic_SNphotoz(
     list_df,
     list_labels,
     path_out="tmp.png",
     print_biases=False,
-    fitted_suffix="_retro",
+    fitted_suffix="_SNphotoz",
     zspe_suffix="",
 ):
     # scatter
@@ -2056,7 +2036,7 @@ def plot_scatter_mosaic_retro(
 
     for i, var in enumerate(["z", "c", "x1"]):
         varx = "zHD" if var == "z" else var
-        vary = f"{var}PHOT_retro" if var == "z" else f"{var}_retro"
+        vary = f"{var}PHOT_SNphotoz" if var == "z" else f"{var}_SNphotoz"
         lims = (0.1, 1.2) if var == "z" else ((-0.4, 0.4) if var == "c" else (-4, 4))
         for idx_df, df in enumerate(list_df):
             h2d, xedges, yedges, im = axs[i].hist2d(
@@ -2182,9 +2162,6 @@ def plot_delta_vs_var(df, varx, vary2, fout, ylabel=None, xlabel=None):
     )
     plt.xlabel(xlabel if xlabel != None else varx)
     plt.ylabel(ylabel if ylabel != None else f"{varx}-{vary2}")
-    # plt.title(
-    #     f"{np.median(df[varx] - df[vary2]):.3f} \pm {np.std(df[varx] - df[vary2]):.3f} & max: {np.max(df[varx] - df[vary2]):.3f}"
-    # )
     plt.savefig(fout)
     del fig
 
@@ -2204,17 +2181,12 @@ def plot_list_delta_vs_var(
         plt.errorbar(
             df[varx],
             df[varx] - df[vary2],
-            # xerr=df[f"{varx}ERR"],
-            # yerr=np.sqrt(df[f"{varx}ERR"] ** 2 + df[f"{vary2}ERR"] ** 2),
             color="grey" if n < 1 else ALL_COLORS[n],
             fmt="o",
             label=tmp_label[n],
         )
     plt.xlabel(xlabel if xlabel != None else varx)
     plt.ylabel(ylabel if ylabel != None else f"{varx}-{vary2}")
-    # plt.title(
-    #     f"{np.median(df[varx] - df[vary2]):.3f} \pm {np.std(df[varx] - df[vary2]):.3f} & max: {np.max(df[varx] - df[vary2]):.3f}"
-    # )
     if labels != None:
         plt.legend()
     plt.xlim(0, 1.3)

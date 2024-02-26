@@ -818,6 +818,7 @@ def stats_possible_contaminants(
     verbose=True,
 ):
     """Check possible other contaminants
+    Most of these lists are private
 
     Samples may contain:
     - close-by AGNs (which would deem them not cosmology suited)
@@ -849,7 +850,9 @@ def stats_possible_contaminants(
 
     # Load OzDES close-by AGN list
     # Transient spectra was inspected for AGN features (see C. Lidman)
-    OzDES_AGN_tmp = Table.read("./extra_lists/OzDES_AGN_2020_08_15.fits", format="fits")
+    OzDES_AGN_tmp = Table.read(
+        "./samples/previous_works/private/OzDES_AGN_2020_08_15.fits", format="fits"
+    )
     OzDES_AGN = OzDES_AGN_tmp.to_pandas()
     OzDES_AGN["SNID"] = OzDES_AGN["SNID"].str.decode("utf-8")
     OzDES_AGN["AGN comment"] = OzDES_AGN["AGN comment"].str.decode("utf-8")
@@ -860,7 +863,7 @@ def stats_possible_contaminants(
 
     # Load human + automatic tagging (see M. Sako)
     various_flags = pd.read_csv(
-        "./extra_lists/FlagsMerged_Sako.csv",
+        "./samples/previous_works/private/FlagsMerged_Sako.csv",
         comment="#",
         usecols=[
             "SNID",
@@ -877,8 +880,12 @@ def stats_possible_contaminants(
     various_flags = various_flags.drop_duplicates()
 
     # Other SNe types from DES
-    SLSN = pd.read_csv("./extra_lists/SLSN.csv", comment="#", delimiter=" ")
-    Hounsell_CC = pd.read_csv("./extra_lists/Hounsell_templates_SNID.csv", comment="#")
+    SLSN = pd.read_csv(
+        "./samples/previous_works/private/SLSN.csv", comment="#", delimiter=" "
+    )
+    Hounsell_CC = pd.read_csv(
+        "./samples/previous_works/private/Hounsell_templates_SNID.csv", comment="#"
+    )
 
     for method in method_list:
         lu.print_blue(method)
