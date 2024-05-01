@@ -24,6 +24,8 @@ path_dump = f"{DES}/DES5YR/DES5YR_SNeIa_nohost/dump_DES5YR"
 path_plots = f"{path_dump}/plots_samples_comparisson/"
 os.makedirs(path_plots, exist_ok=True)
 
+lines_ranges = {"zCMB": [0.2, 1.2], "c": [-0.3, 0.3], "x1": [-3, 3], "mass": [8, 12]}
+
 
 def cuts(df, var):
     sel = (
@@ -852,7 +854,6 @@ if __name__ == "__main__":
     # extra
 
     def plot_mosaic_scatter_SNphoto_zspe(df, outname, path_plots, plot_ranges):
-        lines_ranges = {"zCMB": [0.2, 1.2], "c": [-0.3, 0.3], "x1": [-3, 3]}
 
         fig = plt.figure(figsize=(14, 6))
         gs = fig.add_gridspec(2, 3, wspace=0.4, hspace=0.1, height_ratios=[1, 0.4])
@@ -987,8 +988,8 @@ if __name__ == "__main__":
         fmt="o",
         alpha=0.3,
     )
-    plt.xlabel(r"x1_\{SNphoto z}")
-    plt.ylabel(r"x1_\{zspe}")
+    plt.xlabel(r"$mass_{SNphoto z}$")
+    plt.ylabel(r"$mass_{zspe}$")
     plt.plot(
         [7.5, 12.5],
         [7.5, 12.5],
@@ -998,3 +999,50 @@ if __name__ == "__main__":
         zorder=100,
     )
     plt.savefig(f"{path_plots}/M24_wzspe_mass.png")
+
+    # 2d
+    fig = plt.figure(figsize=(8, 6))
+    gs = fig.add_gridspec(2, 1, wspace=0.4, hspace=0.1, height_ratios=[1, 0.4])
+    axs = gs.subplots(sharex="col", sharey=False)
+
+    sel = M24_w_zspe[M24_w_zspe["mass_SNphotoz"] > 8]
+    axs[0].hist2d(
+        sel["mass_SNphotoz"],
+        sel["mass"],
+        bins=70,
+        cmap="magma_r",
+        density=True,
+    )
+    axs[0].plot(
+        [8, 12],
+        [8, 12],
+        color="black",
+        linewidth=1,
+        linestyle="--",
+        zorder=100,
+    )
+    axs[0].set_xlim(8, 12)
+    axs[0].set_ylim(8, 12)
+
+    # 2nd row: delta
+    axs[1].hist2d(
+        sel["mass_SNphotoz"],
+        sel["mass"] - sel["mass_SNphotoz"],
+        bins=70,
+        cmap="magma_r",
+        density=True,
+    )
+    axs[1].plot(
+        [lines_ranges["mass"][0], lines_ranges["mass"][1]],
+        [0, 0],
+        color="black",
+        linewidth=1,
+        linestyle="--",
+        zorder=100,
+    )
+    axs[1].set_ylim(-0.5, 0.5)
+
+    axs[0].set_ylabel("mass")
+    axs[1].set_xlabel(r"$mass_{SNphoto z}$")
+    axs[1].set_ylabel("Delta m - m SNphoto z")
+    plt.savefig(f"{path_plots}/M24_wzspe_mass_2d.png")

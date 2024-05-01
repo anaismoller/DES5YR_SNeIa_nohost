@@ -280,6 +280,7 @@ if __name__ == "__main__":
         df_metadata_w_multiseason.SNID.isin(SNID_w_2flt_SNR5)
     ]
     cuts.spec_subsamples(df_metadata_w_sampling, logger)
+    df_metadata_w_sampling.to_csv((f"{path_samples}/df_metadata_w_sampling.csv"))
 
     df_stats = mu.cuts_deep_shallow(
         df_metadata_w_sampling,
@@ -376,6 +377,16 @@ if __name__ == "__main__":
 
     # save photoIa that pass SNN>0.5
     photoIa_noz.to_csv(f"{path_samples}/photoIanoz.csv")
+    # M24 for DES data release
+    tmp = photoIa_noz[["SNID", "all_class0_S_0", "average_probability_set_0"]]
+    tmp = tmp.rename(
+        columns={
+            "SNID": "CID",
+            "all_class_0": "PROB_SNN_noz_singlemodel",
+            "average_probability_set_0": "PROB_SNN_noz_ensemble",
+        }
+    )
+    tmp.to_csv(f"{path_samples}/DES_noredshift_classification_Moller2024.csv")
     # load salt fits wzspe
     tmpsalt = du.load_salt_fits(args.path_data_fits)
     tmpsalt_zspe = tmpsalt[
