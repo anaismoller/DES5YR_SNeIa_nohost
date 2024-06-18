@@ -172,6 +172,71 @@ def plot_freez_correlations(list_df, list_labels=["tmp"], path_plots="./"):
     plt.savefig(f"{path_plots}/migration_cx1_zHD.png")
 
 
+def plot_mosaic_scatter_SNphoto_zspe(df, outname, path_plots):
+
+        lines_ranges = {"z": [0.2, 1.3], "c": [-0.4, 0.4], "x1": [-4, 4]}
+        plot_ranges = {"z": [0.1, 1.3], "c": [-0.4, 0.4], "x1": [-4, 4]}
+
+        fig = plt.figure(figsize=(12, 6))
+        gs = fig.add_gridspec(2, 3, wspace=0.4, hspace=0.1, height_ratios=[1, 0.4])
+        axs = gs.subplots(sharex="col", sharey=False)
+
+        for i, var in enumerate(["z", "c", "x1"]):
+            varx = "zHD" if var == "z" else var
+            vary = f"{var}PHOT_SNphotoz" if var == "z" else f"{var}_SNphotoz"
+            errvary = f"{var}PHOTERR_SNphotoz" if var == "z" else f"{var}ERR_SNphotoz"
+            # first row: scatter
+            axs[0][i].errorbar(
+                df[varx],
+                df[vary],
+                xerr=df[f"{varx}ERR"],
+                yerr=df[errvary],
+                fmt="o",
+                ecolor=None,
+                markersize=1,
+                alpha=0.05 if var=='z' else 0.01,
+                color="indigo",
+            )
+            axs[0][i].plot(
+                lines_ranges[var],
+                lines_ranges[var],
+                color="black",
+                linewidth=1,
+                linestyle="--",
+                zorder=100,
+            )
+            ylabel = (
+                r"${%s}_{\mathrm{SNphoto ~ z}}$" % var if var != "z" else "SNphoto z"
+            )
+            axs[0][i].set_ylabel(ylabel)
+            axs[0][i].set_xlim(plot_ranges[var])
+            axs[0][i].set_ylim(plot_ranges[var])
+            # 2nd row: delta 
+            df[f"delta {var}"] = df[varx] - df[vary]
+            axs[1][i].scatter(
+                df[varx],
+                df[f"delta {var}"],
+                alpha=0.03,
+                color="indigo",
+                s=10,
+            )
+            axs[1][i].plot(
+                [lines_ranges[var][0], lines_ranges[var][1]],
+                [0, 0],
+                color="black",
+                linewidth=1,
+                linestyle="--",
+                zorder=100,
+            )
+
+            axs[1][i].set_xlabel(
+                r"${%s}_{\mathrm{true ~ z}}$" % var if var != "z" else "true z"
+            )
+            ylabel = r"$\Delta {%s}$" % var
+            axs[1][i].set_ylabel(ylabel)
+        plt.savefig(f"{path_plots}/{outname}.png")
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Code to reproduce results paper")
@@ -254,6 +319,33 @@ if __name__ == "__main__":
     sim_allfits_Ia = sim_all_fits[sim_all_fits.SNID.isin(sim_saltz_Ia.SNID.values)]
 
     # Inspect z,x1,c simultaneous fit
+    plot_mosaic_scatter_SNphoto_zspe(
+        sim_allfits_Ia.sample(n=10000, random_state=1), "scatter_SNphotoz_vs_true", path_plots
+    )
+    sim_allfits_Ia["delta z"] = sim_allfits_Ia['zHD'] - sim_allfits_Ia["zPHOT_SNphotoz"]
+    sim_allfits_Ia["delta z/(1+z)"] = sim_allfits_Ia["delta z"]/(1+sim_allfits_Ia["zHD"])
+    sim_allfits_Ia["delta c"] = sim_allfits_Ia['c'] - sim_allfits_Ia["c_SNphotoz"]
+    sim_allfits_Ia["delta x1"] = sim_allfits_Ia['x1'] - sim_allfits_Ia["x1_SNphotoz"]
+
+    for var in ["delta z", 'delta c','delta x1']:
+        print("")
+        print(var)
+        # Calculate quantiles
+        q25 = np.quantile(sim_allfits_Ia[var], 0.25)  # 25th percentile (first quartile)
+        q50 = np.quantile(sim_allfits_Ia[var], 0.5)   # 50th percentile (median)
+        q75 = np.quantile(sim_allfits_Ia[var], 0.75)  # 75th percentile (third quartile)
+        print(f"25th, median, 75th: {np.round(q25,3)} {np.round(q50,3)} {np.round(q75,3)}")
+
+        # Calculate quartiles and IQR
+        q1, q3 = np.percentile(sim_allfits_Ia[var], [25, 75])
+        iqr = q3 - q1
+        # Define outlier thresholds
+        lower_bound = q1 - 1.5 * iqr
+        upper_bound = q3 + 1.5 * iqr
+        outliers = sim_allfits_Ia[var][(sim_allfits_Ia[var] < lower_bound) | (sim_allfits_Ia[var] > upper_bound)]
+        outlier_fraction = len(outliers) / len(sim_allfits_Ia[var])
+        print(f"Outlier fraction: {outlier_fraction:.4f}")
+
     plot_freez_correlations(
         [sim_allfits_Ia],
         list_labels=["sim Ia"],
