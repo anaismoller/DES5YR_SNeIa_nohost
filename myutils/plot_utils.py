@@ -241,51 +241,49 @@ def plot_calibration(mean_bins, std_bins, TPF, nameout):
     plt.clf()
     del fig
 
-    # Hres w. histogram
 
+def HRwhisto(df, df2, ax_left, ax_right, visible=False, suffix='SNphotoz'):
 
-def HRwhisto(df, spec_Ias, ax_left, ax_right, visible=False, prob_key="all_class0"):
+    mubins = np.arange(-2, 2 + 0.1, 0.05)
 
-    mubins = np.arange(-2, 2 + 0.1, 0.1)
-
-    ax_left.scatter(
-        df["zHD"],
-        df["delmu"],
-        c=df[prob_key],
-        cmap=CMAP,
-        vmin=0.5,
-        vmax=1,
-        s=50,
-    )
     ax_left.errorbar(
         df["zHD"],
         df["delmu"],
         yerr=df["delmu_err"],
-        color="gray",
+        color="black",
         zorder=0,
         fmt="none",
-        marker="None",
+        marker="o",
+        alpha=0.1,
+        elinewidth=2
     )
 
-    ax_left.scatter(
-        spec_Ias["zHD"],
-        spec_Ias["delmu"],
-        c=spec_Ias[prob_key],
-        cmap=CMAP,
-        vmin=0.5,
-        vmax=1,
-        s=150,
+    ax_left.errorbar(
+        df2[f"zHD_{suffix}"],
+        df2[f"delmu_{suffix}"],
+        yerr=df2[f"delmu_err_{suffix}"],
+        color="maroon",
+        zorder=0,
+        fmt="none",
         marker="*",
-        edgecolors="darkorange",
+        alpha=0.3,
+        elinewidth=1
+    )
+    ax_left.scatter(
+        df2[f"zHD_{suffix}"],
+        df2[f"delmu_{suffix}"],
+        c="maroon",
+        s=50,
+        alpha=0.3
     )
 
-    ax_left.set_ylim(df["delmu"].min() - 0.1, df["delmu"].max() + 0.1)
-    # ax_left.set_xlim(0.2, 1.2)
-    ax_left.set_ylabel(f"HD residual", fontsize=18)
-    ax_left.tick_params(labelsize=14)
+    # ax_left.set_ylim(df["delmu"].min() - 0.1, df["delmu"].max() + 0.1)
+    ax_left.set_ylim(-0.5,0.5)
+    ax_left.set_ylabel(f"HD residual", fontsize=24)
+    ax_left.tick_params(labelsize=22)
     plt.setp(ax_left.get_xticklabels(), visible=visible)
     if visible is True:
-        ax_left.set_xlabel("zHD", fontsize=18)
+        ax_left.set_xlabel("zHD", fontsize=26)
     sel = df
     n_SNe = len(sel)
     ax_right.hist(
@@ -295,22 +293,21 @@ def HRwhisto(df, spec_Ias, ax_left, ax_right, visible=False, prob_key="all_class
         color="black",
         bins=mubins,
         # density=True,
-        label=f"photoIa {n_SNe}",
+        label=f"true z",
         lw=2,
     )
     ax_right.hist(
-        spec_Ias["delmu"],
+        df2[f"delmu_{suffix}"],
         orientation="horizontal",
         histtype="step",
         color="maroon",
         bins=mubins,
-        # density=True,
-        label=f"specIa {len(spec_Ias)}",
+        label=f"SNphoto z",
         lw=2,
         linestyle="-.",
     )
 
-    ax_right.legend(loc="lower center", prop={"size": 13})
+    ax_right.legend(loc="lower center", prop={"size": 20})
     plt.setp(ax_right.get_yticklabels(), visible=False)
     plt.setp(ax_right.get_xticklabels(), visible=False)
     ax_right.plot(
@@ -320,47 +317,15 @@ def HRwhisto(df, spec_Ias, ax_left, ax_right, visible=False, prob_key="all_class
     )
 
 
-def plot_HD(
-    preds_with_salt2, path_output, prob_key="all_class0", plot_contamination=True
-):
-    """
+def plot_HD_residuals(df, df2, path_output):
+    """_summary_
+
     Args:
-        - preds_with_salt2 (DataFrame): predictions with their SALT2 fits
-        - path_output (str): path with filename to write
+        df (pd.DataFrame): _description_
+        path_output (str): path to output
     """
-    plt.clf()
-    fig = plt.figure(constrained_layout=True)
-    df = su.distance_modulus(preds_with_salt2)
-    # plt.scatter(df.zCMB, df.mu,label='all')
-    if prob_key != "None":
-        photo = df[df[prob_key] > 0.5]
-    else:
-        # provided events is the photo sammple
-        photo = df
-    plt.scatter(photo["zHD"], photo["mu"], label=f"photo {len(photo)}")
-    if plot_contamination:
-        photo_cont = df[(df[prob_key] > 0.5) & (df.target == 1)]
-        plt.scatter(
-            photo_cont["zHD"],
-            photo_cont["mu"],
-            label=f"contamination {len(photo_cont)} - {round(len(photo_cont)/len(photo),3)}%",
-        )
-    plt.ylabel("mu")
-    plt.xlabel("zHD")
-    plt.ylim(37, 46)
-    plt.legend()
-    plt.savefig(path_output)
-    del df, fig
-    plt.clf()
-
-
-def plot_HD_residuals(preds_with_salt2, path_output, prob_key="all_class0"):
-
-    df = su.distance_modulus(preds_with_salt2)
-    spec_Ias = df[df.SNTYPE.isin(cu.spec_tags["Ia"])]
 
     plt.clf()
-    cm = CMAP
     fig = plt.figure(figsize=(14, 14), constrained_layout=True)
     gs = gridspec.GridSpec(2, 3, height_ratios=[2, 1])
 
@@ -374,7 +339,7 @@ def plot_HD_residuals(preds_with_salt2, path_output, prob_key="all_class0"):
     # lines
     ax00.plot([0, 1.2], np.zeros(len([0, 1.2])), "k:")
 
-    HRwhisto(df, spec_Ias, ax00, ax01, visible=True, prob_key=prob_key)
+    HRwhisto(df, df2, ax00, ax01, visible=True)
 
     # z histos
     n, bins_to_use, tmp = ax10.hist(
@@ -385,14 +350,15 @@ def plot_HD_residuals(preds_with_salt2, path_output, prob_key="all_class0"):
         lw=3,
     )
     ax10.hist(
-        spec_Ias["zHD"],
+        df2["zHD_SNphotoz"],
         histtype="step",
         color="maroon",
         bins=bins_to_use,
         lw=3,
         linestyle="-.",
     )
-    ax10.set_xlabel("zHD", fontsize=18)
+    ax10.set_xlabel("zHD", fontsize=22)
+    ax10.tick_params(labelsize=20)
 
     # hist stretch
     n, bins_to_use, tmp = ax11.hist(
@@ -402,21 +368,21 @@ def plot_HD_residuals(preds_with_salt2, path_output, prob_key="all_class0"):
         lw=3,
     )
     ax11.hist(
-        spec_Ias["x1"],
+        df2["x1_SNphotoz"],
         color="maroon",
         histtype="step",
         lw=3,
         bins=bins_to_use,
         linestyle="-.",
     )
-    ax11.set_xlabel("x1", fontsize=18)
+    ax11.set_xlabel("x1", fontsize=22)
     ax11.yaxis.set_label_position("right")
     ax11.set_xlim(-3, 3)
-    ax11.tick_params(labelsize=14)
+    ax11.tick_params(labelsize=20)
     # color histo
     n, bins_to_use, tmp = ax12.hist(df["c"], color="black", histtype="step", lw=3)
     ax12.hist(
-        spec_Ias["c"],
+        df2["c_SNphotoz"],
         color="maroon",
         histtype="step",
         lw=3,
@@ -424,9 +390,9 @@ def plot_HD_residuals(preds_with_salt2, path_output, prob_key="all_class0"):
         linestyle="-.",
     )
 
-    ax12.set_xlabel("c", fontsize=18)
+    ax12.set_xlabel("c", fontsize=22)
     ax12.set_xlim(-0.3, 0.3)
-    ax12.tick_params(labelsize=14)
+    ax12.tick_params(labelsize=20)
     ax12.yaxis.set_label_position("right")
 
     gs.tight_layout(fig)
@@ -812,14 +778,15 @@ def plot_contamination_list(list_tuple, path_plots="./", suffix="", list_labels=
                 ls=list_linestyle[idx_tuple],
                 color=override_color[idx_tuple],
             )
+            axp.tick_params(axis='both', which='major', labelsize=24)
             if i in [0, 2]:
-                axp.set_ylabel("contamination %", fontsize=20)
+                axp.set_ylabel("contamination %", fontsize=24)
             axp.set_xticks(plot_bins)
             tmp = [k if bool(n % 2) else "" for n, k in enumerate(plot_bins.round(1))]
-            axp.set_xticklabels(tmp, fontsize=15)
+            axp.set_xticklabels(tmp)
             xlabel = k if k != "m0obs_i" else r"$i_{peak}$"
             xlabel = xlabel if k != "zHD" else "redshift"
-            axp.set_xlabel(xlabel, fontsize=20)
+            axp.set_xlabel(xlabel, fontsize=24)
     axp.legend(loc="best", prop={"size": 20})
     if suffix != "":
         plt.savefig(f"{path_plots}/contamination_photoIa_{suffix}.png")
@@ -914,11 +881,12 @@ def plot_metrics_list(
                 ls=list_linestyle[idx_sim],
                 color=override_color[idx_sim],
             )
+            axp.tick_params(axis='both', which='major', labelsize=24)
             if i in [0, 2]:
-                axp.set_ylabel(f"{metric} %", fontsize=20)
+                axp.set_ylabel(f"{metric} %", fontsize=24)
             axp.set_xticks(mean_bins)
             tmp = [k if bool(n % 2) else "" for n, k in enumerate(mean_bins.round(1))]
-            axp.set_xticklabels(tmp, fontsize=16)
+            axp.set_xticklabels(tmp)
 
             xlabel = k if k != "m0obs_i" else r"$i_{peak}$"
             if k == "zHD":
@@ -2337,7 +2305,7 @@ def hist_fup_targets(df_stats_fup, path_plots="./"):
         "SNN>0.001",
         "SNN>0.5",
     ]
-    fig = plt.figure(figsize=(12, 8))
+    fig = plt.figure(figsize=(14, 8))
     labels = ["without host", "with host", "host<24 mag", "photo Ia M22"]
     for n, k in enumerate(["total", "with host", "<24 mag", "photoIa M22"]):
         plt.bar(
@@ -2363,10 +2331,12 @@ def hist_fup_targets(df_stats_fup, path_plots="./"):
     plt.axhline(
         y=7000, linewidth=1, color="k", linestyle="--", label="OzDES follow-up targets"
     )
-    plt.legend()
+    plt.legend(fontsize=26)
     # plt.yscale("log")
     # plt.xticks(rotation=20)
-    plt.ylabel("Number of candidates")
+    plt.xticks(fontsize=20)
+    plt.yticks(fontsize=22)
+    plt.ylabel("Number of candidates",fontsize=26)
     plt.savefig(f"{path_plots}/hist_fup_targets.png")
 
 
@@ -2423,7 +2393,7 @@ def hist_fup_targets_early(
 def hist_HOSTGAL_MAG_r_vs_REDSHIFT(list_df, list_labels, path_plots="./"):
 
     list_n = []
-    fig, ax = plt.subplots(figsize=(12, 8))
+    fig, ax = plt.subplots(figsize=(14, 8))
     for i, df in enumerate(list_df):
         whost = df[df["HOSTGAL_MAG_r"] < 40]
         color_to_plot = SAMPLES_COLORS[list_labels[i]]
@@ -2448,7 +2418,7 @@ def hist_HOSTGAL_MAG_r_vs_REDSHIFT(list_df, list_labels, path_plots="./"):
         )
         list_n.append(max(n))
     ax.axvline(x=24, linestyle="-.", label="follow-up limit", color="black")
-    plt.ylabel("# events", fontsize=20)
-    plt.xlabel("host r magnitude", fontsize=20)
-    plt.legend(loc=2)
+    plt.ylabel("# events", fontsize=22)
+    plt.xlabel("host r magnitude", fontsize=22)
+    plt.legend(loc=2,fontsize=22)
     plt.savefig(f"{path_plots}/hist_HOSTGAL_MAG_r_vs_REDSHIFT.png")

@@ -80,7 +80,7 @@ if __name__ == "__main__":
     salt_fits_noz = tmp.rename(columns={"SNID_fittedz": "SNID"})
 
     # Host-galaxy properties
-    # with host zspe
+    # with host zspec
     host_props_zspe = pd.read_csv(
         path_hostproperties, skipinitialspace=True, delimiter=" ", comment="#"
     )
@@ -260,7 +260,7 @@ if __name__ == "__main__":
             color=pu.SAMPLES_COLORS["DES SNe Ia HQ (SNphoto z)"],
             zorder=-100,
             linestyle="dotted",
-            label="DES SNe Ia HQ (host zspe)",
+            label="DES SNe Ia HQ (host zspec)",
             linewidth=5,
         )
         ylabel = (
@@ -270,14 +270,27 @@ if __name__ == "__main__":
             if var == "mass to plot"
             else var.replace("to plot", "")
         )
-        axs[i].set_ylabel(ylabel, fontsize=35)
+        axs[i].set_ylabel(ylabel, fontsize=36)
         # We change the fontsize of minor ticks label
-        axs[i].tick_params(axis="both", which="major", labelsize=30)
-        axs[i].tick_params(axis="both", which="minor", labelsize=30)
-    axs[i].legend(fontsize=30)
-    axs[i].set_xlabel("z", fontsize=35)
+        axs[i].tick_params(axis="both", which="major", labelsize=32)
+        axs[i].tick_params(axis="both", which="minor", labelsize=32)
+    axs[i].legend(fontsize=32)
+    axs[i].set_xlabel("z", fontsize=37)
     plt.savefig(f"{path_plots}/2ddist_all_sample_zHD.png")
 
+    # histo mass per bin redshift
+    # answering referee's comment on why do we still have high mass SNe Ia
+    for zbin in pd.arrays.IntervalArray(spec_Ia['zHD_bin']):
+        fig = plt.figure()
+        sel = photoIa_nz_JLA[photoIa_nz_JLA['zHD_bin']==zbin]
+        n,bins,_ = plt.hist(sel['mass to plot'],label='M24',histtype='step',linewidth=2)
+        sel = spec_Ia[spec_Ia['zHD_bin']==zbin]
+        plt.hist(sel['mass to plot'],label='spec Ia',bins=bins,histtype='step')
+        sel = photoIa_wz_JLA[photoIa_wz_JLA['zHD_bin']==zbin]
+        plt.hist(sel['mass to plot'],label='M22',bins=bins,histtype='step')
+        plt.legend(loc=0)
+        plt.xlabel(r"host stellar mass (log($M_{*}$/$M_{\odot}$))")
+        plt.savefig(f"{path_plots}/mass_zbin_{zbin}.png")
     #
     # x1 vs mass
     #
@@ -421,7 +434,7 @@ if __name__ == "__main__":
         markersize=1,
         alpha=0.3,
     )
-    axs[0].legend(fontsize=25, title_fontsize=25, loc=1)
+    axs[0].legend(fontsize=28, title_fontsize=25, loc=1)
     axs[0].set_ylim(-2.5, 2.5)
     # mass step
     tmp_ms = cuts(photoIa_nz_JLA, "mass to plot")
@@ -452,7 +465,7 @@ if __name__ == "__main__":
         [
             "DES SNe Ia spectroscopic",
             "DES SNe Ia M22",
-            # "DES SNe Ia HQ (host zspe)",
+            # "DES SNe Ia HQ (host zspec)",
         ],
         binname="mass_bin",
         varx="mass to plot",
@@ -482,7 +495,7 @@ if __name__ == "__main__":
         color=pu.SAMPLES_COLORS["DES SNe Ia HQ (SNphoto z)"],
         linestyle="dotted",
         zorder=100,
-        label="DES SNe Ia HQ (host zspe)",
+        label="DES SNe Ia HQ (host zspec)",
         linewidth=5,
     )
 
@@ -506,7 +519,7 @@ if __name__ == "__main__":
         markersize=1,
         alpha=0.3,
     )
-    axs[1].legend(fontsize=25, title_fontsize=25, loc=1)
+    axs[1].legend(fontsize=28, title_fontsize=25, loc=1)
     axs[1].set_ylim(-2.5, 2.5)
     # mass step
     tmp_ms = cuts(tmp, "mass to plot")
@@ -565,7 +578,7 @@ if __name__ == "__main__":
         color=pu.SAMPLES_COLORS["DES SNe Ia HQ (SNphoto z)"],
         linestyle="dashed",
         zorder=100,
-        label="DES SNe Ia HQ (host zspe or SNphoto z)",
+        label="DES SNe Ia HQ (host zspec or SNphoto z)",
         linewidth=5,
     )
 
@@ -595,21 +608,21 @@ if __name__ == "__main__":
     tmp_ms_high_x1_mixed = tmp_ms[tmp_ms.mass > 10]["x1 to plot"].median()
     tmp_ms_low_mass_mixed = tmp_ms[tmp_ms.mass < 10]["mass to plot"].median()
     tmp_ms_high_mass_mixed = tmp_ms[tmp_ms.mass > 10]["mass to plot"].median()
-    axs[2].legend(fontsize=25, title_fontsize=25, loc=1)
+    axs[2].legend(fontsize=28, title_fontsize=25, loc=1)
     axs[2].set_ylim(-2.5, 2.5)
     ylabel = var.replace("to plot", "")
-    axs[0].set_ylabel(ylabel, fontsize=30)
-    axs[1].set_ylabel(ylabel, fontsize=30)
-    axs[2].set_ylabel(ylabel, fontsize=30)
+    axs[0].set_ylabel(ylabel, fontsize=38)
+    axs[1].set_ylabel(ylabel, fontsize=38)
+    axs[2].set_ylabel(ylabel, fontsize=38)
     # We change the fontsize of minor ticks label
-    axs[0].tick_params(axis="both", which="major", labelsize=30)
-    axs[0].tick_params(axis="both", which="minor", labelsize=30)
-    axs[1].tick_params(axis="both", which="major", labelsize=30)
-    axs[1].tick_params(axis="both", which="minor", labelsize=30)
-    axs[2].tick_params(axis="both", which="major", labelsize=30)
-    axs[2].tick_params(axis="both", which="minor", labelsize=30)
+    axs[0].tick_params(axis="both", which="major", labelsize=32)
+    axs[0].tick_params(axis="both", which="minor", labelsize=32)
+    axs[1].tick_params(axis="both", which="major", labelsize=32)
+    axs[1].tick_params(axis="both", which="minor", labelsize=32)
+    axs[2].tick_params(axis="both", which="major", labelsize=32)
+    axs[2].tick_params(axis="both", which="minor", labelsize=32)
     plt.xlim(7, 12)
-    plt.xlabel(r"host stellar mass (log($M_{*}$/$M_{\odot}$))", fontsize=30)
+    plt.xlabel(r"host stellar mass (log($M_{*}$/$M_{\odot}$))", fontsize=38)
 
     plt.savefig(f"{path_plots}/2ddist_all_sample_mass_mixedsample.png")
 
@@ -623,8 +636,8 @@ if __name__ == "__main__":
         list_df,
         [
             "DES SNe Ia HQ (SNphoto z)",
-            "DES SNe Ia HQ (with host zspe)",
-            "DES SNe Ia HQ (with host zspe or SNphoto z)",
+            "DES SNe Ia HQ (with host zspec)",
+            "DES SNe Ia HQ (with host zspec or SNphoto z)",
         ],
         binname="mass_bin",
         varx="mass to plot",
@@ -744,7 +757,7 @@ if __name__ == "__main__":
         markersize=1,
         alpha=0.3,
     )
-    axs[1].legend(fontsize=15, loc=1, title="DES SNe Ia HQ (with host zspe)")
+    axs[1].legend(fontsize=15, loc=1, title="DES SNe Ia HQ (with host zspec)")
     # a mix of the samples using best z
     list_df = preprocess(spec_Ia, photoIa_wz_JLA, mixed_sample, "mass", "mass")
     axs[2] = pu.plot_errorbar_binned(
@@ -937,7 +950,7 @@ if __name__ == "__main__":
             # axs[1][i].set_ylim([-0.5, 0.5] if var != "x1" else [-2.5, 2.5])
 
             axs[1][i].set_xlabel(
-                r"${%s}_{\mathrm{zspe}}$" % var if var != "zCMB" else "host zspe"
+                r"${%s}_{\mathrm{zspe}}$" % var if var != "zCMB" else "host zspec"
             )
             ylabel = r"$\Delta {%s}$" % var if var != "zCMB" else r"$\Delta z$"
             axs[1][i].set_ylabel(ylabel)

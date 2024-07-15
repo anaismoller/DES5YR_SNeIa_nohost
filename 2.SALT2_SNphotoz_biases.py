@@ -150,7 +150,7 @@ def plot_freez_correlations(list_df, list_labels=["tmp"], path_plots="./"):
                 head_width=0.02 if "sim Ia" in list_labels[idx_df] else 0.02,
                 width=0.002,
             )
-    axs[0].set_ylabel(r"$\Delta (\beta c))_{true,SNphoto \ z}$", fontsize=20)
+    axs[0].set_ylabel(r"$\Delta (\beta c))_{true,SNphoto \ z}$", fontsize=26)
     axs[0].axis("equal")
     for idx_df, df in enumerate(list_df):
         df["zHD_bin"] = pd.cut(df.loc[:, ("zHD")], pu.bins_dic["zHD"])
@@ -167,12 +167,77 @@ def plot_freez_correlations(list_df, list_labels=["tmp"], path_plots="./"):
             )
     axs[1].axis("equal")
     axs[1].set_ylim(-0.04, 0.04)
-    axs[1].set_xlabel(r"$z_{true}$", fontsize=20)
-    axs[1].set_ylabel(r"$\Delta (\alpha x1)_{true,SNphoto \ z}$", fontsize=20)
+    axs[1].set_xlabel(r"$z_{true}$", fontsize=26)
+    axs[1].set_ylabel(r"$\Delta (\alpha x1)_{true,SNphoto \ z}$", fontsize=26)
     plt.savefig(f"{path_plots}/migration_cx1_zHD.png")
 
 
 def plot_mosaic_scatter_SNphoto_zspe(df, outname, path_plots):
+
+        lines_ranges = {"z": [0.2, 1.3], "c": [-0.4, 0.4], "x1": [-4, 4]}
+        plot_ranges = {"z": [0.1, 1.3], "c": [-0.4, 0.4], "x1": [-4, 4]}
+
+        fig = plt.figure(figsize=(12, 6))
+        gs = fig.add_gridspec(2, 3, wspace=0.4, hspace=0.1, height_ratios=[1, 0.4])
+        axs = gs.subplots(sharex="col", sharey=False)
+
+        for i, var in enumerate(["z", "c", "x1"]):
+            varx = "zHD" if var == "z" else var
+            vary = f"{var}PHOT_SNphotoz" if var == "z" else f"{var}_SNphotoz"
+            errvary = f"{var}PHOTERR_SNphotoz" if var == "z" else f"{var}ERR_SNphotoz"
+            # first row: scatter
+            axs[0][i].errorbar(
+                df[varx],
+                df[vary],
+                xerr=df[f"{varx}ERR"],
+                yerr=df[errvary],
+                fmt="o",
+                ecolor=None,
+                markersize=1,
+                alpha=0.05 if var=='z' else 0.01,
+                color="indigo",
+            )
+            axs[0][i].plot(
+                lines_ranges[var],
+                lines_ranges[var],
+                color="black",
+                linewidth=1,
+                linestyle="--",
+                zorder=100,
+            )
+            ylabel = (
+                r"${%s}_{\mathrm{SNphoto ~ z}}$" % var if var != "z" else "SNphoto z"
+            )
+            axs[0][i].set_ylabel(ylabel)
+            axs[0][i].set_xlim(plot_ranges[var])
+            axs[0][i].set_ylim(plot_ranges[var])
+            # 2nd row: delta 
+            df[f"delta {var}"] = df[varx] - df[vary]
+            axs[1][i].scatter(
+                df[varx],
+                df[f"delta {var}"],
+                alpha=0.03,
+                color="indigo",
+                s=10,
+            )
+            axs[1][i].plot(
+                [lines_ranges[var][0], lines_ranges[var][1]],
+                [0, 0],
+                color="black",
+                linewidth=1,
+                linestyle="--",
+                zorder=100,
+            )
+
+            axs[1][i].set_xlabel(
+                r"${%s}_{\mathrm{true ~ z}}$" % var if var != "z" else "true z"
+            )
+            ylabel = r"$\Delta {%s}$" % var
+            axs[1][i].set_ylabel(ylabel)
+        plt.savefig(f"{path_plots}/{outname}.png")
+
+
+def plot_mosaic_scatter_SNphoto_zspe_sim(df, outname, path_plots):
 
         lines_ranges = {"z": [0.2, 1.3], "c": [-0.4, 0.4], "x1": [-4, 4]}
         plot_ranges = {"z": [0.1, 1.3], "c": [-0.4, 0.4], "x1": [-4, 4]}
@@ -323,7 +388,7 @@ if __name__ == "__main__":
         sim_allfits_Ia.sample(n=10000, random_state=1), "scatter_SNphotoz_vs_true", path_plots
     )
     sim_allfits_Ia["delta z"] = sim_allfits_Ia['zHD'] - sim_allfits_Ia["zPHOT_SNphotoz"]
-    sim_allfits_Ia["delta z/(1+z)"] = sim_allfits_Ia["delta z"]/(1+sim_allfits_Ia["zHD"])
+    # sim_allfits_Ia["delta z/(1+z)"] = sim_allfits_Ia["delta z"]/(1+sim_allfits_Ia["zHD"])
     sim_allfits_Ia["delta c"] = sim_allfits_Ia['c'] - sim_allfits_Ia["c_SNphotoz"]
     sim_allfits_Ia["delta x1"] = sim_allfits_Ia['x1'] - sim_allfits_Ia["x1_SNphotoz"]
 
@@ -351,6 +416,46 @@ if __name__ == "__main__":
         list_labels=["sim Ia"],
         path_plots=path_plots,
     )
+
+    # Hubble Residuals
+    sim_allfits_Ia = su.distance_modulus(sim_allfits_Ia)
+    # mB in SNphotoz is wrong, using the one without it
+    sim_allfits_Ia['mB_SNphotoz'] = sim_allfits_Ia['mB']
+    sim_allfits_Ia = su.distance_modulus(sim_allfits_Ia, suffix="SNphotoz")
+    sim_allfits_Ia_JLA = su.apply_JLA_cut(sim_allfits_Ia)
+
+    tmp = sim_allfits_Ia.copy()
+    tmp['x1']= tmp['x1_SNphotoz']
+    tmp['x1ERR']= tmp['x1ERR_SNphotoz']
+    tmp['c']= tmp['c_SNphotoz']
+    tmp['FITPROB']= tmp['FITPROB_SNphotoz']
+    tmp['PKMJDERR']= tmp['PKMJDERR_SNphotoz']
+    sim_allfits_Ia_JLA_SNphotoz = su.apply_JLA_cut(tmp)
+
+
+    pu.plot_HD_residuals(sim_allfits_Ia_JLA.sample(n=5000, random_state=1),sim_allfits_Ia_JLA_SNphotoz.sample(n=5000, random_state=1), f"{path_plots}/HR.png")
+
+    # stats
+    print('Delta LCDM (delmu) with JLA cuts')
+    print('true z',round(sim_allfits_Ia_JLA['delmu'].median(),2), round(sim_allfits_Ia_JLA['delmu'].std(),2))
+    print('SNphotoz',round(sim_allfits_Ia_JLA['delmu_SNphotoz'].median(),2), round(sim_allfits_Ia_JLA['delmu_SNphotoz'].std(),2))
+    print('Delta LCDM (delmu): z>0.7')
+    sel = sim_allfits_Ia_JLA[sim_allfits_Ia_JLA.zHD > 0.7]
+    print('true z',round(sel['delmu'].median(),2), round(sel['delmu'].std(),2))
+    sel = sim_allfits_Ia_JLA[sim_allfits_Ia_JLA.zHD_SNphotoz > 0.7]
+    print('SNphotoz',round(sel['delmu_SNphotoz'].median(),2), round(sel['delmu_SNphotoz'].std(),2))
+    print('Delta LCDM (delmu): 0.7<z<1')
+    sel = sim_allfits_Ia_JLA[(sim_allfits_Ia_JLA.zHD > 0.7) & (sim_allfits_Ia_JLA.zHD < 1)]
+    print('true z',round(sel['delmu'].median(),2), round(sel['delmu'].std(),2))
+    sel = sim_allfits_Ia_JLA[(sim_allfits_Ia_JLA.zHD_SNphotoz > 0.7) & (sim_allfits_Ia_JLA.zHD_SNphotoz <1)]
+    print('SNphotoz',round(sel['delmu_SNphotoz'].median(),2), round(sel['delmu_SNphotoz'].std(),2))
+
+    # with classification
+    tmp = pd.merge(sim_allfits_Ia_JLA, sim_preds["cosmo_quantile"])
+    tmp2 = pd.merge(sim_allfits_Ia_JLA_SNphotoz, sim_preds["cosmo_quantile"])
+    sel = tmp[tmp[f"average_probability_set_0"] > 0.5]
+    sel2 = tmp2[tmp2[f"average_probability_set_0"] > 0.5]
+    pu.plot_HD_residuals(sel.sample(n=5000, random_state=1), sel2.sample(n=5000, random_state=1), f"{path_plots}/HR_wSNNgt05.png")
 
     logger.info("")
     logger.info("SIMULATIONS: CONTAMINATION")

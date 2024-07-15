@@ -378,15 +378,15 @@ if __name__ == "__main__":
     # save photoIa that pass SNN>0.5
     photoIa_noz.to_csv(f"{path_samples}/photoIanoz.csv")
     # M24 for DES data release
-    tmp = photoIa_noz[["SNID", "all_class0_S_0", "average_probability_set_0"]]
-    tmp = tmp.rename(
+    out_sample_probs = photoIa_noz[["SNID", "all_class0_S_0", "average_probability_set_0"]]
+    out_sample_probs = out_sample_probs.rename(
         columns={
             "SNID": "CID",
-            "all_class_0": "PROB_SNN_noz_singlemodel",
+            "all_class0_S_0": "PROB_SNN_noz_singlemodel",
             "average_probability_set_0": "PROB_SNN_noz_ensemble",
         }
     )
-    tmp.to_csv(f"{path_samples}/DES_noredshift_classification_Moller2024.csv")
+    out_sample_probs.to_csv(f"{path_samples}/DES_noredshift_classification_Moller2024.csv")
     # load salt fits wzspe
     tmpsalt = du.load_salt_fits(args.path_data_fits)
     tmpsalt_zspe = tmpsalt[
@@ -605,7 +605,6 @@ if __name__ == "__main__":
         "HOSTGAL_LOGMASS_ERR",
         "HOSTGAL_MAG_r",
         "HOSTGAL_MAGERR_r",
-        "all_class0_S_0",
         "zHD",
         "zHDERR",
         "x1",
@@ -613,6 +612,12 @@ if __name__ == "__main__":
         "c",
         "cERR",
         "FITPROB",
+        'all_class0_S_0',
+        'all_class0_S_55',
+        'all_class0_S_100',
+        'all_class0_S_1000',
+        'all_class0_S_30469',
+        'average_probability_set_0'
     ]
     # Open the file for writing
     with open(f"{path_samples}/photoIanoz_SNphotoz_HQ.csv", "w") as f:
@@ -626,7 +631,7 @@ if __name__ == "__main__":
         f.write("# zHD, c, x1 are derived simultanoeusly  \n")
     # Write the DataFrame to CSV, appending to the existing file
     photoIanoz_SNphotoz_HQ[cols_to_keep].to_csv(
-        f"{path_samples}/photoIanoz_SNphotoz_HQ.csv", mode="a", index=False
+        f"{path_samples}/DES_noredshift_Moller2024_w_SALTandhostinfo.csv", mode="a", index=False
     )
     print(f"Saved {len(photoIanoz_SNphotoz_HQ)} photoIanoz saltz HQ")
 
@@ -889,6 +894,20 @@ if __name__ == "__main__":
             ["method", "notbalanced_accuracy", "efficiency", "purity"]
         ].to_latex(index=False)
     )
+    # reviewers comment
+    # from simulations, establish number of SNe Ia expected by each cut for host fup
+    sim_Ia = sim_preds["cosmo_quantile"][sim_preds["cosmo_quantile"].target==0]
+    sim_Ia_1realisationDES = sim_Ia.sample(frac=1/30,random_state=0)
+    sim_Ia_1realisationDES_selIa = sim_Ia_1realisationDES[sim_Ia_1realisationDES['predicted_target_average_probability_001_set_0']==0]
+    sim_nonIa = sim_preds["cosmo_quantile"][sim_preds["cosmo_quantile"].target==1]
+    sim_nonIa_1realisationDES = sim_nonIa.sample(frac=1/30,random_state=0)
+    sim_nonIa_1realisationDES_selIa = sim_nonIa_1realisationDES[sim_nonIa_1realisationDES['predicted_target_average_probability_001_set_0']==0]
+    print(f"One realisation DES has: Ia {len(sim_Ia_1realisationDES)} nonIa {len(sim_nonIa_1realisationDES)}")
+    print(f"One realisation DES SNN>0.001 selects: Ia {len(sim_Ia_1realisationDES_selIa)} nonIa {len(sim_nonIa_1realisationDES_selIa)}")
+
+    sim_Ia_1realisationDES_selIa05 = sim_Ia_1realisationDES[sim_Ia_1realisationDES['predicted_target_average_probability_set_0']==0]
+    sim_nonIa_1realisationDES_selIa05 = sim_nonIa_1realisationDES[sim_nonIa_1realisationDES['predicted_target_average_probability_set_0']==0]
+    print(f"One realisation DES SNN>0.5 selects: Ia {len(sim_Ia_1realisationDES_selIa05)} nonIa {len(sim_nonIa_1realisationDES_selIa05)}")
 
     logger.info("")
     logger.info("SIMULATIONS: SNphoto z SALT2 FIT")

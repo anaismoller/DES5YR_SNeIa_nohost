@@ -12,10 +12,11 @@ def dist_mu(redshift):
     return mu.value
 
 
-def distance_modulus(df):
+def distance_modulus(df, suffix=None):
     """Add distance modulus
     Args:
         df (DataFrame): with SALT2 fitted features
+        suffix (str): variable suffix
     Returns:
         df (DataFrame): with distance modulus computed
     """
@@ -25,16 +26,28 @@ def distance_modulus(df):
     alpha = 0.144  # from sim
     beta = 3.1
     # Add distance modulus to this Data Frame
-    df["mu"] = (
-        np.array(df["mB"]) + Mb + np.array(alpha * df["x1"]) - np.array(beta * df["c"])
-    )
-    df["delmu"] = df["mu"].values - dist_mu(df["zHD"].values.astype(float))
-    # assuming theoretical mu nor alpha, beta, abs mag have errors
-    df["delmu_err"] = (
-        np.array(df["mBERR"])
-        + np.array(alpha * df["x1ERR"])
-        - np.array(beta * df["cERR"])
-    )
+    if suffix:
+        df[f"mu_{suffix}"] = (
+            np.array(df[f"mB_{suffix}"]) + Mb + np.array(alpha * df[f"x1_{suffix}"]) - np.array(beta * df[f"c_{suffix}"])
+        )
+        df[f"delmu_{suffix}"] = df[f"mu_{suffix}"].values - dist_mu(df[f"zHD_{suffix}"].values.astype(float))
+        # assuming theoretical mu nor alpha, beta, abs mag have errors
+        df[f"delmu_err_{suffix}"] = (
+            np.array(df[f"mBERR_{suffix}"])
+            + np.array(alpha * df[f"x1ERR_{suffix}"])
+            - np.array(beta * df[f"cERR_{suffix}"])
+        )
+    else:
+        df["mu"] = (
+            np.array(df["mB"]) + Mb + np.array(alpha * df["x1"]) - np.array(beta * df["c"])
+        )
+        df["delmu"] = df["mu"].values - dist_mu(df["zHD"].values.astype(float))
+        # assuming theoretical mu nor alpha, beta, abs mag have errors
+        df["delmu_err"] = (
+            np.array(df["mBERR"])
+            + np.array(alpha * df["x1ERR"])
+            - np.array(beta * df["cERR"])
+        )
     return df
 
 
