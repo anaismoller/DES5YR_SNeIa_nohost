@@ -628,7 +628,7 @@ if __name__ == "__main__":
             "# This is NOT the cosmology sample nor the SALT values used for cosmology In DES+2024 \n"
         )
         f.write("# Contains HQ cuts using SNphoto z fit with SALT2 \n")
-        f.write("# zHD, c, x1 are derived simultaneously  \n")
+        f.write("# zHD c x1 are derived simultaneously  \n")
         f.write("# all_class0_s* probabilities for different models  \n")
         f.write("# ensemble=average_probability_set_0  \n")
         f.write("# REDSHIFT_FINAL<0 means no spectroscopic redshift (either SN/host is available)  \n")
