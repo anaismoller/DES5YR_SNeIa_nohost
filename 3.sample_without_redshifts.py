@@ -628,9 +628,10 @@ if __name__ == "__main__":
             "# This is NOT the cosmology sample nor the SALT values used for cosmology In DES+2024 \n"
         )
         f.write("# Contains HQ cuts using SNphoto z fit with SALT2 \n")
-        f.write("# zHD, c, x1 are derived simultanoeusly  \n")
+        f.write("# zHD, c, x1 are derived simultaneously  \n")
         f.write("# all_class0_s* probabilities for different models  \n")
         f.write("# ensemble=average_probability_set_0  \n")
+        f.write("# REDSHIFT_FINAL<0 means no spectroscopic redshift (either SN/host is available)  \n")
     # Write the DataFrame to CSV, appending to the existing file
     photoIanoz_SNphotoz_HQ[cols_to_keep].to_csv(
         f"{path_samples}/DES_noredshift_Moller2024_w_SALTandhostinfo.csv", mode="a", index=False
