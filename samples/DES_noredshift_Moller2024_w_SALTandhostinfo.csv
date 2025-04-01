@@ -2,9 +2,10 @@
 # SNe Ia selected with SuperNNova without host-galaxy redshifts 
 # This is NOT the cosmology sample nor the SALT values used for cosmology In DES+2024 
 # Contains HQ cuts using SNphoto z fit with SALT2 
-# zHD, c, x1 are derived simultanoeusly  
+# zHD c x1 are derived simultaneously  
 # all_class0_s* probabilities for different models  
 # ensemble=average_probability_set_0  
+# REDSHIFT_FINAL<0 means no spectroscopic redshift (either SN/host is available)  
 SNID,IAUC,SNTYPE,REDSHIFT_FINAL,REDSHIFT_FINAL_ERR,HOSTGAL_SPECZ,HOSTGAL_SPECZ_ERR,HOSTGAL_LOGMASS,HOSTGAL_LOGMASS_ERR,HOSTGAL_MAG_r,HOSTGAL_MAGERR_r,zHD,zHDERR,x1,x1ERR,c,cERR,FITPROB,all_class0_S_0,all_class0_S_55,all_class0_S_100,all_class0_S_1000,all_class0_S_30469,average_probability_set_0
 1366121,DES16E1g        ,0,-9.0,-9.0,-9.998,-9.998,-999.0,-999.0,24.72,99.0,0.37845,0.00557,0.0836219,0.27466,0.0386447,0.021943,0.95619,0.9999993,0.9999988,0.9999993,0.9999982,0.9999988,0.99999887
 1366152,DES16E1y        ,0,0.5363,0.001,0.5374,0.001,9.52,0.05,23.35,99.0,0.52902,0.00389,-0.0447597,0.53636,0.0401547,0.0331859,0.69293,0.9999982,0.9999721,0.9999831,0.99995494,0.9999925,0.99998015

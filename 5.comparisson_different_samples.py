@@ -14,7 +14,9 @@ DES = os.getenv("DES")
 path_data = f"{DES}/data/DESALL_forcePhoto_real_snana_fits"
 path_samples = "./samples"
 path_M22 = f"{path_samples}/previous_works/Moller2022_DES5yr_SNeIa_whostz_JLA.csv"
-path_M24 = f"{path_samples}/photoIanoz_SNphotoz_HQ.csv"  # JLA quality
+path_M24 = (
+    f"{path_samples}/DES_noredshift_Moller2024_w_SALTandhostinfo.csv"  # JLA quality
+)
 path_hostproperties = f"{DES}/data/hostproperties/DES_All_SNe_specz_photoz_ugrizJHK_mangled_sedfit_pegase_kroupa_20220919.csv"  # Wiseman
 path_hostproperties_SNphotoz = f"{DES}/data/hostproperties/mass_SNphotoz/results_deep_SN_hosts_all_fields_ugrizJHK_SALT2REDSHIFT_forsedfit.cat_pegase_chab_mangle.sav.txt"  # Wiseman, Sullivan
 path_salt_wzspe = f"{DES}/data/DESALL_forcePhoto_real_snana_fits/D_JLA_DATA5YR_DENSE_SNR/output/DESALL_forcePhoto_real_snana_fits/FITOPT000.FITRES.gz"
@@ -266,9 +268,11 @@ if __name__ == "__main__":
         ylabel = (
             "host r magnitude"
             if var == "HOSTGAL_MAG_r to plot"
-            else r"host stellar mass (log($M_{*}$/$M_{\odot}$))"
-            if var == "mass to plot"
-            else var.replace("to plot", "")
+            else (
+                r"host stellar mass (log($M_{*}$/$M_{\odot}$))"
+                if var == "mass to plot"
+                else var.replace("to plot", "")
+            )
         )
         axs[i].set_ylabel(ylabel, fontsize=36)
         # We change the fontsize of minor ticks label
@@ -280,14 +284,16 @@ if __name__ == "__main__":
 
     # histo mass per bin redshift
     # answering referee's comment on why do we still have high mass SNe Ia
-    for zbin in pd.arrays.IntervalArray(spec_Ia['zHD_bin']):
+    for zbin in pd.arrays.IntervalArray(spec_Ia["zHD_bin"]):
         fig = plt.figure()
-        sel = photoIa_nz_JLA[photoIa_nz_JLA['zHD_bin']==zbin]
-        n,bins,_ = plt.hist(sel['mass to plot'],label='M24',histtype='step',linewidth=2)
-        sel = spec_Ia[spec_Ia['zHD_bin']==zbin]
-        plt.hist(sel['mass to plot'],label='spec Ia',bins=bins,histtype='step')
-        sel = photoIa_wz_JLA[photoIa_wz_JLA['zHD_bin']==zbin]
-        plt.hist(sel['mass to plot'],label='M22',bins=bins,histtype='step')
+        sel = photoIa_nz_JLA[photoIa_nz_JLA["zHD_bin"] == zbin]
+        n, bins, _ = plt.hist(
+            sel["mass to plot"], label="M24", histtype="step", linewidth=2
+        )
+        sel = spec_Ia[spec_Ia["zHD_bin"] == zbin]
+        plt.hist(sel["mass to plot"], label="spec Ia", bins=bins, histtype="step")
+        sel = photoIa_wz_JLA[photoIa_wz_JLA["zHD_bin"] == zbin]
+        plt.hist(sel["mass to plot"], label="M22", bins=bins, histtype="step")
         plt.legend(loc=0)
         plt.xlabel(r"host stellar mass (log($M_{*}$/$M_{\odot}$))")
         plt.savefig(f"{path_plots}/mass_zbin_{zbin}.png")
@@ -1059,3 +1065,15 @@ if __name__ == "__main__":
     axs[1].set_xlabel(r"$mass_{SNphoto z}$")
     axs[1].set_ylabel("Delta m - m SNphoto z")
     plt.savefig(f"{path_plots}/M24_wzspe_mass_2d.png")
+
+    # DLR
+    fig = plt.figure()
+    n, bins, _ = plt.hist(
+        photoIa_nz_JLA["DLR"], label="M24", histtype="step", linewidth=2, bins=30
+    )
+    sel = photoIa_nz_JLA[photoIa_nz_JLA.SNID.isin(spec_Ia.SNID.values)]
+    plt.hist(sel["DLR"], label="spec Ia", bins=bins, histtype="step")
+    plt.hist(photoIa_wz_JLA["DLR"], label="M22", bins=bins, histtype="step")
+    plt.legend(loc=0)
+    plt.xlabel(r"DLR")
+    plt.savefig(f"{path_plots}/DLR.png")

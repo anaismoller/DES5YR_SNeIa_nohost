@@ -22,6 +22,7 @@ for k, v in cu.spec_tags.items():
     for tmp in v:
         inv_spec_tags[tmp] = k
 
+
 #
 # USEFUL FUNCTIONS
 #
@@ -191,10 +192,14 @@ def data_processing(message, path_data, logger):
 
     # flag rejected photometry
     df_data_phot["phot_reject"] = df_data_phot["PHOTFLAG"].apply(
-        lambda x: False
-        if len(set([8, 16, 32, 64, 128, 256, 512]).intersection(set(powers_of_two(x))))
-        > 0
-        else True
+        lambda x: (
+            False
+            if len(
+                set([8, 16, 32, 64, 128, 256, 512]).intersection(set(powers_of_two(x)))
+            )
+            > 0
+            else True
+        )
     )
     # remove unreliable photometry
     tmp = df_data_phot[df_data_phot["phot_reject"] == True]
