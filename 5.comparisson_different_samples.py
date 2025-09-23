@@ -256,7 +256,7 @@ if __name__ == "__main__":
         tmp["zHD_bin_zspe"] = pd.cut(tmp.loc[:, ("zHD")], pu.bins_dic["zHD"])
         axs[i].errorbar(
             mean_bins,
-            tmp.groupby("zHD_bin_zspe").mean()[var].values,
+            tmp.groupby("zHD_bin_zspe")[var].mean().values,
             yerr=tmp.groupby("zHD_bin_zspe").std()[var].values
             / np.sqrt(tmp.groupby("zHD_bin_zspe")[var].count()).values,
             color=pu.SAMPLES_COLORS["DES SNe Ia HQ (SNphoto z)"],
@@ -491,10 +491,10 @@ if __name__ == "__main__":
     )
     # mixedasides
     df = tmp.copy()
-    x_toplot = df.groupby("mass_bin").mean()["mass to plot"].values
+    x_toplot = df.groupby("mass_bin")["mass to plot"].mean().values
     axs[1].errorbar(
         x_toplot,
-        df.groupby("mass_bin").mean()[var].values,
+        df.groupby("mass_bin")[var].mean().values,
         yerr=df.groupby("mass_bin").std()[var].values
         / np.sqrt(df.groupby("mass_bin")[var].count()).values,
         fmt="o",
@@ -574,10 +574,10 @@ if __name__ == "__main__":
     )
     # mixedasides
     df = mixed_sample.copy()
-    x_toplot = df.groupby("mass_bin").mean()["mass to plot"].values
+    x_toplot = df.groupby("mass_bin")["mass to plot"].mean().values
     axs[2].errorbar(
         x_toplot,
-        df.groupby("mass_bin").mean()[var].values,
+        df.groupby("mass_bin")[var].mean().values,
         yerr=df.groupby("mass_bin").std()[var].values
         / np.sqrt(df.groupby("mass_bin")[var].count()).values,
         fmt="o",
@@ -1067,7 +1067,7 @@ if __name__ == "__main__":
     plt.savefig(f"{path_plots}/M24_wzspe_mass_2d.png")
 
     # DLR
-    fig = plt.figure()
+    fig = plt.figure(figsize=(8, 5))
     n, bins, _ = plt.hist(
         photoIa_nz_JLA["DLR"], label="M24", histtype="step", linewidth=2, bins=30
     )
@@ -1075,5 +1075,5 @@ if __name__ == "__main__":
     plt.hist(sel["DLR"], label="spec Ia", bins=bins, histtype="step")
     plt.hist(photoIa_wz_JLA["DLR"], label="M22", bins=bins, histtype="step")
     plt.legend(loc=0)
-    plt.xlabel(r"DLR")
+    plt.xlabel("DLR")
     plt.savefig(f"{path_plots}/DLR.png")

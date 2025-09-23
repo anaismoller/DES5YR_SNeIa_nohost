@@ -20,6 +20,7 @@ BEWARE!
 You need to define an environment variable snn where 
 https://github.com/supernnova/SuperNNova.git is installed
 """
+print("not supported with uv/mise (need supernnova installation)")
 
 snn = os.getenv("snn")  # SuperNNova installation
 sys.path.append(snn)
@@ -270,16 +271,20 @@ if __name__ == "__main__":
     tmp = len(df_photometry.SNID.unique())
     tmp2 = len(df_photometry)
     df_photometry["phot_reject"] = df_photometry["PHOTFLAG"].apply(
-        lambda x: False
-        if len(set([8, 16, 32, 64, 128, 256, 512]).intersection(set(powers_of_two(x))))
-        > 0
-        else True
+        lambda x: (
+            False
+            if len(
+                set([8, 16, 32, 64, 128, 256, 512]).intersection(set(powers_of_two(x)))
+            )
+            > 0
+            else True
+        )
     )
     df_photometry = df_photometry[df_photometry["phot_reject"]]
     df_photometry["photo_detection"] = df_photometry["PHOTFLAG"].apply(
-        lambda x: True
-        if len(set([4096]).intersection(set(powers_of_two(x)))) > 0
-        else False
+        lambda x: (
+            True if len(set([4096]).intersection(set(powers_of_two(x)))) > 0 else False
+        )
     )
 
     df_metadata_u = get_lc_stats(df_photometry, df_metadata)
@@ -706,3 +711,7 @@ if __name__ == "__main__":
     print(df_stats_triggerLSST[cols_to_print].to_latex(index=False))
     print("DES-like trigger")
     print(df_stats_triggerDES[cols_to_print].to_latex(index=False))
+
+    import ipdb
+
+    ipdb.set_trace()

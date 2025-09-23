@@ -249,7 +249,7 @@ def HRwhisto(df, df2, ax_left, ax_right, visible=False, suffix='SNphotoz'):
     ax_left.errorbar(
         df["zHD"],
         df["delmu"],
-        yerr=df["delmu_err"],
+        yerr=np.abs(df["delmu_err"]),
         color="black",
         zorder=0,
         fmt="none",
@@ -261,7 +261,7 @@ def HRwhisto(df, df2, ax_left, ax_right, visible=False, suffix='SNphotoz'):
     ax_left.errorbar(
         df2[f"zHD_{suffix}"],
         df2[f"delmu_{suffix}"],
-        yerr=df2[f"delmu_err_{suffix}"],
+        yerr=np.abs(df2[f"delmu_err_{suffix}"]),
         color="maroon",
         zorder=0,
         fmt="none",

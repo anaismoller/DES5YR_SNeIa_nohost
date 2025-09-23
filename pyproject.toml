@@ -1,0 +1,49 @@
+[project]
+name = "finkclient"
+version = "9.1.0"
+description = "Python client for the Fink broker"
+requires-python = "==3.12.*"
+dependencies = [
+    "fink-client",
+    "requests",
+    "numpy>=2.2",
+    "pandas>=2.3.1",
+    "scipy",
+    "ipykernel",
+    "matplotlib",
+    "astropy",
+    "pandas",
+    "scikit-learn",
+    "ipdb",
+    "venn",
+    "supervenn",
+    "emcee",
+    "colorama",
+    "Jinja2",
+]
+
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.3.2",
+    "ruff",
+]
+
+[tool.ruff]
+# Set the maximum line length to 150.
+line-length = 150
+
+[tool.ruff.format]
+indent-style = "space"
+quote-style = "double"
+docstring-code-format = true
+
+
+[tool.ruff.lint]
+# Add the `line-too-long` rule to the enforced rule set. By default, Ruff omits rules that
+# overlap with the use of a formatter, like Black, but we can override this behavior by
+# explicitly adding the rule.
+extend-select = ["E501"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"

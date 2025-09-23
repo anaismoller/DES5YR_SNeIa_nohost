@@ -139,7 +139,7 @@ def plot_freez_correlations(list_df, list_labels=["tmp"], path_plots="./"):
 
     for idx_df, df in enumerate(list_df):
         df[f"zHD_bin"] = pd.cut(df.loc[:, ("zHD")], pu.bins_dic["zHD"])
-        sel = df.groupby([f"zHD_bin"]).mean()
+        sel = df.groupby([f"zHD_bin"]).mean(numeric_only=True)
         for idx, row in sel.iterrows():
             axs[0].arrow(
                 row["zHD"],
@@ -154,7 +154,7 @@ def plot_freez_correlations(list_df, list_labels=["tmp"], path_plots="./"):
     axs[0].axis("equal")
     for idx_df, df in enumerate(list_df):
         df["zHD_bin"] = pd.cut(df.loc[:, ("zHD")], pu.bins_dic["zHD"])
-        sel = df.groupby([f"zHD_bin"]).mean()
+        sel = df.groupby([f"zHD_bin"]).mean(numeric_only=True)
         for idx, row in sel.iterrows():
             axs[1].arrow(
                 row["zHD"],
@@ -174,132 +174,128 @@ def plot_freez_correlations(list_df, list_labels=["tmp"], path_plots="./"):
 
 def plot_mosaic_scatter_SNphoto_zspe(df, outname, path_plots):
 
-        lines_ranges = {"z": [0.2, 1.3], "c": [-0.4, 0.4], "x1": [-4, 4]}
-        plot_ranges = {"z": [0.1, 1.3], "c": [-0.4, 0.4], "x1": [-4, 4]}
+    lines_ranges = {"z": [0.2, 1.3], "c": [-0.4, 0.4], "x1": [-4, 4]}
+    plot_ranges = {"z": [0.1, 1.3], "c": [-0.4, 0.4], "x1": [-4, 4]}
 
-        fig = plt.figure(figsize=(12, 6))
-        gs = fig.add_gridspec(2, 3, wspace=0.4, hspace=0.1, height_ratios=[1, 0.4])
-        axs = gs.subplots(sharex="col", sharey=False)
+    fig = plt.figure(figsize=(12, 6))
+    gs = fig.add_gridspec(2, 3, wspace=0.4, hspace=0.1, height_ratios=[1, 0.4])
+    axs = gs.subplots(sharex="col", sharey=False)
 
-        for i, var in enumerate(["z", "c", "x1"]):
-            varx = "zHD" if var == "z" else var
-            vary = f"{var}PHOT_SNphotoz" if var == "z" else f"{var}_SNphotoz"
-            errvary = f"{var}PHOTERR_SNphotoz" if var == "z" else f"{var}ERR_SNphotoz"
-            # first row: scatter
-            axs[0][i].errorbar(
-                df[varx],
-                df[vary],
-                xerr=df[f"{varx}ERR"],
-                yerr=df[errvary],
-                fmt="o",
-                ecolor=None,
-                markersize=1,
-                alpha=0.05 if var=='z' else 0.01,
-                color="indigo",
-            )
-            axs[0][i].plot(
-                lines_ranges[var],
-                lines_ranges[var],
-                color="black",
-                linewidth=1,
-                linestyle="--",
-                zorder=100,
-            )
-            ylabel = (
-                r"${%s}_{\mathrm{SNphoto ~ z}}$" % var if var != "z" else "SNphoto z"
-            )
-            axs[0][i].set_ylabel(ylabel)
-            axs[0][i].set_xlim(plot_ranges[var])
-            axs[0][i].set_ylim(plot_ranges[var])
-            # 2nd row: delta 
-            df[f"delta {var}"] = df[varx] - df[vary]
-            axs[1][i].scatter(
-                df[varx],
-                df[f"delta {var}"],
-                alpha=0.03,
-                color="indigo",
-                s=10,
-            )
-            axs[1][i].plot(
-                [lines_ranges[var][0], lines_ranges[var][1]],
-                [0, 0],
-                color="black",
-                linewidth=1,
-                linestyle="--",
-                zorder=100,
-            )
+    for i, var in enumerate(["z", "c", "x1"]):
+        varx = "zHD" if var == "z" else var
+        vary = f"{var}PHOT_SNphotoz" if var == "z" else f"{var}_SNphotoz"
+        errvary = f"{var}PHOTERR_SNphotoz" if var == "z" else f"{var}ERR_SNphotoz"
+        # first row: scatter
+        axs[0][i].errorbar(
+            df[varx],
+            df[vary],
+            xerr=df[f"{varx}ERR"],
+            yerr=df[errvary],
+            fmt="o",
+            ecolor=None,
+            markersize=1,
+            alpha=0.05 if var == "z" else 0.01,
+            color="indigo",
+        )
+        axs[0][i].plot(
+            lines_ranges[var],
+            lines_ranges[var],
+            color="black",
+            linewidth=1,
+            linestyle="--",
+            zorder=100,
+        )
+        ylabel = r"${%s}_{\mathrm{SNphoto ~ z}}$" % var if var != "z" else "SNphoto z"
+        axs[0][i].set_ylabel(ylabel)
+        axs[0][i].set_xlim(plot_ranges[var])
+        axs[0][i].set_ylim(plot_ranges[var])
+        # 2nd row: delta
+        df[f"delta {var}"] = df[varx] - df[vary]
+        axs[1][i].scatter(
+            df[varx],
+            df[f"delta {var}"],
+            alpha=0.03,
+            color="indigo",
+            s=10,
+        )
+        axs[1][i].plot(
+            [lines_ranges[var][0], lines_ranges[var][1]],
+            [0, 0],
+            color="black",
+            linewidth=1,
+            linestyle="--",
+            zorder=100,
+        )
 
-            axs[1][i].set_xlabel(
-                r"${%s}_{\mathrm{true ~ z}}$" % var if var != "z" else "true z"
-            )
-            ylabel = r"$\Delta {%s}$" % var
-            axs[1][i].set_ylabel(ylabel)
-        plt.savefig(f"{path_plots}/{outname}.png")
+        axs[1][i].set_xlabel(
+            r"${%s}_{\mathrm{true ~ z}}$" % var if var != "z" else "true z"
+        )
+        ylabel = r"$\Delta {%s}$" % var
+        axs[1][i].set_ylabel(ylabel)
+    plt.savefig(f"{path_plots}/{outname}.png")
 
 
 def plot_mosaic_scatter_SNphoto_zspe_sim(df, outname, path_plots):
 
-        lines_ranges = {"z": [0.2, 1.3], "c": [-0.4, 0.4], "x1": [-4, 4]}
-        plot_ranges = {"z": [0.1, 1.3], "c": [-0.4, 0.4], "x1": [-4, 4]}
+    lines_ranges = {"z": [0.2, 1.3], "c": [-0.4, 0.4], "x1": [-4, 4]}
+    plot_ranges = {"z": [0.1, 1.3], "c": [-0.4, 0.4], "x1": [-4, 4]}
 
-        fig = plt.figure(figsize=(12, 6))
-        gs = fig.add_gridspec(2, 3, wspace=0.4, hspace=0.1, height_ratios=[1, 0.4])
-        axs = gs.subplots(sharex="col", sharey=False)
+    fig = plt.figure(figsize=(12, 6))
+    gs = fig.add_gridspec(2, 3, wspace=0.4, hspace=0.1, height_ratios=[1, 0.4])
+    axs = gs.subplots(sharex="col", sharey=False)
 
-        for i, var in enumerate(["z", "c", "x1"]):
-            varx = "zHD" if var == "z" else var
-            vary = f"{var}PHOT_SNphotoz" if var == "z" else f"{var}_SNphotoz"
-            errvary = f"{var}PHOTERR_SNphotoz" if var == "z" else f"{var}ERR_SNphotoz"
-            # first row: scatter
-            axs[0][i].errorbar(
-                df[varx],
-                df[vary],
-                xerr=df[f"{varx}ERR"],
-                yerr=df[errvary],
-                fmt="o",
-                ecolor=None,
-                markersize=1,
-                alpha=0.05 if var=='z' else 0.01,
-                color="indigo",
-            )
-            axs[0][i].plot(
-                lines_ranges[var],
-                lines_ranges[var],
-                color="black",
-                linewidth=1,
-                linestyle="--",
-                zorder=100,
-            )
-            ylabel = (
-                r"${%s}_{\mathrm{SNphoto ~ z}}$" % var if var != "z" else "SNphoto z"
-            )
-            axs[0][i].set_ylabel(ylabel)
-            axs[0][i].set_xlim(plot_ranges[var])
-            axs[0][i].set_ylim(plot_ranges[var])
-            # 2nd row: delta 
-            df[f"delta {var}"] = df[varx] - df[vary]
-            axs[1][i].scatter(
-                df[varx],
-                df[f"delta {var}"],
-                alpha=0.03,
-                color="indigo",
-                s=10,
-            )
-            axs[1][i].plot(
-                [lines_ranges[var][0], lines_ranges[var][1]],
-                [0, 0],
-                color="black",
-                linewidth=1,
-                linestyle="--",
-                zorder=100,
-            )
+    for i, var in enumerate(["z", "c", "x1"]):
+        varx = "zHD" if var == "z" else var
+        vary = f"{var}PHOT_SNphotoz" if var == "z" else f"{var}_SNphotoz"
+        errvary = f"{var}PHOTERR_SNphotoz" if var == "z" else f"{var}ERR_SNphotoz"
+        # first row: scatter
+        axs[0][i].errorbar(
+            df[varx],
+            df[vary],
+            xerr=df[f"{varx}ERR"],
+            yerr=df[errvary],
+            fmt="o",
+            ecolor=None,
+            markersize=1,
+            alpha=0.05 if var == "z" else 0.01,
+            color="indigo",
+        )
+        axs[0][i].plot(
+            lines_ranges[var],
+            lines_ranges[var],
+            color="black",
+            linewidth=1,
+            linestyle="--",
+            zorder=100,
+        )
+        ylabel = r"${%s}_{\mathrm{SNphoto ~ z}}$" % var if var != "z" else "SNphoto z"
+        axs[0][i].set_ylabel(ylabel)
+        axs[0][i].set_xlim(plot_ranges[var])
+        axs[0][i].set_ylim(plot_ranges[var])
+        # 2nd row: delta
+        df[f"delta {var}"] = df[varx] - df[vary]
+        axs[1][i].scatter(
+            df[varx],
+            df[f"delta {var}"],
+            alpha=0.03,
+            color="indigo",
+            s=10,
+        )
+        axs[1][i].plot(
+            [lines_ranges[var][0], lines_ranges[var][1]],
+            [0, 0],
+            color="black",
+            linewidth=1,
+            linestyle="--",
+            zorder=100,
+        )
 
-            axs[1][i].set_xlabel(
-                r"${%s}_{\mathrm{true ~ z}}$" % var if var != "z" else "true z"
-            )
-            ylabel = r"$\Delta {%s}$" % var
-            axs[1][i].set_ylabel(ylabel)
-        plt.savefig(f"{path_plots}/{outname}.png")
+        axs[1][i].set_xlabel(
+            r"${%s}_{\mathrm{true ~ z}}$" % var if var != "z" else "true z"
+        )
+        ylabel = r"$\Delta {%s}$" % var
+        axs[1][i].set_ylabel(ylabel)
+    plt.savefig(f"{path_plots}/{outname}.png")
 
 
 if __name__ == "__main__":
@@ -385,21 +381,25 @@ if __name__ == "__main__":
 
     # Inspect z,x1,c simultaneous fit
     plot_mosaic_scatter_SNphoto_zspe(
-        sim_allfits_Ia.sample(n=10000, random_state=1), "scatter_SNphotoz_vs_true", path_plots
+        sim_allfits_Ia.sample(n=10000, random_state=1),
+        "scatter_SNphotoz_vs_true",
+        path_plots,
     )
-    sim_allfits_Ia["delta z"] = sim_allfits_Ia['zHD'] - sim_allfits_Ia["zPHOT_SNphotoz"]
+    sim_allfits_Ia["delta z"] = sim_allfits_Ia["zHD"] - sim_allfits_Ia["zPHOT_SNphotoz"]
     # sim_allfits_Ia["delta z/(1+z)"] = sim_allfits_Ia["delta z"]/(1+sim_allfits_Ia["zHD"])
-    sim_allfits_Ia["delta c"] = sim_allfits_Ia['c'] - sim_allfits_Ia["c_SNphotoz"]
-    sim_allfits_Ia["delta x1"] = sim_allfits_Ia['x1'] - sim_allfits_Ia["x1_SNphotoz"]
+    sim_allfits_Ia["delta c"] = sim_allfits_Ia["c"] - sim_allfits_Ia["c_SNphotoz"]
+    sim_allfits_Ia["delta x1"] = sim_allfits_Ia["x1"] - sim_allfits_Ia["x1_SNphotoz"]
 
-    for var in ["delta z", 'delta c','delta x1']:
+    for var in ["delta z", "delta c", "delta x1"]:
         print("")
         print(var)
         # Calculate quantiles
         q25 = np.quantile(sim_allfits_Ia[var], 0.25)  # 25th percentile (first quartile)
-        q50 = np.quantile(sim_allfits_Ia[var], 0.5)   # 50th percentile (median)
+        q50 = np.quantile(sim_allfits_Ia[var], 0.5)  # 50th percentile (median)
         q75 = np.quantile(sim_allfits_Ia[var], 0.75)  # 75th percentile (third quartile)
-        print(f"25th, median, 75th: {np.round(q25,3)} {np.round(q50,3)} {np.round(q75,3)}")
+        print(
+            f"25th, median, 75th: {np.round(q25,3)} {np.round(q50,3)} {np.round(q75,3)}"
+        )
 
         # Calculate quartiles and IQR
         q1, q3 = np.percentile(sim_allfits_Ia[var], [25, 75])
@@ -407,7 +407,9 @@ if __name__ == "__main__":
         # Define outlier thresholds
         lower_bound = q1 - 1.5 * iqr
         upper_bound = q3 + 1.5 * iqr
-        outliers = sim_allfits_Ia[var][(sim_allfits_Ia[var] < lower_bound) | (sim_allfits_Ia[var] > upper_bound)]
+        outliers = sim_allfits_Ia[var][
+            (sim_allfits_Ia[var] < lower_bound) | (sim_allfits_Ia[var] > upper_bound)
+        ]
         outlier_fraction = len(outliers) / len(sim_allfits_Ia[var])
         print(f"Outlier fraction: {outlier_fraction:.4f}")
 
@@ -420,42 +422,69 @@ if __name__ == "__main__":
     # Hubble Residuals
     sim_allfits_Ia = su.distance_modulus(sim_allfits_Ia)
     # mB in SNphotoz is wrong, using the one without it
-    sim_allfits_Ia['mB_SNphotoz'] = sim_allfits_Ia['mB']
+    sim_allfits_Ia["mB_SNphotoz"] = sim_allfits_Ia["mB"]
     sim_allfits_Ia = su.distance_modulus(sim_allfits_Ia, suffix="SNphotoz")
     sim_allfits_Ia_JLA = su.apply_JLA_cut(sim_allfits_Ia)
 
     tmp = sim_allfits_Ia.copy()
-    tmp['x1']= tmp['x1_SNphotoz']
-    tmp['x1ERR']= tmp['x1ERR_SNphotoz']
-    tmp['c']= tmp['c_SNphotoz']
-    tmp['FITPROB']= tmp['FITPROB_SNphotoz']
-    tmp['PKMJDERR']= tmp['PKMJDERR_SNphotoz']
+    tmp["x1"] = tmp["x1_SNphotoz"]
+    tmp["x1ERR"] = tmp["x1ERR_SNphotoz"]
+    tmp["c"] = tmp["c_SNphotoz"]
+    tmp["FITPROB"] = tmp["FITPROB_SNphotoz"]
+    tmp["PKMJDERR"] = tmp["PKMJDERR_SNphotoz"]
     sim_allfits_Ia_JLA_SNphotoz = su.apply_JLA_cut(tmp)
 
-
-    pu.plot_HD_residuals(sim_allfits_Ia_JLA.sample(n=5000, random_state=1),sim_allfits_Ia_JLA_SNphotoz.sample(n=5000, random_state=1), f"{path_plots}/HR.png")
+    pu.plot_HD_residuals(
+        sim_allfits_Ia_JLA.sample(n=5000, random_state=1),
+        sim_allfits_Ia_JLA_SNphotoz.sample(n=5000, random_state=1),
+        f"{path_plots}/HR.png",
+    )
 
     # stats
-    print('Delta LCDM (delmu) with JLA cuts')
-    print('true z',round(sim_allfits_Ia_JLA['delmu'].median(),2), round(sim_allfits_Ia_JLA['delmu'].std(),2))
-    print('SNphotoz',round(sim_allfits_Ia_JLA['delmu_SNphotoz'].median(),2), round(sim_allfits_Ia_JLA['delmu_SNphotoz'].std(),2))
-    print('Delta LCDM (delmu): z>0.7')
+    print("Delta LCDM (delmu) with JLA cuts")
+    print(
+        "true z",
+        round(sim_allfits_Ia_JLA["delmu"].median(), 2),
+        round(sim_allfits_Ia_JLA["delmu"].std(), 2),
+    )
+    print(
+        "SNphotoz",
+        round(sim_allfits_Ia_JLA["delmu_SNphotoz"].median(), 2),
+        round(sim_allfits_Ia_JLA["delmu_SNphotoz"].std(), 2),
+    )
+    print("Delta LCDM (delmu): z>0.7")
     sel = sim_allfits_Ia_JLA[sim_allfits_Ia_JLA.zHD > 0.7]
-    print('true z',round(sel['delmu'].median(),2), round(sel['delmu'].std(),2))
+    print("true z", round(sel["delmu"].median(), 2), round(sel["delmu"].std(), 2))
     sel = sim_allfits_Ia_JLA[sim_allfits_Ia_JLA.zHD_SNphotoz > 0.7]
-    print('SNphotoz',round(sel['delmu_SNphotoz'].median(),2), round(sel['delmu_SNphotoz'].std(),2))
-    print('Delta LCDM (delmu): 0.7<z<1')
-    sel = sim_allfits_Ia_JLA[(sim_allfits_Ia_JLA.zHD > 0.7) & (sim_allfits_Ia_JLA.zHD < 1)]
-    print('true z',round(sel['delmu'].median(),2), round(sel['delmu'].std(),2))
-    sel = sim_allfits_Ia_JLA[(sim_allfits_Ia_JLA.zHD_SNphotoz > 0.7) & (sim_allfits_Ia_JLA.zHD_SNphotoz <1)]
-    print('SNphotoz',round(sel['delmu_SNphotoz'].median(),2), round(sel['delmu_SNphotoz'].std(),2))
+    print(
+        "SNphotoz",
+        round(sel["delmu_SNphotoz"].median(), 2),
+        round(sel["delmu_SNphotoz"].std(), 2),
+    )
+    print("Delta LCDM (delmu): 0.7<z<1")
+    sel = sim_allfits_Ia_JLA[
+        (sim_allfits_Ia_JLA.zHD > 0.7) & (sim_allfits_Ia_JLA.zHD < 1)
+    ]
+    print("true z", round(sel["delmu"].median(), 2), round(sel["delmu"].std(), 2))
+    sel = sim_allfits_Ia_JLA[
+        (sim_allfits_Ia_JLA.zHD_SNphotoz > 0.7) & (sim_allfits_Ia_JLA.zHD_SNphotoz < 1)
+    ]
+    print(
+        "SNphotoz",
+        round(sel["delmu_SNphotoz"].median(), 2),
+        round(sel["delmu_SNphotoz"].std(), 2),
+    )
 
     # with classification
     tmp = pd.merge(sim_allfits_Ia_JLA, sim_preds["cosmo_quantile"])
     tmp2 = pd.merge(sim_allfits_Ia_JLA_SNphotoz, sim_preds["cosmo_quantile"])
     sel = tmp[tmp[f"average_probability_set_0"] > 0.5]
     sel2 = tmp2[tmp2[f"average_probability_set_0"] > 0.5]
-    pu.plot_HD_residuals(sel.sample(n=5000, random_state=1), sel2.sample(n=5000, random_state=1), f"{path_plots}/HR_wSNNgt05.png")
+    pu.plot_HD_residuals(
+        sel.sample(n=5000, random_state=1),
+        sel2.sample(n=5000, random_state=1),
+        f"{path_plots}/HR_wSNNgt05.png",
+    )
 
     logger.info("")
     logger.info("SIMULATIONS: CONTAMINATION")
@@ -484,11 +513,24 @@ if __name__ == "__main__":
         metric="efficiency",
     )
 
+    # by types
+    # b'SIMSED.SNIa-91bg                ' [191]
+    # b'SALT2.JLA-B14                   ' [101]
+    # b'SIMSED.SNIax_dust               ' [111]
+    # b'NON1ASED.V19_CC_noHostXT        ' [120]
+
     # General stats
     sim_cut_nonIa = sim_preds["cosmo_quantile"]["target"] == 1
     total_contamination = []
     total_contamination_JLA = []
     total_contamination_JLA_saltz = []
+
+    total_contamination_JLA_91bg = []
+    total_contamination_JLA_Iax = []
+    total_contamination_JLA_saltz_91bg = []
+    total_contamination_JLA_saltz_Iax = []
+
+    # by types
     for classset in [0, 1, 2]:
         # photo Ia
         sim_cut_photoIa = (
@@ -504,19 +546,61 @@ if __name__ == "__main__":
         sel_cont = sim_photoIa_contamination[
             sim_photoIa_contamination.SNID.isin(sim_fits_JLA.SNID.values)
         ]
-        sel_photo = sim_photoIa[sim_photoIa.SNID.isin(sim_fits_JLA.SNID.values)]
         total_contamination_JLA.append(100 * len(sel_cont) / len(sim_photoIa))
+
+        # 91bg
+        tmp = sim_photoIa[
+            sim_photoIa.SNID.isin(sim_fits_JLA[sim_fits_JLA.SNTYPE == 191].SNID.values)
+        ]
+        total_contamination_JLA_91bg.append(100 * len(tmp) / len(sim_photoIa))
+
+        # Iax
+        tmp = sim_photoIa[
+            sim_photoIa.SNID.isin(sim_fits_JLA[sim_fits_JLA.SNTYPE == 111].SNID.values)
+        ]
+        total_contamination_JLA_Iax.append(100 * len(tmp) / len(sim_photoIa))
+
         sel_cont = sim_photoIa_contamination[
             sim_photoIa_contamination.SNID.isin(sim_saltz_JLA.SNID.values)
         ]
-        sel_photo = sim_photoIa[sim_photoIa.SNID.isin(sim_saltz_JLA.SNID.values)]
         total_contamination_JLA_saltz.append(100 * len(sel_cont) / len(sim_photoIa))
+
+        tmp = sim_photoIa[
+            sim_photoIa.SNID.isin(
+                sim_saltz_JLA[sim_saltz_JLA.SNTYPE == 191].SNID.values
+            )
+        ]
+        total_contamination_JLA_saltz_91bg.append(100 * len(tmp) / len(sim_photoIa))
+
+        tmp = sim_photoIa[
+            sim_photoIa.SNID.isin(
+                sim_saltz_JLA[sim_saltz_JLA.SNTYPE == 111].SNID.values
+            )
+        ]
+        total_contamination_JLA_saltz_Iax.append(100 * len(tmp) / len(sim_photoIa))
+
     print()
     print(
         f"Total contamination JLA {round(np.array(total_contamination_JLA).mean(),2)} +- {round(np.array(total_contamination_JLA).std(),2)}"
     )
+
+    print(
+        f"Total contamination JLA 91bg {round(np.array(total_contamination_JLA_91bg).mean(),2)} +- {round(np.array(total_contamination_JLA_91bg).std(),2)}"
+    )
+    print(
+        f"Total contamination JLA Iax {round(np.array(total_contamination_JLA_Iax).mean(),2)} +- {round(np.array(total_contamination_JLA_Iax).std(),2)}"
+    )
+    print("")
+
     print(
         f"Total contamination JLA saltz {round(np.array(total_contamination_JLA_saltz).mean(),2)} +- {round(np.array(total_contamination_JLA_saltz).std(),2)}"
+    )
+
+    print(
+        f"Total contamination JLA saltz 91bg {round(np.array(total_contamination_JLA_saltz_91bg).mean(),2)} +- {round(np.array(total_contamination_JLA_saltz_91bg).std(),2)}"
+    )
+    print(
+        f"Total contamination JLA saltz Iax {round(np.array(total_contamination_JLA_saltz_Iax).mean(),2)} +- {round(np.array(total_contamination_JLA_saltz_Iax).std(),2)}"
     )
 
     logger.info("")
