@@ -1043,5 +1043,5 @@ def get_sample_stats(
             f"specCC{suffix}": specCC,
             f"specOther{suffix}": specother,
         }
-        df_photoIa_stats = df_photoIa_stats.append(dic_tmp, ignore_index=True)
+        df_photoIa_stats = pd.concat([df_photoIa_stats, pd.DataFrame([dic_tmp])], ignore_index=True)
     return df_photoIa_stats

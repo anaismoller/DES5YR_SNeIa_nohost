@@ -129,7 +129,7 @@ def get_multiseed_performance_metrics(
         dic_prefilled_keywords["accuracy"] = txt_balacc
         dic_prefilled_keywords["efficiency"] = txt_eff
         dic_prefilled_keywords["purity"] = txt_pur
-        df_txt = df_txt.append(dic_prefilled_keywords, ignore_index=True)
+        df_txt = pd.concat([df_txt, pd.DataFrame([dic_prefilled_keywords])], ignore_index=True)
         return df_txt
     else:
         print(
@@ -184,7 +184,7 @@ def cuts_deep_shallow(df_sel, photoIa_wz_JLA, df_stats=pd.DataFrame(), cut=""):
     dict_t["total photo Ia M22"] = len(
         df_sel[df_sel.SNID.isin(photoIa_wz_JLA.SNID.values)].SNID.unique()
     )
-    df_stats = df_stats.append(dict_t, ignore_index=True)
+    df_stats = pd.concat([df_stats, pd.DataFrame([dict_t])], ignore_index=True)
 
     return df_stats
 
@@ -254,7 +254,7 @@ def fup_hostgals_stats(
     dict_t["specIa"] = len(df[df.SNTYPE.isin(cu.spec_tags["Ia"])])
     dict_t["photoIa M22"] = len(df[df.SNID.isin(photoIa_wz_JLA.SNID.values)])
 
-    df_stats = df_stats.append(dict_t, ignore_index=True)
+    df_stats = pd.concat([df_stats, pd.DataFrame([dict_t])], ignore_index=True)
 
     cols_int = [k for k in df_stats.keys() if k != "sample"]
     df_stats[cols_int] = df_stats[cols_int].astype(int)

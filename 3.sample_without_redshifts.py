@@ -211,10 +211,14 @@ if __name__ == "__main__":
     tmp = len(df_photometry.SNID.unique())
     tmp2 = len(df_photometry)
     df_photometry["phot_reject"] = df_photometry["PHOTFLAG"].apply(
-        lambda x: False
-        if len(set([8, 16, 32, 64, 128, 256, 512]).intersection(set(powers_of_two(x))))
-        > 0
-        else True
+        lambda x: (
+            False
+            if len(
+                set([8, 16, 32, 64, 128, 256, 512]).intersection(set(powers_of_two(x)))
+            )
+            > 0
+            else True
+        )
     )
     tmp = df_photometry[df_photometry["phot_reject"] == True]
     # print(f">> PHOTFLAG reduced measurements to {len(tmp)} from {len(df_photometry)}")
@@ -234,9 +238,9 @@ if __name__ == "__main__":
     df_pkpho["window_delta_time"] = df_pkpho["MJD"] - df_pkpho["PKMJDINI"]
     # apply window of "SN-like event" -30 < PKMJD < 100
     df_pkpho.loc[mask, "window_time_cut"] = df_pkpho["window_delta_time"].apply(
-        lambda x: True
-        if (x > 0 and x < 100)
-        else (True if (x <= 0 and x > -30) else False)
+        lambda x: (
+            True if (x > 0 and x < 100) else (True if (x <= 0 and x > -30) else False)
+        )
     )
     df_pkpho = df_pkpho[df_pkpho["window_time_cut"] == True]
 
@@ -280,7 +284,11 @@ if __name__ == "__main__":
         df_metadata_w_multiseason.SNID.isin(SNID_w_2flt_SNR5)
     ]
     cuts.spec_subsamples(df_metadata_w_sampling, logger)
-    df_metadata_w_sampling.to_csv((f"{path_samples}/df_metadata_w_sampling.csv"))
+    df_metadata_w_sampling.to_csv((f"{path_samples}/df_w_sampling_HEAD.csv"))
+
+    # save also photometry
+    df_phot_tmp = df_pkpho[df_pkpho.SNID.isin(df_metadata_w_sampling.SNID.values)]
+    df_phot_tmp.to_csv((f"{path_samples}/df_w_sampling_PHOT.csv"))
 
     df_stats = mu.cuts_deep_shallow(
         df_metadata_w_sampling,
@@ -378,7 +386,9 @@ if __name__ == "__main__":
     # save photoIa that pass SNN>0.5
     photoIa_noz.to_csv(f"{path_samples}/photoIanoz.csv")
     # M24 for DES data release
-    out_sample_probs = photoIa_noz[["SNID", "all_class0_S_0", "average_probability_set_0"]]
+    out_sample_probs = photoIa_noz[
+        ["SNID", "all_class0_S_0", "average_probability_set_0"]
+    ]
     out_sample_probs = out_sample_probs.rename(
         columns={
             "SNID": "CID",
@@ -386,7 +396,9 @@ if __name__ == "__main__":
             "average_probability_set_0": "PROB_SNN_noz_ensemble",
         }
     )
-    out_sample_probs.to_csv(f"{path_samples}/DES_noredshift_classification_Moller2024.csv")
+    out_sample_probs.to_csv(
+        f"{path_samples}/DES_noredshift_classification_Moller2024.csv"
+    )
     # load salt fits wzspe
     tmpsalt = du.load_salt_fits(args.path_data_fits)
     tmpsalt_zspe = tmpsalt[
@@ -612,15 +624,17 @@ if __name__ == "__main__":
         "c",
         "cERR",
         "FITPROB",
-        'all_class0_S_0',
-        'all_class0_S_55',
-        'all_class0_S_100',
-        'all_class0_S_1000',
-        'all_class0_S_30469',
-        'average_probability_set_0'
+        "all_class0_S_0",
+        "all_class0_S_55",
+        "all_class0_S_100",
+        "all_class0_S_1000",
+        "all_class0_S_30469",
+        "average_probability_set_0",
     ]
     # Open the file for writing
-    with open(f"{path_samples}/DES_noredshift_Moller2024_w_SALTandhostinfo.csv", "w") as f:
+    with open(
+        f"{path_samples}/DES_noredshift_Moller2024_w_SALTandhostinfo.csv", "w"
+    ) as f:
         # Write a comment in the header
         f.write("# Moller et al. 2024 \n")
         f.write("# SNe Ia selected with SuperNNova without host-galaxy redshifts \n")
@@ -631,10 +645,14 @@ if __name__ == "__main__":
         f.write("# zHD c x1 are derived simultaneously  \n")
         f.write("# all_class0_s* probabilities for different models  \n")
         f.write("# ensemble=average_probability_set_0  \n")
-        f.write("# REDSHIFT_FINAL<0 means no spectroscopic redshift (either SN/host is available)  \n")
+        f.write(
+            "# REDSHIFT_FINAL<0 means no spectroscopic redshift (either SN/host is available)  \n"
+        )
     # Write the DataFrame to CSV, appending to the existing file
     photoIanoz_SNphotoz_HQ[cols_to_keep].to_csv(
-        f"{path_samples}/DES_noredshift_Moller2024_w_SALTandhostinfo.csv", mode="a", index=False
+        f"{path_samples}/DES_noredshift_Moller2024_w_SALTandhostinfo.csv",
+        mode="a",
+        index=False,
     )
     print(f"Saved {len(photoIanoz_SNphotoz_HQ)} photoIanoz saltz HQ")
 
@@ -899,18 +917,32 @@ if __name__ == "__main__":
     )
     # reviewers comment
     # from simulations, establish number of SNe Ia expected by each cut for host fup
-    sim_Ia = sim_preds["cosmo_quantile"][sim_preds["cosmo_quantile"].target==0]
-    sim_Ia_1realisationDES = sim_Ia.sample(frac=1/30,random_state=0)
-    sim_Ia_1realisationDES_selIa = sim_Ia_1realisationDES[sim_Ia_1realisationDES['predicted_target_average_probability_001_set_0']==0]
-    sim_nonIa = sim_preds["cosmo_quantile"][sim_preds["cosmo_quantile"].target==1]
-    sim_nonIa_1realisationDES = sim_nonIa.sample(frac=1/30,random_state=0)
-    sim_nonIa_1realisationDES_selIa = sim_nonIa_1realisationDES[sim_nonIa_1realisationDES['predicted_target_average_probability_001_set_0']==0]
-    print(f"One realisation DES has: Ia {len(sim_Ia_1realisationDES)} nonIa {len(sim_nonIa_1realisationDES)}")
-    print(f"One realisation DES SNN>0.001 selects: Ia {len(sim_Ia_1realisationDES_selIa)} nonIa {len(sim_nonIa_1realisationDES_selIa)}")
+    sim_Ia = sim_preds["cosmo_quantile"][sim_preds["cosmo_quantile"].target == 0]
+    sim_Ia_1realisationDES = sim_Ia.sample(frac=1 / 30, random_state=0)
+    sim_Ia_1realisationDES_selIa = sim_Ia_1realisationDES[
+        sim_Ia_1realisationDES["predicted_target_average_probability_001_set_0"] == 0
+    ]
+    sim_nonIa = sim_preds["cosmo_quantile"][sim_preds["cosmo_quantile"].target == 1]
+    sim_nonIa_1realisationDES = sim_nonIa.sample(frac=1 / 30, random_state=0)
+    sim_nonIa_1realisationDES_selIa = sim_nonIa_1realisationDES[
+        sim_nonIa_1realisationDES["predicted_target_average_probability_001_set_0"] == 0
+    ]
+    print(
+        f"One realisation DES has: Ia {len(sim_Ia_1realisationDES)} nonIa {len(sim_nonIa_1realisationDES)}"
+    )
+    print(
+        f"One realisation DES SNN>0.001 selects: Ia {len(sim_Ia_1realisationDES_selIa)} nonIa {len(sim_nonIa_1realisationDES_selIa)}"
+    )
 
-    sim_Ia_1realisationDES_selIa05 = sim_Ia_1realisationDES[sim_Ia_1realisationDES['predicted_target_average_probability_set_0']==0]
-    sim_nonIa_1realisationDES_selIa05 = sim_nonIa_1realisationDES[sim_nonIa_1realisationDES['predicted_target_average_probability_set_0']==0]
-    print(f"One realisation DES SNN>0.5 selects: Ia {len(sim_Ia_1realisationDES_selIa05)} nonIa {len(sim_nonIa_1realisationDES_selIa05)}")
+    sim_Ia_1realisationDES_selIa05 = sim_Ia_1realisationDES[
+        sim_Ia_1realisationDES["predicted_target_average_probability_set_0"] == 0
+    ]
+    sim_nonIa_1realisationDES_selIa05 = sim_nonIa_1realisationDES[
+        sim_nonIa_1realisationDES["predicted_target_average_probability_set_0"] == 0
+    ]
+    print(
+        f"One realisation DES SNN>0.5 selects: Ia {len(sim_Ia_1realisationDES_selIa05)} nonIa {len(sim_nonIa_1realisationDES_selIa05)}"
+    )
 
     logger.info("")
     logger.info("SIMULATIONS: SNphoto z SALT2 FIT")

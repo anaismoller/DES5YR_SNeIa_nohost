@@ -497,7 +497,7 @@ def photo_norm(df_metadata, path_class, path_dump, logger, z="zspe", path_plots=
                 "specCC": specCC,
                 "specOther": specother,
             }
-            df_photoIa_stats = df_photoIa_stats.append(dic_tmp, ignore_index=True)
+            df_photoIa_stats = pd.concat([df_photoIa_stats, pd.DataFrame([dic_tmp])], ignore_index=True)
         # set 0 average probability sample
         photoIa_avg_prob_set_0 = photo_sel_target(
             df_dic_wsalt[norm],
@@ -511,7 +511,7 @@ def photo_norm(df_metadata, path_class, path_dump, logger, z="zspe", path_plots=
             "specCC": photoIa_avg_prob_set_0[2],
             "specOther": photoIa_avg_prob_set_0[3],
         }
-        df_photoIa_stats = df_photoIa_stats.append(dic_tmp, ignore_index=True)
+        df_photoIa_stats = pd.concat([df_photoIa_stats, pd.DataFrame([dic_tmp])], ignore_index=True)
 
     # Latex table
     for norm in norm_list:
@@ -689,9 +689,7 @@ def towards_cosmo(dic_df_photoIa_wsalt, df_photoIa_stats, logger):
                 "specCC_JLA_zHQ": specCC,
                 "specOther_JLA_zHQ": specother,
             }
-            df_photoIa_stats_tmp = df_photoIa_stats_tmp.append(
-                dic_tmp, ignore_index=True
-            )
+            df_photoIa_stats_tmp = pd.concat([df_photoIa_stats_tmp, pd.DataFrame([dic_tmp])], ignore_index=True)
         # set 0 average probability sample
         photoIa_avg_prob_set_0 = photo_sel_prob(
             dic_photoIa_sel[norm]["average_probability_set_0"],
@@ -705,7 +703,7 @@ def towards_cosmo(dic_df_photoIa_wsalt, df_photoIa_stats, logger):
             "specCC_JLA_zHQ": photoIa_avg_prob_set_0[2],
             "specOther_JLA_zHQ": photoIa_avg_prob_set_0[3],
         }
-        df_photoIa_stats_tmp = df_photoIa_stats_tmp.append(dic_tmp, ignore_index=True)
+        df_photoIa_stats_tmp = pd.concat([df_photoIa_stats_tmp, pd.DataFrame([dic_tmp])], ignore_index=True)
 
     # Latex table
     df_photoIa_stats = pd.merge(

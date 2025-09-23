@@ -553,8 +553,8 @@ def plot_errorbar_binned(
             list_vary = []
             for subsamples in range(100):  # alway do a 100 sample
                 sel = df.sample(frac=1 / sim_scale_factor)
-                val_varx = sel.groupby(binname).mean()[varx].values
-                val_vary = sel.groupby(binname).mean()[vary].values
+                val_varx = sel.groupby(binname)[varx].mean().values
+                val_vary = sel.groupby(binname)[vary].mean().values
                 list_varx.append(val_varx)
                 list_vary.append(val_vary)
                 axs.plot(
@@ -577,11 +577,11 @@ def plot_errorbar_binned(
                 zorder=-20,
             )
         # print(list_labels[i], color_list[i + color_offset])
-        x_toplot = bins if len(bins) > 1 else df.groupby(binname).mean()[varx].values
+        x_toplot = bins if len(bins) > 1 else df.groupby(binname)[varx].mean().values
         axs.errorbar(
             x_toplot,
-            df.groupby(binname).mean()[vary].values,
-            yerr=df.groupby(binname).std()[vary].values
+            df.groupby(binname)[vary].mean().values,
+            yerr=df.groupby(binname)[vary].std().values
             / np.sqrt(df.groupby(binname)[vary].count()).values,
             label=list_labels[i],
             fmt="o" if "data" in list_labels[i]
@@ -599,7 +599,7 @@ def plot_errorbar_binned(
         if plot_lines:
             axs.errorbar(
                 x_toplot,
-                df.groupby(binname).mean()[vary].values,
+                df.groupby(binname)[vary].mean().values,
                 yerr=df.groupby(binname).std()[vary].values
                 / np.sqrt(df.groupby(binname)[vary].count()).values,
                 fmt="o" if "data" in list_labels[i]
