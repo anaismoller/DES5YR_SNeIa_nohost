@@ -604,6 +604,7 @@ if __name__ == "__main__":
         photoIanoz_SNphotoz_HQ, photoIa_wz_JLA, df_stats=df_stats, cut="z<1.2"
     )
 
+    lu.print_green("Saving samples")
     # save sample
     cols_to_keep = [
         "SNID",
@@ -655,6 +656,46 @@ if __name__ == "__main__":
         index=False,
     )
     print(f"Saved {len(photoIanoz_SNphotoz_HQ)} photoIanoz saltz HQ")
+
+    # Potential hosts to target for fup
+    # No redshifts but identified host galaxy with magnitude
+    tmp = photoIanoz_SNphotoz_HQ[(photoIanoz_SNphotoz_HQ.REDSHIFT_FINAL < 0) & (photoIanoz_SNphotoz_HQ.HOSTGAL_MAG_r<99)]
+    print(f"Potential hosts to target for fup {len(tmp)}")
+    cols_to_keep = [
+        "SNID",
+        "IAUC",
+        "SNTYPE",
+        "HOSTGAL_RA",
+        "HOSTGAL_DEC",
+        "HOSTGAL_MAG_r",
+        "HOSTGAL_MAGERR_r",
+        "zHD",
+        "zHDERR",
+        "FITPROB",
+        "average_probability_set_0",
+    ]
+    # Open the file for writing
+    with open(
+        f"{path_samples}/DES_noredshift_Moller2024_hosts_followup.csv", "w"
+    ) as f:
+        # Write a comment in the header
+        f.write("# Moller et al. 2024 \n")
+        f.write("# SNe Ia selected with SuperNNova without host-galaxy redshifts \n")
+        f.write(
+            "# This is NOT the cosmology sample nor the SALT values used for cosmology In DES+2024 \n"
+        )
+        f.write("# Contains M24 sample without host-galaxy redshifts \n")
+        f.write("# SN z is SN-light-curve fitted redshift estimation  \n")
+        f.write("# ensemble=average_probability_set_0  \n")
+    # Write the DataFrame to CSV, appending to the existing file
+    tmp[cols_to_keep].rename(
+        columns={"zHD": "SN z", "zHDERR": "SN z error"}
+    ).to_csv(
+        f"{path_samples}/DES_noredshift_Moller2024_hosts_followup.csv",
+        mode="a",
+        index=False
+    )
+    print(f"Saved {len(tmp)} hosts follow-up sample")
 
     df_stats = mu.cuts_deep_shallow(
         photoIanoz_SNphotoz_HQ,
